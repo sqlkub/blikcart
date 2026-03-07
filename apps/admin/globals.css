@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --navy: #1A3C5E; --gold: #C8860A; }
+body { font-family: 'Inter', sans-serif; background: #F8FAFC; }

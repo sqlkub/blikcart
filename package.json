@@ -1,0 +1,27 @@
+{
+  "name": "blikcart",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:migrate": "pnpm --filter @blikcart/db migrate:dev",
+    "db:seed": "pnpm --filter @blikcart/db seed",
+    "db:studio": "pnpm --filter @blikcart/db studio",
+    "db:generate": "pnpm --filter @blikcart/db generate",
+    "db:reset": "pnpm --filter @blikcart/db reset"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

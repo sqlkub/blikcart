@@ -1,0 +1,483 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  retail
+  wholesale
+  admin
+  manufacturer
+}
+
+enum WholesaleTier {
+  bronze
+  silver
+  gold
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  in_production
+  shipped
+  delivered
+  cancelled
+}
+
+enum OrderType {
+  standard
+  custom
+  mixed
+}
+
+enum CustomOrderStatus {
+  draft
+  submitted
+  quoted
+  approved
+  in_production
+  shipped
+  cancelled
+}
+
+enum QuoteStatus {
+  sent
+  accepted
+  declined
+  expired
+  revised
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PaymentProvider {
+  mollie
+  stripe
+  bank_transfer
+}
+
+enum ShipmentStatus {
+  pending
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  returned
+}
+
+enum AddressType {
+  billing
+  shipping
+}
+
+enum CartItemType {
+  standard
+  custom
+}
+
+model User {
+  id             String        @id @default(uuid())
+  email          String        @unique
+  passwordHash   String
+  fullName       String
+  phone          String?
+  accountType    AccountType   @default(retail)
+  wholesaleTier  WholesaleTier?
+  companyName    String?
+  vatNumber      String?
+  isApproved     Boolean       @default(false)
+  locale         String        @default("nl")
+  currency       String        @default("EUR")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  addresses      Address[]
+  carts          Cart[]
+  orders         Order[]
+  customOrders   CustomOrder[]
+  sentQuotes     Quote[]       @relation("AdminQuotes")
+  messages       Message[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Address {
+  id          String      @id @default(uuid())
+  userId      String
+  type        AddressType @default(shipping)
+  isDefault   Boolean     @default(false)
+  fullName    String
+  streetLine1 String
+  streetLine2 String?
+  city        String
+  postalCode  String
+  countryCode String      @default("NL")
+  createdAt   DateTime    @default(now())
+
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingOrders  Order[] @relation("ShippingAddress")
+  billingOrders   Order[] @relation("BillingAddress")
+
+  @@map("addresses")
+}
+
+model Category {
+  id            String    @id @default(uuid())
+  parentId      String?
+  slug          String    @unique
+  name          String
+  description   String?
+  imageUrl      String?
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  isCustomizable Boolean  @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  parent    Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[]          @relation("CategoryHierarchy")
+  products  Product[]
+  configuratorSchema ConfiguratorSchema?
+
+  @@map("categories")
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  categoryId    String
+  slug          String    @unique
+  sku           String    @unique
+  name          String
+  description   String?
+  basePrice     Decimal   @db.Decimal(10, 2)
+  wholesalePrice Decimal? @db.Decimal(10, 2)
+  moq           Int       @default(1)
+  isCustomizable Boolean  @default(false)
+  isActive      Boolean   @default(true)
+  weightGrams   Int?
+  leadTimeDays  Int       @default(0)
+  tags          String[]
+  metaTitle     String?
+  metaDescription String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  category     Category         @relation(fields: [categoryId], references: [id])
+  variants     ProductVariant[]
+  images       ProductImage[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  customOrders CustomOrder[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String   @id @default(uuid())
+  productId     String
+  sku           String   @unique
+  size          String?
+  color         String?
+  material      String?
+  priceModifier Decimal  @default(0) @db.Decimal(10, 2)
+  stockQty      Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id              String  @id @default(uuid())
+  productId       String
+  url             String
+  altText         String?
+  sortOrder       Int     @default(0)
+  isPrimary       Boolean @default(false)
+  layerType       String?
+  layerVariantKey String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ConfiguratorSchema {
+  id                     String   @id @default(uuid())
+  categoryId             String   @unique
+  basePrice              Decimal  @db.Decimal(10, 2)
+  moq                    Int      @default(1)
+  leadTimeStandardDays   Int      @default(21)
+  leadTimeExpressDays    Int      @default(10)
+  expressPriceMultiplier Decimal  @default(1.25) @db.Decimal(5, 2)
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  category      Category        @relation(fields: [categoryId], references: [id])
+  versions      SchemaVersion[]
+  assets        ConfiguratorAsset[]
+
+  @@map("configurator_schemas")
+}
+
+model SchemaVersion {
+  id            String   @id @default(uuid())
+  schemaId      String
+  versionNumber Int
+  steps         Json
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  schema       ConfiguratorSchema @relation(fields: [schemaId], references: [id], onDelete: Cascade)
+  customOrders CustomOrder[]
+
+  @@unique([schemaId, versionNumber])
+  @@index([schemaId])
+  @@map("schema_versions")
+}
+
+model ConfiguratorAsset {
+  id        String @id @default(uuid())
+  schemaId  String
+  layerKey  String
+  assetType String
+  url       String
+  sortOrder Int    @default(0)
+
+  schema ConfiguratorSchema @relation(fields: [schemaId], references: [id], onDelete: Cascade)
+
+  @@index([schemaId])
+  @@map("configurator_assets")
+}
+
+model Cart {
+  id          String    @id @default(uuid())
+  userId      String?
+  guestToken  String?   @unique
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                String       @id @default(uuid())
+  cartId            String
+  productId         String
+  variantId         String?
+  customOrderDraftId String?
+  quantity          Int
+  unitPrice         Decimal      @db.Decimal(10, 2)
+  itemType          CartItemType @default(standard)
+  createdAt         DateTime     @default(now())
+
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  userId            String
+  orderNumber       String      @unique
+  status            OrderStatus @default(pending)
+  orderType         OrderType   @default(standard)
+  subtotal          Decimal     @db.Decimal(10, 2)
+  shippingCost      Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  total             Decimal     @db.Decimal(10, 2)
+  currency          String      @default("EUR")
+  shippingAddressId String?
+  billingAddressId  String?
+  notes             String?
+  placedAt          DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id])
+  shippingAddress Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress  Address?      @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  items           OrderItem[]
+  customOrders    CustomOrder[]
+  payments        Payment[]
+  shipments       Shipment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([placedAt(sort: Desc)])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  variantId String?
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model CustomOrder {
+  id                  String            @id @default(uuid())
+  userId              String
+  orderId             String?
+  productId           String
+  schemaId            String?
+  schemaVersionId     String?
+  status              CustomOrderStatus @default(draft)
+  configSnapshot      Json
+  quantity            Int               @default(1)
+  estimatedPriceMin   Decimal?          @db.Decimal(10, 2)
+  estimatedPriceMax   Decimal?          @db.Decimal(10, 2)
+  confirmedUnitPrice  Decimal?          @db.Decimal(10, 2)
+  leadTimeDays        Int?
+  internalRef         String?
+  referenceFiles      String[]
+  notes               String?
+  submittedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id])
+  order         Order?         @relation(fields: [orderId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+  schemaVersion SchemaVersion? @relation(fields: [schemaVersionId], references: [id])
+  quote         Quote?
+  messages      Message[]
+
+  @@index([userId, status])
+  @@index([status, submittedAt(sort: Desc)])
+  @@map("custom_orders")
+}
+
+model Quote {
+  id             String      @id @default(uuid())
+  customOrderId  String      @unique
+  adminId        String
+  unitPrice      Decimal     @db.Decimal(10, 2)
+  totalPrice     Decimal     @db.Decimal(10, 2)
+  leadTimeDays   Int
+  validUntil     DateTime
+  status         QuoteStatus @default(sent)
+  message        String?
+  pdfUrl         String?
+  sentAt         DateTime    @default(now())
+  respondedAt    DateTime?
+
+  customOrder  CustomOrder     @relation(fields: [customOrderId], references: [id])
+  admin        User            @relation("AdminQuotes", fields: [adminId], references: [id])
+  revisions    QuoteRevision[]
+
+  @@map("quotes")
+}
+
+model QuoteRevision {
+  id             String   @id @default(uuid())
+  quoteId        String
+  revisionNumber Int
+  unitPrice      Decimal  @db.Decimal(10, 2)
+  message        String?
+  createdAt      DateTime @default(now())
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@map("quote_revisions")
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  customOrderId String
+  senderId      String
+  body          String
+  attachments   String[]
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  sender      User        @relation(fields: [senderId], references: [id])
+
+  @@index([customOrderId])
+  @@map("messages")
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  orderId           String
+  provider          PaymentProvider
+  providerPaymentId String          @unique
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("EUR")
+  status            PaymentStatus   @default(pending)
+  method            String?
+  paidAt            DateTime?
+  refundedAmount    Decimal?        @db.Decimal(10, 2)
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Shipment {
+  id                String         @id @default(uuid())
+  orderId           String
+  carrier           String?
+  trackingNumber    String?
+  trackingUrl       String?
+  status            ShipmentStatus @default(pending)
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  estimatedDelivery DateTime?
+  createdAt         DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("shipments")
+}

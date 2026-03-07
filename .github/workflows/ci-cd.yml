@@ -1,0 +1,142 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['release/*']
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: blikcart
+          POSTGRES_PASSWORD: blikcart
+          POSTGRES_DB: blikcart_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://blikcart:blikcart@localhost:5432/blikcart_test
+
+      - name: Run DB migrations
+        run: pnpm --filter @blikcart/db migrate:deploy
+        env:
+          DATABASE_URL: postgresql://blikcart:blikcart@localhost:5432/blikcart_test
+
+      - run: pnpm lint
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000/v1
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: quality
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: '8' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: pnpm }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push API image
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/blikcart-api:${{ github.sha }}-staging"
+          docker build -t $IMAGE -f apps/api/Dockerfile .
+          docker push $IMAGE
+
+      - name: Deploy API to ECS
+        run: |
+          aws ecs update-service \
+            --cluster blikcart-staging \
+            --service blikcart-api \
+            --force-new-deployment
+
+      - name: Run DB migration
+        run: |
+          aws ecs run-task \
+            --cluster blikcart-staging \
+            --task-definition blikcart-migrate \
+            --launch-type FARGATE
+
+      - name: Deploy Web to Vercel
+        run: npx vercel --token ${{ secrets.VERCEL_TOKEN }} --env staging
+        working-directory: apps/web
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: '{"text":"🚀 Staging deploy ${{ job.status }}: ${{ github.sha }}"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    name: Deploy to Production
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/release/')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (prod)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Deploy to production ECS
+        run: |
+          aws ecs update-service \
+            --cluster blikcart-production \
+            --service blikcart-api \
+            --force-new-deployment
+
+      - name: Deploy Web to Vercel (prod)
+        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/web
