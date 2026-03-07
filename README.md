@@ -117,3 +117,4 @@ pnpm db:reset         # Reset + re-seed
 ---
 
 Built with ❤️ for the equestrian industry. blikcart.nl
+# blikcart
