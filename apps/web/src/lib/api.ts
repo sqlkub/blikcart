@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://52.49.206.184:4000/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-export const api = axios.create({ baseURL: API_URL, withCredentials: true });
+export const api = axios.create({ baseURL: API_URL });
 
 // Attach access token
 api.interceptors.request.use((config) => {

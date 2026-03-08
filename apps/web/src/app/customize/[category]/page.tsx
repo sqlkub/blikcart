@@ -1,22 +1,27 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ConfiguratorStep from '@/components/configurator/ConfiguratorStep';
 import { useConfiguratorStore } from '@/store/configurator.store';
 
-const API = 'http://52.49.206.184:4000/v1';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 export default function ConfiguratorPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const category = params.category as string;
+  const productId = searchParams.get('productId');
 
   const [schema, setSchema] = useState<any>(null);
   const [steps, setSteps] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const { selections, quantity, reset } = useConfiguratorStore();
 
@@ -52,6 +57,53 @@ export default function ConfiguratorPage() {
     return sum + (opt?.price_modifier || 0);
   }, 0);
   const estimatedPrice = ((schema?.basePrice || 0) + priceModifier).toFixed(2);
+
+  async function submitQuote() {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) {
+      const redirect = `/customize/${category}${productId ? `?productId=${productId}` : ''}`;
+      router.push(`/login?redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const draftRes = await fetch(`${API}/configurator/drafts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ productId, schemaVersionId: schema?.schemaVersionId, selections }),
+      });
+      if (!draftRes.ok) throw new Error((await draftRes.json()).message || 'Failed to save configuration');
+      const draft = await draftRes.json();
+
+      const submitRes = await fetch(`${API}/configurator/drafts/${draft.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      if (!submitRes.ok) throw new Error((await submitRes.json()).message || 'Failed to submit quote request');
+      setSubmitted(true);
+    } catch (e: any) {
+      setSubmitError(e.message || 'Failed to submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
+      <div style={{ textAlign: 'center', background: 'white', padding: 48, borderRadius: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: 480 }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
+        <h2 style={{ color: 'var(--navy)', fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Quote Request Sent!</h2>
+        <p style={{ color: '#6b7280', lineHeight: 1.6, marginBottom: 28 }}>
+          Your custom configuration has been submitted. Our team will review it and get back to you with a quote within 1–2 business days.
+        </p>
+        <Link href="/" style={{ display: 'inline-block', background: 'var(--navy)', color: 'white', padding: '12px 32px', borderRadius: 10, fontWeight: 700, textDecoration: 'none' }}>
+          Back to Home
+        </Link>
+      </div>
+    </div>
+  );
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
@@ -155,9 +207,17 @@ export default function ConfiguratorPage() {
                     Next Step →
                   </button>
                 ) : (
-                  <Link href="/login?redirect=/account" style={{ padding: '10px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'white', background: 'var(--navy)', textDecoration: 'none', display: 'inline-block' }}>
-                    Submit Quote Request →
-                  </Link>
+                  <div style={{ textAlign: 'right' }}>
+                    {submitError && <p style={{ fontSize: 13, color: '#ef4444', marginBottom: 8 }}>{submitError}</p>}
+                    <button
+                      type="button"
+                      onClick={submitQuote}
+                      disabled={submitting}
+                      style={{ padding: '10px 28px', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, color: 'white', background: submitting ? '#9ca3af' : 'var(--navy)', cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+                    >
+                      {submitting ? 'Submitting...' : 'Submit Quote Request →'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
