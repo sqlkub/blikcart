@@ -104,7 +104,8 @@ jobs:
 
             echo "── Running DB migration ─────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml run --rm api \
-              npx prisma migrate deploy
+              /app/node_modules/.bin/prisma migrate deploy \
+              --schema=/app/packages/db/prisma/schema.prisma
 
             echo "── Restarting services ──────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml up -d --remove-orphans
@@ -152,7 +153,8 @@ jobs:
 
             echo "── Running DB migration ─────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml run --rm api \
-              npx prisma migrate deploy
+              /app/node_modules/.bin/prisma migrate deploy \
+              --schema=/app/packages/db/prisma/schema.prisma
 
             echo "── Restarting services ──────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml up -d --remove-orphans
