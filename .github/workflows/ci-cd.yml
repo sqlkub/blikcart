@@ -1,0 +1,193 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['release/*']
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# QUALITY — lint + build check (every push & PR)
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: blikcart
+          POSTGRES_PASSWORD: blikcart
+          POSTGRES_DB: blikcart_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://blikcart:blikcart@localhost:5432/blikcart_test
+
+      - name: Run DB migrations
+        run: pnpm --filter @blikcart/db migrate:deploy
+        env:
+          DATABASE_URL: postgresql://blikcart:blikcart@localhost:5432/blikcart_test
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build all apps
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://blikcart:blikcart@localhost:5432/blikcart_test
+          NEXT_PUBLIC_API_URL: http://localhost:4000/v1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOY — STAGING  (push to main)
+# SSH → git pull → docker compose build & restart → migration → health check
+# ─────────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: quality
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          timeout:  600s
+          script: |
+            set -euo pipefail
+            export NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}"
+            cd /app/blikcart-local
+
+            echo "── Pulling latest code ──────────────────────────────"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "── Rebuilding containers ────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml build \
+              --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL"
+
+            echo "── Running DB migration ─────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml run --rm api \
+              npx prisma migrate deploy
+
+            echo "── Restarting services ──────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml up -d --remove-orphans
+
+            echo "── Cleaning up old images ───────────────────────────"
+            docker image prune -f
+
+            echo "── Health check ─────────────────────────────────────"
+            for i in $(seq 1 12); do
+              CODE=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:4000/v1/products || echo 000)
+              [ "$CODE" = "200" ] && echo "API healthy (attempt $i)" && exit 0
+              echo "Attempt $i — HTTP $CODE, waiting 5s…"; sleep 5
+            done
+            echo "API health check timed out" && exit 1
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:' }} *Staging* deploy `${{ github.sha }}` — *${{ job.status }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPLOY — PRODUCTION  (release/* tag)
+# ─────────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/release/')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key:      ${{ secrets.PROD_EC2_SSH_KEY }}
+          timeout:  600s
+          script: |
+            set -euo pipefail
+            export NEXT_PUBLIC_API_URL="${{ secrets.PROD_NEXT_PUBLIC_API_URL }}"
+            cd /app/blikcart-local
+
+            echo "── Checking out tag ${{ github.ref_name }} ──────────"
+            git fetch --tags origin
+            git checkout ${{ github.ref_name }}
+
+            echo "── Rebuilding containers ────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml build \
+              --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL"
+
+            echo "── Running DB migration ─────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml run --rm api \
+              npx prisma migrate deploy
+
+            echo "── Restarting services ──────────────────────────────"
+            docker compose -f docker-compose.dev-aws.yml up -d --remove-orphans
+
+            echo "── Cleaning up old images ───────────────────────────"
+            docker image prune -f
+
+            echo "── Health check ─────────────────────────────────────"
+            for i in $(seq 1 12); do
+              CODE=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:4000/v1/products || echo 000)
+              [ "$CODE" = "200" ] && echo "API healthy (attempt $i)" && exit 0
+              echo "Attempt $i — HTTP $CODE, waiting 5s…"; sleep 5
+            done
+            echo "API health check timed out" && exit 1
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:' }} *Production* deploy `${{ github.ref_name }}` — *${{ job.status }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
