@@ -104,7 +104,8 @@ jobs:
 
             echo "── Running DB migration ─────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml run --rm api \
-              /app/node_modules/.bin/prisma migrate deploy \
+              node /app/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/build/index.js \
+              migrate deploy \
               --schema=/app/packages/db/prisma/schema.prisma
 
             echo "── Restarting services ──────────────────────────────"
@@ -153,7 +154,8 @@ jobs:
 
             echo "── Running DB migration ─────────────────────────────"
             docker compose -f docker-compose.dev-aws.yml run --rm api \
-              /app/node_modules/.bin/prisma migrate deploy \
+              node /app/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/build/index.js \
+              migrate deploy \
               --schema=/app/packages/db/prisma/schema.prisma
 
             echo "── Restarting services ──────────────────────────────"
