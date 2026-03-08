@@ -92,8 +92,8 @@ jobs:
           timeout:  600s
           script: |
             set -euo pipefail
-            export NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}"
-            cd /app/blikcart-local
+            export NEXT_PUBLIC_API_URL="http://52.49.206.184:4000/v1"
+            cd /app/blikcart
 
             echo "── Pulling latest code ──────────────────────────────"
             git fetch origin main
@@ -153,7 +153,7 @@ jobs:
           script: |
             set -euo pipefail
             export NEXT_PUBLIC_API_URL="${{ secrets.PROD_NEXT_PUBLIC_API_URL }}"
-            cd /app/blikcart-local
+            cd /app/blikcart
 
             echo "── Checking out tag ${{ github.ref_name }} ──────────"
             git fetch --tags origin
