@@ -20,6 +20,11 @@ export class QuotesController {
     return this.quotes.respondToQuote(id, req.user.id, body.action);
   }
 
+  @Get('custom-orders')
+  getMyOrders(@Request() req) {
+    return this.quotes.getUserOrders(req.user.id);
+  }
+
   @Get('custom-orders/:id')
   getCustomOrder(@Param('id') id: string) {
     return this.quotes.getCustomOrderDetails(id);

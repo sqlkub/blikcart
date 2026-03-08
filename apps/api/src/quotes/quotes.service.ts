@@ -87,6 +87,22 @@ export class QuotesService {
     return { success: true, status };
   }
 
+  async getUserOrders(userId: string) {
+    const orders = await this.prisma.customOrder.findMany({
+      where: { userId },
+      include: {
+        product: { select: { name: true, slug: true, images: { where: { isPrimary: true } } } },
+        quote: { select: { status: true, unitPrice: true, totalPrice: true, validUntil: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return orders.map(o => ({
+      ...o,
+      estimatedPriceMin: o.estimatedPriceMin ? Number(o.estimatedPriceMin) : null,
+      estimatedPriceMax: o.estimatedPriceMax ? Number(o.estimatedPriceMax) : null,
+    }));
+  }
+
   async getCustomOrderDetails(id: string) {
     const order = await this.prisma.customOrder.findUnique({
       where: { id },
