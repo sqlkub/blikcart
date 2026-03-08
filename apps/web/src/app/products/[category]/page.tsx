@@ -138,8 +138,8 @@ export default function ProductsPage() {
                       {p.moq > 1 && <span style={{ fontSize: 12, color: '#9ca3af' }}>MOQ {p.moq}</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Link href={`/products/${p.slug}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View</Link>
-                      <Link href={`/customize/${configSlug}?productId=${p.id}`} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--gold)', color: 'white', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🎨 Customize →</Link>
+                      <Link href={`/products/${p.slug}`} style={{ flex: p.isCustomizable ? 1 : 2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View</Link>
+                      {p.isCustomizable && <Link href={`/customize/${configSlug}?productId=${p.id}`} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--gold)', color: 'white', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🎨 Customize →</Link>}
                     </div>
                   </div>
                 </div>
