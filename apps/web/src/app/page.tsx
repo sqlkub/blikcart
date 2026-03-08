@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { ArrowRight, Leaf, Factory, Settings } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const categories = [
   { name: 'Bridles', slug: 'bridles', emoji: '🐴', count: '12 styles' },
   { name: 'Browbands', slug: 'browbands', emoji: '✨', count: '8 styles' },
   { name: 'Halters', slug: 'halters', emoji: '🎯', count: '6 styles' },
-  { name: 'Reins', slug: 'reins', emoji: '🔗', count: '9 styles' },
+  { name: 'Reins', slug: 'horse-reins', emoji: '🔗', count: '9 styles' },
   { name: 'Girths', slug: 'girths', emoji: '⚡', count: '5 styles' },
-  { name: 'Gloves', slug: 'gloves', emoji: '🧤', count: '4 styles' },
+  { name: 'Parts & Components', slug: 'parts-components', emoji: '🔧', count: '4 styles' },
 ];
 
 const features = [
@@ -18,58 +18,57 @@ const features = [
 
 export default function HomePage() {
   return (
-    <>
+    <div style={{ minHeight: '100vh' }}>
+
       {/* Hero */}
-      <section className="bg-gradient-to-br from-navy to-navy-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section style={{ background: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%)', color: 'white', padding: '88px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
           <div>
-            <p className="text-gold text-sm font-semibold uppercase tracking-widest mb-4">Premium Saddlery</p>
-            <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
+            <p style={{ color: '#C8860A', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 16 }}>Premium Saddlery</p>
+            <h1 style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.1, marginBottom: 20, letterSpacing: '-0.02em' }}>
               Fully Customised.<br />
-              <span className="text-gold">Handcrafted.</span><br />
+              <span style={{ color: '#C8860A' }}>Handcrafted.</span><br />
               Delivered.
             </h1>
-            <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-              Design your perfect bridle, browband, or halter with our step-by-step configurator. 
-              Premium leather, your colours, your hardware. Direct from our workshop.
+            <p style={{ color: '#999', fontSize: 17, marginBottom: 32, lineHeight: 1.7, maxWidth: 480 }}>
+              Design your perfect bridle, browband, or halter with our step-by-step configurator. Premium leather, your colours, your hardware. Direct from our workshop.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/customize/bridles" className="btn-primary flex items-center gap-2 justify-center">
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Link href="/customize/bridles" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15 }}>
                 Design Your Own <ArrowRight size={16} />
               </Link>
-              <Link href="/products/for-horses" className="btn-outline border-white text-white hover:bg-white hover:text-navy flex items-center gap-2 justify-center">
+              <Link href="/products/for-horses" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'white', padding: '12px 28px', borderRadius: 8, fontWeight: 600, fontSize: 15, border: '1.5px solid rgba(255,255,255,0.2)' }}>
                 Browse Products
               </Link>
             </div>
-            <p className="text-gray-400 text-sm mt-6">Wholesale from 5 units · Free shipping over €150 · 21-day lead time</p>
+            <p style={{ color: '#555', fontSize: 13, marginTop: 20 }}>Wholesale from 5 units · Free shipping over €150 · 21-day lead time</p>
           </div>
-          <div className="relative">
-            <div className="aspect-square bg-navy-800 rounded-2xl flex items-center justify-center text-9xl shadow-2xl">
-              🐴
-            </div>
-            <div className="absolute -bottom-4 -right-4 bg-gold text-white rounded-xl px-4 py-3 shadow-lg">
-              <p className="text-xs font-semibold">from</p>
-              <p className="text-2xl font-bold">€38</p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 24, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 120, border: '1px solid rgba(255,255,255,0.08)' }}>
+                🐴
+              </div>
+              <div style={{ position: 'absolute', bottom: -12, right: -12, background: '#C8860A', color: 'white', borderRadius: 12, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>from</p>
+                <p style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>€38</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="py-16 bg-cream">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-navy mb-2">Shop by Category</h2>
-          <p className="text-gray-600 mb-8">All products available as standard or fully customised</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Shop by Category */}
+      <section style={{ background: '#f5f5f5', padding: '64px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>Shop by Category</h2>
+          <p style={{ color: '#666', marginBottom: 32 }}>All products available as standard or fully customised</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {categories.map(cat => (
-              <Link
-                key={cat.slug}
-                href={`/products/${cat.slug}`}
-                className="bg-white rounded-xl p-4 text-center hover:shadow-lg transition-shadow group border border-gray-100"
-              >
-                <div className="text-4xl mb-2">{cat.emoji}</div>
-                <p className="font-semibold text-navy group-hover:text-gold transition-colors text-sm">{cat.name}</p>
-                <p className="text-xs text-gray-500 mt-1">{cat.count}</p>
+              <Link key={cat.slug} href={`/products/${cat.slug}`} style={{ background: 'white', borderRadius: 12, padding: '28px 20px', textAlign: 'center', border: '1px solid #e0e0e0', display: 'block', transition: 'box-shadow 0.2s, transform 0.2s' }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>{cat.emoji}</div>
+                <p style={{ fontWeight: 700, color: '#1a1a1a', fontSize: 15 }}>{cat.name}</p>
+                <p style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{cat.count}</p>
               </Link>
             ))}
           </div>
@@ -77,56 +76,56 @@ export default function HomePage() {
       </section>
 
       {/* Configurator CTA */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="bg-navy rounded-2xl p-10 text-white text-center">
-            <h2 className="text-3xl font-bold mb-4">Design Your Perfect Bridle</h2>
-            <p className="text-gray-300 mb-8 text-lg max-w-2xl mx-auto">
-              Choose from 8 styles, 3 materials, 8 colours, 4 hardware finishes, padding options and more. 
-              Real-time price as you configure.
+      <section style={{ background: 'white', padding: '64px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ background: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%)', borderRadius: 20, padding: '56px 48px', color: 'white', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12 }}>Design Your Perfect Bridle</h2>
+            <p style={{ color: '#888', marginBottom: 36, fontSize: 16, maxWidth: 560, margin: '0 auto 36px' }}>
+              Choose from 8 styles, 3 materials, 8 colours, 4 hardware finishes, padding options and more. Real-time price as you configure.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-3xl mx-auto">
-              {['Style', 'Material', 'Colour', 'Hardware', 'Padding', 'Stitching', 'Size', 'Delivery'].map((s, i) => (
-                <div key={s} className="bg-navy-800 rounded-lg p-3">
-                  <div className="text-gold font-bold text-lg">{i + 1}</div>
-                  <div className="text-sm text-gray-300">{s}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 640, margin: '0 auto 36px' }}>
+              {['Style', 'Material', 'Colour', 'Hardware', 'Padding', 'Stitching', 'Size', 'Delivery'].map((step, i) => (
+                <div key={step} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '12px 8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ color: '#C8860A', fontWeight: 800, fontSize: 18 }}>{i + 1}</div>
+                  <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{step}</div>
                 </div>
               ))}
             </div>
-            <Link href="/customize/bridles" className="btn-primary inline-flex items-center gap-2 text-lg px-8 py-4">
-              Start Configuring <ArrowRight size={20} />
+            <Link href="/customize/bridles" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '14px 32px', borderRadius: 8, fontWeight: 700, fontSize: 16 }}>
+              Start Configuring <ArrowRight size={18} />
             </Link>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-16 bg-cream">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map(f => (
-              <div key={f.title} className="bg-white rounded-xl p-6 border border-gray-100">
-                <div className="text-4xl mb-4">{f.icon}</div>
-                <h3 className="text-lg font-bold text-navy mb-2">{f.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
+      <section style={{ background: '#f5f5f5', padding: '64px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+            {features.map((f, i) => (
+              <div key={i} style={{ background: 'white', borderRadius: 12, padding: '28px 24px', border: '1px solid #e0e0e0' }}>
+                <div style={{ fontSize: 36, marginBottom: 16 }}>{f.icon}</div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Wholesale Banner */}
-      <section className="bg-gold py-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* B2B Banner */}
+      <section style={{ background: '#2a2a2a', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
           <div>
-            <h2 className="text-2xl font-bold text-white">B2B & Wholesale</h2>
-            <p className="text-white/80 mt-1">Volume discounts from 5 units. Dedicated account manager. Net-30 terms available.</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white' }}>B2B & Wholesale</h2>
+            <p style={{ color: '#888', marginTop: 4 }}>Volume discounts from 5 units. Dedicated account manager. Net-30 terms available.</p>
           </div>
-          <Link href="/wholesale" className="bg-white text-gold font-bold px-8 py-3 rounded-lg hover:bg-cream transition-colors flex-shrink-0">
+          <Link href="/wholesale" style={{ background: '#C8860A', color: 'white', fontWeight: 700, padding: '12px 28px', borderRadius: 8, fontSize: 15 }}>
             Apply for Wholesale
           </Link>
         </div>
       </section>
-    </>
+
+    </div>
   );
 }

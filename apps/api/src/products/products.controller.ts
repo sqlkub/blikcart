@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Patch, Body } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 
@@ -15,6 +15,11 @@ export class ProductsController {
   @Get('categories')
   getCategories() {
     return this.products.findCategories();
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: any) {
+    return this.products.update(id, body);
   }
 
   @Get(':slug')

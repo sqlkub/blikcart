@@ -1,0 +1,81 @@
+'use client';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+const STATUSES = ['All','pending','confirmed','processing','shipped','delivered','cancelled'];
+const statusColor: Record<string,string> = {
+  pending:'bg-yellow-100 text-yellow-700', confirmed:'bg-blue-100 text-blue-700',
+  processing:'bg-purple-100 text-purple-700', shipped:'bg-indigo-100 text-indigo-700',
+  delivered:'bg-green-100 text-green-700', cancelled:'bg-red-100 text-red-600',
+};
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState('All');
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await axios.get(`${API}/orders?limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+        setOrders(res.data.data || []);
+      } catch { setOrders([]); }
+      finally { setLoading(false); }
+    }
+    load();
+  }, []);
+
+  const filtered = status === 'All' ? orders : orders.filter(o => o.status === status);
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+        <p className="text-gray-500 text-sm mt-1">{orders.length} total orders</p>
+      </div>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {STATUSES.map(s => (
+          <button key={s} onClick={() => setStatus(s)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${status === s ? 'bg-[#1A3C5E] text-white border-[#1A3C5E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+                {['Order ID','Customer','Items','Total','Status','Date'].map(h => (
+                  <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? [...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-gray-50">
+                  {[...Array(6)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}
+                </tr>
+              )) : filtered.length > 0 ? filtered.map(o => (
+                <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-5 py-4 text-xs font-mono text-[#1A3C5E]">#{o.orderNumber || o.id.slice(0,8).toUpperCase()}</td>
+                  <td className="px-5 py-4 text-sm">{o.user?.fullName || o.user?.email || '-'}</td>
+                  <td className="px-5 py-4 text-sm text-gray-500">{o.items?.length || 0} items</td>
+                  <td className="px-5 py-4 text-sm font-semibold">€{Number(o.totalAmount || 0).toFixed(2)}</td>
+                  <td className="px-5 py-4">
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${statusColor[o.status] || 'bg-gray-100 text-gray-500'}`}>{o.status}</span>
+                  </td>
+                  <td className="px-5 py-4 text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                </tr>
+              )) : (
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-gray-400 text-sm">No orders found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

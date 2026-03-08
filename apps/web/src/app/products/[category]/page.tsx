@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+const API = 'http://52.49.206.184:4000/v1';
 
 const CONFIGURATOR_MAP: Record<string, string> = {
   bridles: 'bridles',

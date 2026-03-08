@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ConfiguratorStep from '@/components/configurator/ConfiguratorStep';
 import { useConfiguratorStore } from '@/store/configurator.store';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+const API = 'http://52.49.206.184:4000/v1';
 
 export default function ConfiguratorPage() {
   const params = useParams();

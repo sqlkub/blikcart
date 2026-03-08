@@ -1,10 +1,11 @@
 'use client';
+import { Suspense } from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +32,6 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-navy">Welcome Back</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your Blikcart account</p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
@@ -55,9 +55,7 @@ export default function LoginPage() {
               placeholder="••••••••"
             />
           </div>
-
           {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
-
           <button
             type="submit"
             disabled={isLoading}
@@ -66,7 +64,6 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
         <p className="text-center text-sm text-gray-500 mt-6">
           Don't have an account?{' '}
           <Link href="/register" className="text-gold font-semibold hover:underline">Register</Link>
@@ -77,5 +74,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-cream flex items-center justify-center"><p>Loading...</p></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
