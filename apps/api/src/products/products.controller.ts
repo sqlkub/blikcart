@@ -1,4 +1,6 @@
-import { Controller, Get, Param, Query, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Param, Query, Patch, Body, Post, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 
@@ -20,6 +22,17 @@ export class ProductsController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any) {
     return this.products.update(id, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(FileInterceptor('file'))
+  @Post(':id/images')
+  uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('isPrimary') isPrimary: string,
+  ) {
+    return this.products.uploadImage(id, file, isPrimary === 'true');
   }
 
   @Get(':slug')

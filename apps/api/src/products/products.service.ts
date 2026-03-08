@@ -1,9 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  private s3: S3Client;
+
+  constructor(private prisma: PrismaService, private config: ConfigService) {
+    this.s3 = new S3Client({
+      region: config.get('AWS_REGION', 'eu-west-1'),
+      endpoint: config.get('S3_ENDPOINT'),
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: config.get('AWS_ACCESS_KEY_ID', 'test'),
+        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY', 'test'),
+      },
+    });
+  }
 
   async findAll(params: any) {
     const { categorySlug, search, isCustomizable, page = 1, limit = 20 } = params;
@@ -102,6 +116,32 @@ export class ProductsService {
     });
     return this.fmt(product);
   }
+  async uploadImage(productId: string, file: Express.Multer.File, isPrimary: boolean) {
+    const key = `products/${productId}/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    await this.s3.send(new PutObjectCommand({
+      Bucket: this.config.get('S3_BUCKET_NAME', 'blikcart-assets'),
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    }));
+
+    const cloudfrontUrl = this.config.get('CLOUDFRONT_URL');
+    const bucket = this.config.get('S3_BUCKET_NAME', 'blikcart-assets');
+    const region = this.config.get('AWS_REGION', 'eu-west-1');
+    const url = cloudfrontUrl
+      ? `${cloudfrontUrl}/${key}`
+      : `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    if (isPrimary) {
+      await this.prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
+    }
+
+    return this.prisma.productImage.create({
+      data: { productId, url, isPrimary, sortOrder: 0 },
+    });
+  }
+
   fmt(product: any) {
     return {
       ...product,
