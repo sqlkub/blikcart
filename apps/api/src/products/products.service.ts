@@ -85,6 +85,23 @@ export class ProductsService {
     });
   }
 
+
+  async update(id: string, data: any) {
+    const allowed = ['name', 'description', 'basePrice', 'wholesalePrice', 'moq', 'leadTimeDays', 'isActive', 'isCustomizable', 'imageUrl'];
+    const updateData: any = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (data.basePrice !== undefined) updateData.basePrice = Number(data.basePrice);
+    if (data.wholesalePrice !== undefined) updateData.wholesalePrice = Number(data.wholesalePrice);
+    if (data.moq !== undefined) updateData.moq = Number(data.moq);
+    const product = await this.prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: { category: true, images: true },
+    });
+    return this.fmt(product);
+  }
   fmt(product: any) {
     return {
       ...product,
@@ -93,3 +110,5 @@ export class ProductsService {
     };
   }
 }
+
+  // This line intentionally left blank

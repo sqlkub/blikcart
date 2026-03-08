@@ -56,7 +56,7 @@ export default function ConfiguratorStep({ step }: Props) {
     );
   }
 
-  if (step.ui_type === 'parts_selector') {
+  if ((step.ui_type as string) === 'parts_selector') {
     const selectedParts: string[] = (() => { try { return selected ? JSON.parse(selected) : []; } catch { return []; } })();
     const isFullBridle = selectedParts.includes('full_bridle');
     const togglePart = (partId: string) => {

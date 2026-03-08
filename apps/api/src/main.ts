@@ -6,28 +6,19 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
     transformOptions: { enableImplicitConversion: true },
   }));
 
-  // CORS
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      process.env.NEXT_PUBLIC_SITE_URL,
-      process.env.ADMIN_URL,
-    ].filter(Boolean),
-    credentials: true,
+    origin: '*',
+    credentials: false,
   });
 
-  // API versioning
   app.setGlobalPrefix('v1');
 
-  // Swagger docs
   const config = new DocumentBuilder()
     .setTitle('Blikcart API')
     .setDescription('Blikcart Saddlery Platform API')

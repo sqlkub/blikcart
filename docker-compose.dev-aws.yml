@@ -53,9 +53,22 @@ services:
     networks:
       - blikcart-net
 
+  blikcart-admin:
+    image: blikcart-admin:latest
+    container_name: blikcart-admin
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://52.49.206.184:4000/v1
+    networks:
+      - blikcart-net
+
 volumes:
   redis-data:
 
 networks:
   blikcart-net:
     driver: bridge
+
