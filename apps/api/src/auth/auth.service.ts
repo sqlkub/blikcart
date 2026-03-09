@@ -92,4 +92,31 @@ export class AuthService {
     await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     return { success: true };
   }
+
+  async getAddresses(userId: string) {
+    return this.prisma.address.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
+  }
+
+  async createAddress(userId: string, data: any) {
+    if (data.isDefault) {
+      await this.prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
+    }
+    return this.prisma.address.create({
+      data: {
+        userId,
+        fullName: data.fullName,
+        streetLine1: data.streetLine1,
+        streetLine2: data.streetLine2,
+        city: data.city,
+        postalCode: data.postalCode,
+        countryCode: data.countryCode || 'NL',
+        isDefault: data.isDefault || false,
+      },
+    });
+  }
+
+  async deleteAddress(userId: string, id: string) {
+    await this.prisma.address.deleteMany({ where: { id, userId } });
+    return { success: true };
+  }
 }

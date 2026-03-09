@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useCartStore } from '@/store/cart.store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -34,6 +35,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const { addItem } = useCartStore();
 
   useEffect(() => {
     async function fetchAll() {
@@ -62,6 +65,15 @@ export default function ProductsPage() {
     }
     fetchAll();
   }, [category]);
+
+  async function handleAddToCart(productId: string) {
+    setAddingId(productId);
+    try {
+      await addItem(productId, 1);
+    } finally {
+      setAddingId(null);
+    }
+  }
 
   const label = category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
@@ -137,9 +149,21 @@ export default function ProductsPage() {
                       <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)' }}>€{Number(p.basePrice).toFixed(2)}</span>
                       {p.moq > 1 && <span style={{ fontSize: 12, color: '#9ca3af' }}>MOQ {p.moq}</span>}
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Link href={`/products/${p.slug}`} style={{ flex: p.isCustomizable ? 1 : 2, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View</Link>
-                      {p.isCustomizable && <Link href={`/customize/${configSlug}?productId=${p.id}`} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--gold)', color: 'white', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🎨 Customize →</Link>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {!p.isCustomizable && (
+                        <button
+                          type="button"
+                          onClick={() => handleAddToCart(p.id)}
+                          disabled={addingId === p.id}
+                          style={{ width: '100%', background: addingId === p.id ? '#9ca3af' : 'var(--navy)', color: 'white', border: 'none', padding: '10px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: addingId === p.id ? 'not-allowed' : 'pointer' }}
+                        >
+                          {addingId === p.id ? 'Adding…' : '🛒 Add to Cart'}
+                        </button>
+                      )}
+                      {p.isCustomizable && (
+                        <Link href={`/customize/${configSlug}?productId=${p.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--gold)', color: 'white', padding: '10px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🎨 Customize & Order →</Link>
+                      )}
+                      <Link href={`/products/${p.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View Details</Link>
                     </div>
                   </div>
                 </div>

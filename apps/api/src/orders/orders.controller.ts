@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
@@ -22,6 +22,11 @@ export class OrdersController {
     return this.orders.createOrder(req.user.id, body.cartId, body.shippingAddressId, body.billingAddressId);
   }
 
+  @Post('cart')
+  createCart(@Body('guestToken') guestToken: string) {
+    return this.orders.getOrAddToCart(null, guestToken);
+  }
+
   @Get('cart')
   getCart(@Query('cartId') cartId: string) {
     return this.orders.getCart(cartId);
@@ -30,6 +35,11 @@ export class OrdersController {
   @Post('cart/add')
   addToCart(@Body() body: any) {
     return this.orders.addToCart(body.cartId, body.productId, body.quantity, body.variantId, body.unitPrice);
+  }
+
+  @Delete('cart/item/:id')
+  removeCartItem(@Param('id') id: string) {
+    return this.orders.removeCartItem(id);
   }
 
   @ApiBearerAuth()

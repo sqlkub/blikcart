@@ -119,6 +119,11 @@ export class OrdersService {
     return order;
   }
 
+  async removeCartItem(itemId: string) {
+    await this.prisma.cartItem.delete({ where: { id: itemId } });
+    return { success: true };
+  }
+
   async getUserOrders(userId: string, page = 1, limit = 10) {
     const [total, orders] = await Promise.all([
       this.prisma.order.count({ where: { userId } }),
