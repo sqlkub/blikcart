@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import AppleStrategy from 'passport-apple';
+import { Strategy as AppleStrategy } from 'passport-apple';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 
