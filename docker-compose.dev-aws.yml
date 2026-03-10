@@ -38,6 +38,15 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-blikcart-assets}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      WEB_URL: ${WEB_URL:-http://52.49.206.184:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://52.49.206.184:4000/v1/auth/google/callback}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY:-}
+      APPLE_CALLBACK_URL: ${APPLE_CALLBACK_URL:-http://52.49.206.184:4000/v1/auth/apple/callback}
     depends_on:
       - redis
     networks:

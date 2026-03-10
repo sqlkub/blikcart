@@ -8,11 +8,11 @@ import { AuthService } from '../auth.service';
 export class AppleAuthStrategy extends PassportStrategy(AppleStrategy, 'apple') {
   constructor(config: ConfigService, private auth: AuthService) {
     super({
-      clientID: config.get('APPLE_CLIENT_ID'),
-      teamID: config.get('APPLE_TEAM_ID'),
-      keyID: config.get('APPLE_KEY_ID'),
-      privateKeyString: (config.get<string>('APPLE_PRIVATE_KEY') || '').replace(/\\n/g, '\n'),
-      callbackURL: config.get('APPLE_CALLBACK_URL'),
+      clientID: config.get('APPLE_CLIENT_ID') || 'not-configured',
+      teamID: config.get('APPLE_TEAM_ID') || 'not-configured',
+      keyID: config.get('APPLE_KEY_ID') || 'not-configured',
+      privateKeyString: (config.get<string>('APPLE_PRIVATE_KEY') || 'not-configured').replace(/\\n/g, '\n'),
+      callbackURL: config.get('APPLE_CALLBACK_URL') || 'http://localhost:4000/v1/auth/apple/callback',
       scope: ['email', 'name'],
       passReqToCallback: false,
     });

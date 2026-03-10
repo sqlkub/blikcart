@@ -8,9 +8,9 @@ import { AuthService } from '../auth.service';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService, private auth: AuthService) {
     super({
-      clientID: config.get('GOOGLE_CLIENT_ID'),
-      clientSecret: config.get('GOOGLE_CLIENT_SECRET'),
-      callbackURL: config.get('GOOGLE_CALLBACK_URL'),
+      clientID: config.get('GOOGLE_CLIENT_ID') || 'not-configured',
+      clientSecret: config.get('GOOGLE_CLIENT_SECRET') || 'not-configured',
+      callbackURL: config.get('GOOGLE_CALLBACK_URL') || 'http://localhost:4000/v1/auth/google/callback',
       scope: ['email', 'profile'],
     });
   }
