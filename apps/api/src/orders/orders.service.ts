@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
@@ -125,7 +126,7 @@ export class OrdersService {
   }
 
   async updateOrderStatus(orderId: string, status: string) {
-    return this.prisma.order.update({ where: { id: orderId }, data: { status } });
+    return this.prisma.order.update({ where: { id: orderId }, data: { status: status as OrderStatus } });
   }
 
   async getUserOrders(userId: string, page = 1, limit = 10) {
