@@ -129,15 +129,17 @@ export class OrdersService {
     return this.prisma.order.update({ where: { id: orderId }, data: { status: status as OrderStatus } });
   }
 
-  async getUserOrders(userId: string, page = 1, limit = 10) {
+  async getUserOrders(userId: string, page: any = 1, limit: any = 10) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(100, parseInt(limit) || 10);
     const [total, orders] = await Promise.all([
       this.prisma.order.count({ where: { userId } }),
       this.prisma.order.findMany({
         where: { userId },
         include: { items: true, shipments: true },
         orderBy: { placedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (p - 1) * l,
+        take: l,
       }),
     ]);
 
@@ -153,7 +155,9 @@ export class OrdersService {
     };
   }
 
-  async getAdminOrders(page = 1, limit = 20, status?: string) {
+  async getAdminOrders(page: any = 1, limit: any = 20, status?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 20);
     const where: any = {};
     if (status) where.status = status;
 
@@ -167,15 +171,17 @@ export class OrdersService {
           shipments: true,
         },
         orderBy: { placedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (p - 1) * l,
+        take: l,
       }),
     ]);
 
-    return { data: orders, meta: { total, page, limit } };
+    return { data: orders, meta: { total, page: p, limit: l } };
   }
 
-  async getAdminCustomOrders(page = 1, limit = 20, status?: string) {
+  async getAdminCustomOrders(page: any = 1, limit: any = 20, status?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 20);
     const where: any = {};
     if (status) where.status = status;
     else where.status = { not: 'draft' };
@@ -190,12 +196,12 @@ export class OrdersService {
           quote: true,
         },
         orderBy: { submittedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (p - 1) * l,
+        take: l,
       }),
     ]);
 
-    return { data: orders, meta: { total, page, limit } };
+    return { data: orders, meta: { total, page: p, limit: l } };
   }
 
   private formatCart(cart: any) {

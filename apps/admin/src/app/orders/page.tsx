@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
-const STATUSES = ['All','pending','confirmed','processing','shipped','delivered','cancelled'];
-const ORDER_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
+const STATUSES = ['All','pending','confirmed','in_production','shipped','delivered','cancelled'];
+const ORDER_STATUSES = ['pending','confirmed','in_production','shipped','delivered','cancelled'];
 const statusColor: Record<string,string> = {
   pending:'bg-yellow-100 text-yellow-700', confirmed:'bg-blue-100 text-blue-700',
-  processing:'bg-purple-100 text-purple-700', shipped:'bg-indigo-100 text-indigo-700',
+  in_production:'bg-purple-100 text-purple-700', shipped:'bg-indigo-100 text-indigo-700',
   delivered:'bg-green-100 text-green-700', cancelled:'bg-red-100 text-red-600',
 };
 
@@ -52,7 +52,7 @@ export default function OrdersPage() {
         {STATUSES.map(s => (
           <button key={s} onClick={() => setStatus(s)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${status === s ? 'bg-[#1A3C5E] text-white border-[#1A3C5E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
-            {s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === 'All' ? 'All' : s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </button>
         ))}
       </div>
@@ -92,7 +92,7 @@ export default function OrdersPage() {
                       onChange={e => updateStatus(o.id, e.target.value)}
                       className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#1A3C5E]"
                     >
-                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
                     </select>
                   </td>
                 </tr>
