@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param, Res } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param, Res, Query } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -57,6 +57,14 @@ export class AuthController {
   @Delete('addresses/:id')
   async deleteAddress(@Request() req, @Param('id') id: string) {
     return this.auth.deleteAddress(req.user.id, id);
+  }
+
+  // ── Admin: list all users ─────────────────────────────────────────────────
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('users')
+  async getUsers(@Query() query: any) {
+    return this.auth.getUsers(query.page, query.limit, query.search);
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────

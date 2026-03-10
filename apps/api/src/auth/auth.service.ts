@@ -120,6 +120,31 @@ export class AuthService {
     return { success: true };
   }
 
+  async getUsers(page: any = 1, limit: any = 50, search?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 50);
+    const where: any = search
+      ? { OR: [{ email: { contains: search, mode: 'insensitive' } }, { fullName: { contains: search, mode: 'insensitive' } }] }
+      : {};
+
+    const [total, users] = await Promise.all([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true, email: true, fullName: true, companyName: true,
+          accountType: true, isApproved: true, createdAt: true,
+          _count: { select: { orders: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return { data: users, meta: { total, page: p, limit: l } };
+  }
+
   async findOrCreateOAuthUser(dto: { email: string; fullName: string; provider: string; providerId: string }) {
     let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) {

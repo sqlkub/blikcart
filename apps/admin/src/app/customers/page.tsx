@@ -13,7 +13,7 @@ export default function CustomersPage() {
     async function load() {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await axios.get(`${API}/users?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API}/auth/users?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
         setCustomers(res.data.data || []);
       } catch { setCustomers([]); }
       finally { setLoading(false); }
@@ -56,9 +56,12 @@ export default function CustomersPage() {
                   <td className="px-5 py-4 text-sm text-gray-500">{c.email}</td>
                   <td className="px-5 py-4 text-sm text-gray-500">{c.companyName || '-'}</td>
                   <td className="px-5 py-4">
-                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${c.role === 'admin' ? 'bg-purple-100 text-purple-700' : c.role === 'wholesale' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {c.role || 'customer'}
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${c.accountType === 'admin' ? 'bg-purple-100 text-purple-700' : c.accountType === 'wholesale' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {c.accountType || 'retail'}
                     </span>
+                    {c.accountType === 'wholesale' && !c.isApproved && (
+                      <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold">pending</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
                   <td className="px-5 py-4 text-sm text-gray-500">{c._count?.orders || 0}</td>
