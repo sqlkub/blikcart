@@ -4,6 +4,7 @@ import axios from 'axios';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 const STATUSES = ['All','pending','confirmed','processing','shipped','delivered','cancelled'];
+const ORDER_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
 const statusColor: Record<string,string> = {
   pending:'bg-yellow-100 text-yellow-700', confirmed:'bg-blue-100 text-blue-700',
   processing:'bg-purple-100 text-purple-700', shipped:'bg-indigo-100 text-indigo-700',
@@ -14,12 +15,24 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('All');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  async function updateStatus(orderId: string, newStatus: string) {
+    setUpdatingId(orderId);
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.patch(`${API}/orders/admin/orders/${orderId}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   useEffect(() => {
     async function load() {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await axios.get(`${API}/orders?limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API}/orders/admin/orders?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
         setOrders(res.data.data || []);
       } catch { setOrders([]); }
       finally { setLoading(false); }
@@ -48,7 +61,7 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                {['Order ID','Customer','Items','Total','Status','Date'].map(h => (
+                {['Order ID','Customer','Items','Total','Status','Date','Action'].map(h => (
                   <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -56,21 +69,35 @@ export default function OrdersPage() {
             <tbody>
               {loading ? [...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-gray-50">
-                  {[...Array(6)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}
+                  {[...Array(7)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}
                 </tr>
               )) : filtered.length > 0 ? filtered.map(o => (
                 <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-5 py-4 text-xs font-mono text-[#1A3C5E]">#{o.orderNumber || o.id.slice(0,8).toUpperCase()}</td>
-                  <td className="px-5 py-4 text-sm">{o.user?.fullName || o.user?.email || '-'}</td>
+                  <td className="px-5 py-4 text-sm">
+                    <div className="font-medium">{o.user?.fullName || '-'}</div>
+                    <div className="text-xs text-gray-400">{o.user?.email}</div>
+                  </td>
                   <td className="px-5 py-4 text-sm text-gray-500">{o.items?.length || 0} items</td>
-                  <td className="px-5 py-4 text-sm font-semibold">€{Number(o.totalAmount || 0).toFixed(2)}</td>
+                  <td className="px-5 py-4 text-sm font-semibold">€{Number(o.total || o.totalAmount || 0).toFixed(2)}</td>
                   <td className="px-5 py-4">
                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${statusColor[o.status] || 'bg-gray-100 text-gray-500'}`}>{o.status}</span>
                   </td>
-                  <td className="px-5 py-4 text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-4 text-xs text-gray-500">{new Date(o.placedAt || o.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-4">
+                    <select
+                      title="Update order status"
+                      value={o.status}
+                      disabled={updatingId === o.id}
+                      onChange={e => updateStatus(o.id, e.target.value)}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#1A3C5E]"
+                    >
+                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                    </select>
+                  </td>
                 </tr>
               )) : (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-gray-400 text-sm">No orders found</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-gray-400 text-sm">No orders found</td></tr>
               )}
             </tbody>
           </table>

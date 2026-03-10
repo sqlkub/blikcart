@@ -124,6 +124,10 @@ export class OrdersService {
     return { success: true };
   }
 
+  async updateOrderStatus(orderId: string, status: string) {
+    return this.prisma.order.update({ where: { id: orderId }, data: { status } });
+  }
+
   async getUserOrders(userId: string, page = 1, limit = 10) {
     const [total, orders] = await Promise.all([
       this.prisma.order.count({ where: { userId } }),

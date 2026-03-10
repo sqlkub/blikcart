@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
@@ -47,6 +47,13 @@ export class OrdersController {
   @Get('admin/orders')
   getAdminOrders(@Query() query: any) {
     return this.orders.getAdminOrders(query.page, query.limit, query.status);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/orders/:id/status')
+  updateOrderStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.orders.updateOrderStatus(id, status);
   }
 
   @ApiBearerAuth()
