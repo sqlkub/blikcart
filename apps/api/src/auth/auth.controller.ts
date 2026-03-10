@@ -1,12 +1,14 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, private config: ConfigService) {}
 
   @UseGuards(AuthGuard('local'))
   @Post('login')
@@ -55,5 +57,31 @@ export class AuthController {
   @Delete('addresses/:id')
   async deleteAddress(@Request() req, @Param('id') id: string) {
     return this.auth.deleteAddress(req.user.id, id);
+  }
+
+  // ── Google OAuth ──────────────────────────────────────────────────────────
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleLogin() { /* redirects to Google */ }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Request() req, @Res() res: Response) {
+    const { accessToken } = this.auth.loginWithToken(req.user);
+    const webUrl = this.config.get('WEB_URL', 'http://localhost:3000');
+    res.redirect(`${webUrl}/auth/callback?token=${accessToken}`);
+  }
+
+  // ── Apple OAuth ───────────────────────────────────────────────────────────
+  @Get('apple')
+  @UseGuards(AuthGuard('apple'))
+  appleLogin() { /* redirects to Apple */ }
+
+  @Post('apple/callback')
+  @UseGuards(AuthGuard('apple'))
+  async appleCallback(@Request() req, @Res() res: Response) {
+    const { accessToken } = this.auth.loginWithToken(req.user);
+    const webUrl = this.config.get('WEB_URL', 'http://localhost:3000');
+    res.redirect(`${webUrl}/auth/callback?token=${accessToken}`);
   }
 }

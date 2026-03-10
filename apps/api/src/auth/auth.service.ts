@@ -119,4 +119,27 @@ export class AuthService {
     await this.prisma.address.deleteMany({ where: { id, userId } });
     return { success: true };
   }
+
+  async findOrCreateOAuthUser(dto: { email: string; fullName: string; provider: string; providerId: string }) {
+    let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: dto.email,
+          fullName: dto.fullName,
+          passwordHash: '',
+          accountType: 'retail',
+          isApproved: true,
+        },
+      });
+    }
+    const { passwordHash: _, ...result } = user;
+    return result;
+  }
+
+  loginWithToken(user: any) {
+    const payload = { sub: user.id, email: user.email, role: user.accountType };
+    const accessToken = this.jwt.sign(payload);
+    return { accessToken, user };
+  }
 }
