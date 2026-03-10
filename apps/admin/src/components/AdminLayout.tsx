@@ -3,17 +3,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, MessageSquare, Users, Package, BarChart3, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, MessageSquare, Users, Package, BarChart3, LogOut, Briefcase } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 const navItems = [
-  { label: 'Dashboard',     href: '/dashboard',     icon: LayoutDashboard },
-  { label: 'Orders',        href: '/orders',         icon: ShoppingBag },
-  { label: 'Custom Orders', href: '/custom-orders',  icon: MessageSquare, countKey: 'customOrders' },
-  { label: 'Products',      href: '/products',       icon: Package },
-  { label: 'Customers',     href: '/customers',      icon: Users },
-  { label: 'Analytics',     href: '/analytics',      icon: BarChart3 },
+  { label: 'Dashboard',           href: '/dashboard',           icon: LayoutDashboard },
+  { label: 'Orders',              href: '/orders',              icon: ShoppingBag },
+  { label: 'Custom Orders',       href: '/custom-orders',       icon: MessageSquare, countKey: 'customOrders' },
+  { label: 'Products',            href: '/products',            icon: Package },
+  { label: 'Customers',           href: '/customers',           icon: Users },
+  { label: 'Wholesale Approvals', href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
+  { label: 'Analytics',           href: '/analytics',           icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [wholesaleCount, setWholesaleCount] = useState<number | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -36,6 +38,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }).then(res => {
       setPendingCount(res.data?.meta?.total ?? res.data?.data?.length ?? 0);
       setReady(true);
+      // Fetch wholesale pending count
+      axios.get(`${API}/auth/users?limit=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => {
+        const wc = (r.data?.data || []).filter((u: any) => u.accountType === 'wholesale' && !u.isApproved).length;
+        setWholesaleCount(wc || null);
+      }).catch(() => {});
     }).catch(err => {
       if (err.response?.status === 401) {
         localStorage.removeItem('adminToken');
@@ -65,7 +74,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = path.startsWith(item.href);
-            const badge = item.countKey === 'customOrders' && pendingCount ? pendingCount : null;
+            const badge = (item.countKey === 'customOrders' && pendingCount) ? pendingCount
+                         : (item.countKey === 'wholesale' && wholesaleCount) ? wholesaleCount
+                         : null;
             return (
               <Link key={item.href} href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>

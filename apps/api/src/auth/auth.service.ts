@@ -145,6 +145,46 @@ export class AuthService {
     return { data: users, meta: { total, page: p, limit: l } };
   }
 
+  async getAdminStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    const [ordersToday, revenueToday, customOrdersPending, wholesalePending, quotesExpiring] = await Promise.all([
+      this.prisma.order.count({ where: { placedAt: { gte: today, lt: tomorrow } } }),
+      this.prisma.order.aggregate({ where: { placedAt: { gte: today, lt: tomorrow } }, _sum: { total: true } }),
+      this.prisma.customOrder.count({ where: { status: 'submitted' } }),
+      this.prisma.user.count({ where: { accountType: 'wholesale', isApproved: false } }),
+      this.prisma.quote.count({ where: { status: 'sent', validUntil: { lte: in48h, gt: new Date() } } }),
+    ]);
+
+    return {
+      ordersToday,
+      revenueToday: Number(revenueToday._sum.total || 0),
+      customOrdersPending,
+      wholesalePending,
+      quotesExpiring,
+    };
+  }
+
+  async approveWholesale(userId: string, tier: string = 'bronze') {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isApproved: true, wholesaleTier: tier as any },
+      select: { id: true, email: true, fullName: true, isApproved: true, wholesaleTier: true },
+    });
+  }
+
+  async rejectUser(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isApproved: false, accountType: 'retail' as any },
+      select: { id: true, email: true, fullName: true, accountType: true },
+    });
+  }
+
   async findOrCreateOAuthUser(dto: { email: string; fullName: string; provider: string; providerId: string }) {
     let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) {

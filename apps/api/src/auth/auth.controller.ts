@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param, Res, Query } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Delete, Param, Res, Query, Patch } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -65,6 +65,34 @@ export class AuthController {
   @Get('users')
   async getUsers(@Query() query: any) {
     return this.auth.getUsers(query.page, query.limit, query.search);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/stats')
+  async adminStats() {
+    return this.auth.getAdminStats();
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/wholesale-pending')
+  async wholesalePending(@Query() query: any) {
+    return this.auth.getUsers(query.page, query.limit, query.search);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/users/:id/approve')
+  async approveWholesale(@Param('id') id: string, @Body('tier') tier: string) {
+    return this.auth.approveWholesale(id, tier);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/users/:id/reject')
+  async rejectUser(@Param('id') id: string) {
+    return this.auth.rejectUser(id);
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
