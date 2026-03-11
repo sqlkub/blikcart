@@ -8,6 +8,8 @@ import { ConfiguratorService } from './configurator.service';
 export class ConfiguratorController {
   constructor(private configurator: ConfiguratorService) {}
 
+  // ── Public / Buyer ──────────────────────────────────────────────────────────
+
   @Get('schema/:categorySlug')
   getSchema(@Param('categorySlug') slug: string) {
     return this.configurator.getSchema(slug);
@@ -46,5 +48,27 @@ export class ConfiguratorController {
   @Post('upload-url')
   getUploadUrl(@Body() body: { filename: string; contentType: string }) {
     return this.configurator.getUploadUrl(body.filename, body.contentType);
+  }
+
+  // ── Admin ───────────────────────────────────────────────────────────────────
+
+  @Get('admin/schemas')
+  adminListSchemas() {
+    return this.configurator.adminListSchemas();
+  }
+
+  @Post('admin/schemas')
+  adminCreateSchema(@Body() body: any) {
+    return this.configurator.adminCreateSchema(body);
+  }
+
+  @Patch('admin/schemas/:id')
+  adminUpdateSchema(@Param('id') id: string, @Body() body: any) {
+    return this.configurator.adminUpdateSchema(id, body);
+  }
+
+  @Post('admin/schemas/:id/versions')
+  adminPublishVersion(@Param('id') id: string, @Body() body: any) {
+    return this.configurator.adminPublishVersion(id, body.steps, body.notes);
   }
 }

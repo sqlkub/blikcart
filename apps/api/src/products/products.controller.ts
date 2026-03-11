@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Patch, Body, Post, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Patch, Body, Post, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
@@ -9,6 +9,8 @@ import { ProductsService } from './products.service';
 export class ProductsController {
   constructor(private products: ProductsService) {}
 
+  // ── Public ──────────────────────────────────────────────────────────────────
+
   @Get()
   findAll(@Query() query: any) {
     return this.products.findAll(query);
@@ -18,6 +20,64 @@ export class ProductsController {
   getCategories() {
     return this.products.findCategories();
   }
+
+  // ── Admin: Products ─────────────────────────────────────────────────────────
+
+  @Get('admin/all')
+  adminListAll(@Query() q: any) {
+    return this.products.adminListAll(q.page, q.limit, q.search, q.categoryId, q.status);
+  }
+
+  @Post('admin')
+  adminCreate(@Body() body: any) {
+    return this.products.adminCreate(body);
+  }
+
+  @Patch('admin/:id/toggle')
+  adminToggle(@Param('id') id: string) {
+    return this.products.adminToggle(id);
+  }
+
+  // ── Admin: Categories ───────────────────────────────────────────────────────
+
+  @Get('admin/categories')
+  adminListCategories() {
+    return this.products.adminListCategories();
+  }
+
+  @Post('admin/categories')
+  adminCreateCategory(@Body() body: any) {
+    return this.products.adminCreateCategory(body);
+  }
+
+  @Patch('admin/categories/:id')
+  adminUpdateCategory(@Param('id') id: string, @Body() body: any) {
+    return this.products.adminUpdateCategory(id, body);
+  }
+
+  // ── Admin: Variants ─────────────────────────────────────────────────────────
+
+  @Get('admin/variants')
+  adminListVariants(@Query('productId') productId?: string) {
+    return this.products.adminListVariants(productId);
+  }
+
+  @Post('admin/variants')
+  adminCreateVariant(@Body() body: any) {
+    return this.products.adminCreateVariant(body);
+  }
+
+  @Patch('admin/variants/:id')
+  adminUpdateVariant(@Param('id') id: string, @Body() body: any) {
+    return this.products.adminUpdateVariant(id, body);
+  }
+
+  @Delete('admin/variants/:id')
+  adminDeleteVariant(@Param('id') id: string) {
+    return this.products.adminDeleteVariant(id);
+  }
+
+  // ── Existing ────────────────────────────────────────────────────────────────
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any) {

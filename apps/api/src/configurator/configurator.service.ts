@@ -193,6 +193,82 @@ export class ConfiguratorService {
     return Math.round((done / required.length) * 100);
   }
 
+  // ── Admin ───────────────────────────────────────────────────────────────────
+
+  async adminListSchemas() {
+    const schemas = await this.prisma.configuratorSchema.findMany({
+      include: {
+        category: { select: { name: true, slug: true } },
+        versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+        _count: { select: { versions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return schemas.map(s => ({
+      ...s,
+      basePrice: Number(s.basePrice),
+      expressPriceMultiplier: Number(s.expressPriceMultiplier),
+      versionCount: (s as any)._count.versions,
+      latestVersion: s.versions[0] || null,
+    }));
+  }
+
+  async adminCreateSchema(data: any) {
+    return this.prisma.configuratorSchema.create({
+      data: {
+        categoryId: data.categoryId,
+        basePrice: Number(data.basePrice) || 0,
+        moq: Number(data.moq) || 1,
+        leadTimeStandardDays: Number(data.leadTimeStandardDays) || 21,
+        leadTimeExpressDays: Number(data.leadTimeExpressDays) || 10,
+        expressPriceMultiplier: Number(data.expressPriceMultiplier) || 1.25,
+        isActive: data.isActive !== false,
+        versions: {
+          create: {
+            versionNumber: 1,
+            steps: data.steps || [],
+            notes: data.notes || 'Initial version',
+          },
+        },
+      },
+      include: {
+        category: { select: { name: true, slug: true } },
+        versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+      },
+    });
+  }
+
+  async adminUpdateSchema(id: string, data: any) {
+    const allowed = ['basePrice', 'moq', 'leadTimeStandardDays', 'leadTimeExpressDays', 'expressPriceMultiplier', 'isActive'];
+    const updateData: any = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    ['basePrice', 'expressPriceMultiplier'].forEach(k => {
+      if (updateData[k] !== undefined) updateData[k] = Number(updateData[k]);
+    });
+    ['moq', 'leadTimeStandardDays', 'leadTimeExpressDays'].forEach(k => {
+      if (updateData[k] !== undefined) updateData[k] = Number(updateData[k]);
+    });
+    return this.prisma.configuratorSchema.update({ where: { id }, data: updateData });
+  }
+
+  async adminPublishVersion(schemaId: string, steps: any, notes?: string) {
+    const latest = await this.prisma.schemaVersion.findFirst({
+      where: { schemaId },
+      orderBy: { versionNumber: 'desc' },
+    });
+    const nextVersion = (latest?.versionNumber || 0) + 1;
+    return this.prisma.schemaVersion.create({
+      data: {
+        schemaId,
+        versionNumber: nextVersion,
+        steps,
+        notes: notes || `Version ${nextVersion}`,
+      },
+    });
+  }
+
   async getUploadUrl(filename: string, contentType: string) {
     const key = `uploads/${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const command = new PutObjectCommand({

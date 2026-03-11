@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
@@ -149,6 +149,147 @@ export class ProductsService {
       wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
     };
   }
-}
 
-  // This line intentionally left blank
+  // ── Admin: Products ─────────────────────────────────────────────────────────
+
+  async adminListAll(page: any = 1, limit: any = 20, search?: string, categoryId?: string, status?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(100, parseInt(limit) || 20);
+    const where: any = {};
+    if (search) where.name = { contains: search, mode: 'insensitive' };
+    if (categoryId) where.categoryId = categoryId;
+    if (status === 'active') where.isActive = true;
+    else if (status === 'inactive') where.isActive = false;
+
+    const [total, data] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        include: {
+          category: { select: { name: true, slug: true } },
+          images: { where: { isPrimary: true }, take: 1 },
+          _count: { select: { variants: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return {
+      data: data.map(prod => ({ ...this.fmt(prod), variantCount: (prod as any)._count.variants })),
+      meta: { total, page: p, limit: l },
+    };
+  }
+
+  async adminCreate(data: any) {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const sku = data.sku || `SKU-${Date.now()}`;
+    return this.prisma.product.create({
+      data: {
+        categoryId: data.categoryId,
+        slug,
+        sku,
+        name: data.name,
+        description: data.description || null,
+        basePrice: Number(data.basePrice) || 0,
+        wholesalePrice: data.wholesalePrice ? Number(data.wholesalePrice) : null,
+        moq: Number(data.moq) || 1,
+        isCustomizable: Boolean(data.isCustomizable),
+        isActive: data.isActive !== false,
+        leadTimeDays: Number(data.leadTimeDays) || 0,
+        tags: data.tags || [],
+      },
+      include: { category: true },
+    });
+  }
+
+  async adminToggle(id: string) {
+    const prod = await this.prisma.product.findUnique({ where: { id }, select: { isActive: true } });
+    if (!prod) throw new NotFoundException('Product not found');
+    return this.prisma.product.update({ where: { id }, data: { isActive: !prod.isActive } });
+  }
+
+  // ── Admin: Categories ───────────────────────────────────────────────────────
+
+  async adminListCategories() {
+    return this.prisma.category.findMany({
+      include: {
+        parent: { select: { name: true } },
+        _count: { select: { products: true } },
+      },
+      orderBy: [{ parentId: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async adminCreateCategory(data: any) {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return this.prisma.category.create({
+      data: {
+        name: data.name,
+        slug,
+        description: data.description || null,
+        parentId: data.parentId || null,
+        sortOrder: Number(data.sortOrder) || 0,
+        isActive: data.isActive !== false,
+        isCustomizable: Boolean(data.isCustomizable),
+      },
+    });
+  }
+
+  async adminUpdateCategory(id: string, data: any) {
+    const allowed = ['name', 'slug', 'description', 'sortOrder', 'isActive', 'isCustomizable', 'parentId'];
+    const updateData: any = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (data.sortOrder !== undefined) updateData.sortOrder = Number(data.sortOrder);
+    return this.prisma.category.update({ where: { id }, data: updateData });
+  }
+
+  // ── Admin: Variants ─────────────────────────────────────────────────────────
+
+  async adminListVariants(productId?: string) {
+    const where: any = {};
+    if (productId) where.productId = productId;
+    return this.prisma.productVariant.findMany({
+      where,
+      include: { product: { select: { name: true, sku: true } } },
+      orderBy: [{ productId: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+  }
+
+  async adminCreateVariant(data: any) {
+    const sku = data.sku || `${data.productId.slice(-6)}-${Date.now()}`;
+    return this.prisma.productVariant.create({
+      data: {
+        productId: data.productId,
+        sku,
+        size: data.size || null,
+        color: data.color || null,
+        material: data.material || null,
+        priceModifier: Number(data.priceModifier) || 0,
+        stockQty: Number(data.stockQty) || 0,
+        isActive: data.isActive !== false,
+      },
+      include: { product: { select: { name: true } } },
+    });
+  }
+
+  async adminUpdateVariant(id: string, data: any) {
+    const allowed = ['sku', 'size', 'color', 'material', 'priceModifier', 'stockQty', 'isActive'];
+    const updateData: any = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (data.priceModifier !== undefined) updateData.priceModifier = Number(data.priceModifier);
+    if (data.stockQty !== undefined) updateData.stockQty = Number(data.stockQty);
+    return this.prisma.productVariant.update({ where: { id }, data: updateData });
+  }
+
+  async adminDeleteVariant(id: string) {
+    await this.prisma.productVariant.delete({ where: { id } });
+    return { success: true };
+  }
+}

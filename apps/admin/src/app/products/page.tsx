@@ -1,215 +1,944 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-export default function ProductsPage() {
+type Tab = 'products' | 'categories' | 'variants' | 'schemas';
+
+function token() { return localStorage.getItem('adminToken') || ''; }
+function hdrs() { return { Authorization: `Bearer ${token()}` }; }
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+function Bdg({ label, color }: { label: string; color: string }) {
+  return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${color}`}>{label}</span>;
+}
+
+function Skel({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
+  return (
+    <>
+      {[...Array(rows)].map((_, i) => (
+        <tr key={i} className="border-b border-gray-50">
+          {[...Array(cols)].map((_, j) => (
+            <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+// ── All Products ──────────────────────────────────────────────────────────────
+
+function ProductsTab() {
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [msg, setMsg] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [catFilter, setCatFilter] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [createForm, setCreateForm] = useState({
+    name: '', sku: '', categoryId: '', basePrice: '', wholesalePrice: '',
+    moq: '1', leadTimeDays: '0', isCustomizable: false, description: '',
+  });
 
-  useEffect(() => { loadProducts(); }, []);
-
-  async function loadProducts() {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${API}/products?limit=200`);
-      setProducts(res.data.data || []);
+      const [pRes, cRes] = await Promise.all([
+        axios.get(`${API}/products/admin/all?limit=100`, { headers: hdrs() }),
+        axios.get(`${API}/products/admin/categories`, { headers: hdrs() }),
+      ]);
+      setProducts(pRes.data.data || []);
+      setCategories(cRes.data || []);
     } catch { setProducts([]); }
     finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = products.filter(p => {
+    if (statusFilter === 'active' && !p.isActive) return false;
+    if (statusFilter === 'inactive' && p.isActive) return false;
+    if (catFilter && p.categoryId !== catFilter) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sku?.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  async function toggleActive(id: string) {
+    await axios.patch(`${API}/products/admin/${id}/toggle`, {}, { headers: hdrs() });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
   }
 
-  async function saveProduct() {
-    if (!editing) return;
-    setSaving(true);
-    try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(`${API}/products/${editing.id}`, {
-        name: editing.name,
-        description: editing.description,
-        basePrice: Number(editing.basePrice),
-        moq: Number(editing.moq),
-        isActive: editing.isActive,
-        isCustomizable: editing.isCustomizable,
-      }, { headers: { Authorization: `Bearer ${token}` } });
-      setMsg('Saved successfully!');
-      setEditing(null);
-      loadProducts();
-    } catch (e: any) {
-      setMsg('Save failed: ' + (e.response?.data?.message || e.message));
-    } finally { setSaving(false); setTimeout(() => setMsg(''), 3000); }
+  async function saveEdit(id: string) {
+    const res = await axios.patch(`${API}/products/${id}`, editForm, { headers: hdrs() });
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...res.data } : p));
+    setEditingId(null);
   }
 
-  async function uploadImage(productId: string, file: File) {
-    setUploadingId(productId);
-    try {
-      const token = localStorage.getItem('adminToken');
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('isPrimary', 'true');
-      await axios.post(`${API}/products/${productId}/images`, formData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-      });
-      setMsg('Image uploaded!');
-      loadProducts();
-    } catch (e: any) {
-      // Try S3 pre-signed or direct upload fallback
-      setMsg('Image upload: ' + (e.response?.data?.message || 'Check S3 config'));
-    } finally { setUploadingId(null); setTimeout(() => setMsg(''), 3000); }
+  async function createProduct() {
+    if (!createForm.name || !createForm.categoryId || !createForm.basePrice) return;
+    const res = await axios.post(`${API}/products/admin`, createForm, { headers: hdrs() });
+    setProducts(prev => [{ ...res.data, variantCount: 0 }, ...prev]);
+    setShowCreate(false);
+    setCreateForm({ name: '', sku: '', categoryId: '', basePrice: '', wholesalePrice: '', moq: '1', leadTimeDays: '0', isCustomizable: false, description: '' });
   }
 
-  const filtered = products.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()));
+  const stats = {
+    total: products.length,
+    active: products.filter(p => p.isActive).length,
+    inactive: products.filter(p => !p.isActive).length,
+    customizable: products.filter(p => p.isCustomizable).length,
+  };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.length} total products</p>
-        </div>
+    <div className="space-y-5">
+      {/* Summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total', value: stats.total, color: 'text-[#1A3C5E]' },
+          { label: 'Active', value: stats.active, color: 'text-green-600' },
+          { label: 'Inactive', value: stats.inactive, color: 'text-gray-400' },
+          { label: 'Customizable', value: stats.customizable, color: 'text-blue-600' },
+        ].map(c => (
+          <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">{c.label}</p>
+            {loading ? <div className="h-7 w-12 bg-gray-100 rounded animate-pulse mt-1" /> :
+              <p className={`text-2xl font-bold mt-1 ${c.color}`}>{c.value}</p>}
+          </div>
+        ))}
       </div>
 
-      {msg && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${msg.includes('failed') || msg.includes('Check') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-          {msg}
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <input type="text" placeholder="Search name or SKU…" value={search} onChange={e => setSearch(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none w-52" />
+        <select title="Filter by category" value={catFilter} onChange={e => setCatFilter(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+          <option value="">All categories</option>
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <div className="flex gap-1">
+          {(['all', 'active', 'inactive'] as const).map(s => (
+            <button key={s} type="button" onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${statusFilter === s ? 'bg-[#1A3C5E] text-white border-[#1A3C5E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
         </div>
-      )}
+        <button type="button" onClick={() => setShowCreate(!showCreate)}
+          className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
+          <Plus size={14} /> New Product
+        </button>
+      </div>
 
-      {/* Edit modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="font-bold text-gray-900 text-lg">Edit Product</h2>
-              <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      {/* Create form */}
+      {showCreate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <p className="font-semibold text-gray-900">New Product</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { label: 'Name *', key: 'name', placeholder: 'Product name' },
+              { label: 'SKU', key: 'sku', placeholder: 'Auto-generated' },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+                <input title={f.label} value={(createForm as any)[f.key]}
+                  onChange={e => setCreateForm(cf => ({ ...cf, [f.key]: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder={f.placeholder} />
+              </div>
+            ))}
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Category *</label>
+              <select title="Category" value={createForm.categoryId} onChange={e => setCreateForm(f => ({ ...f, categoryId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                <option value="">Select…</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Product Name</label>
-                <input value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1A3C5E]" />
+            {[
+              { label: 'Base Price (€) *', key: 'basePrice', type: 'number', step: '0.01', placeholder: '0.00' },
+              { label: 'Wholesale Price (€)', key: 'wholesalePrice', type: 'number', step: '0.01', placeholder: 'Optional' },
+              { label: 'MOQ', key: 'moq', type: 'number', placeholder: '1' },
+              { label: 'Lead Time (days)', key: 'leadTimeDays', type: 'number', placeholder: '0' },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+                <input type={f.type} step={f.step} title={f.label} value={(createForm as any)[f.key]}
+                  onChange={e => setCreateForm(cf => ({ ...cf, [f.key]: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder={f.placeholder} />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Description</label>
-                <textarea value={editing.description || ''} onChange={e => setEditing({...editing, description: e.target.value})}
-                  rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1A3C5E] resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Base Price (€)</label>
-                  <input type="number" value={editing.basePrice} onChange={e => setEditing({...editing, basePrice: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1A3C5E]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">MOQ</label>
-                  <input type="number" value={editing.moq} onChange={e => setEditing({...editing, moq: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#1A3C5E]" />
-                </div>
-              </div>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={editing.isActive} onChange={e => setEditing({...editing, isActive: e.target.checked})}
-                    className="w-4 h-4 accent-[#1A3C5E]" />
-                  <span className="font-medium">Active</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={editing.isCustomizable} onChange={e => setEditing({...editing, isCustomizable: e.target.checked})}
-                    className="w-4 h-4 accent-[#C8860A]" />
-                  <span className="font-medium">Customizable</span>
-                </label>
-              </div>
-
-              {/* Image upload inside modal */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Product Image</label>
-                {editing.images?.[0] && (
-                  <img src={editing.images[0].url} alt={editing.name}
-                    className="w-24 h-24 object-cover rounded-lg border border-gray-200 mb-2" />
-                )}
-                <label className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-[#1A3C5E] transition-colors w-fit">
-                  <span className="text-sm text-gray-500">
-                    {uploadingId === editing.id ? 'Uploading...' : '📎 Upload Image'}
-                  </span>
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={e => { if (e.target.files?.[0]) uploadImage(editing.id, e.target.files[0]); }} />
-                </label>
-              </div>
+            ))}
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={createForm.isCustomizable}
+                  onChange={e => setCreateForm(f => ({ ...f, isCustomizable: e.target.checked }))} />
+                Customizable
+              </label>
             </div>
-            <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
-              <button onClick={() => setEditing(null)} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button onClick={saveProduct} disabled={saving}
-                className="px-6 py-2 text-sm font-semibold bg-[#1A3C5E] text-white rounded-lg hover:bg-[#112E4D] disabled:opacity-50">
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Description</label>
+            <textarea title="Description" value={createForm.description}
+              onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
+              rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="Optional" />
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={createProduct}
+              className="px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">Create Product</button>
+            <button type="button" onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50">Cancel</button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-4 border-b border-gray-100">
-          <input type="text" placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full max-w-sm px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none" />
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+              {['Product', 'SKU', 'Category', 'Base €', 'Wholesale €', 'Variants', 'Tags', 'Status', ''].map(h => (
+                <th key={h} className="text-left px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <Skel rows={6} cols={9} /> : filtered.length === 0 ? (
+              <tr><td colSpan={9} className="px-5 py-10 text-center text-gray-400 text-sm">No products found</td></tr>
+            ) : filtered.map(p => (
+              editingId === p.id ? (
+                <tr key={p.id} className="border-b border-gray-100 bg-yellow-50">
+                  <td className="px-4 py-2">
+                    <input title="Name" defaultValue={p.name} onChange={e => setEditForm((f: any) => ({ ...f, name: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm w-40" />
+                  </td>
+                  <td className="px-4 py-2 text-xs font-mono text-gray-400">{p.sku}</td>
+                  <td className="px-4 py-2 text-sm text-gray-500">{p.category?.name}</td>
+                  <td className="px-4 py-2">
+                    <input type="number" step="0.01" title="Base price" defaultValue={p.basePrice}
+                      onChange={e => setEditForm((f: any) => ({ ...f, basePrice: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm w-20" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input type="number" step="0.01" title="Wholesale price" defaultValue={p.wholesalePrice ?? ''}
+                      onChange={e => setEditForm((f: any) => ({ ...f, wholesalePrice: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm w-20" placeholder="—" />
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">{p.variantCount || 0}</td>
+                  <td /><td />
+                  <td className="px-4 py-2">
+                    <div className="flex gap-2">
+                      <button type="button" title="Save" onClick={() => saveEdit(p.id)} className="text-green-600 hover:text-green-800"><Check size={14} /></button>
+                      <button type="button" title="Cancel" onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {p.images?.[0]
+                        ? <img src={p.images[0].url} alt={p.name} className="w-8 h-8 rounded object-cover flex-shrink-0 bg-gray-100" />
+                        : <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center flex-shrink-0"><Package size={12} className="text-gray-400" /></div>}
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 max-w-[150px] truncate">{p.name}</p>
+                        {p.isCustomizable && <p className="text-xs text-blue-500">customizable</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs font-mono text-gray-400">{p.sku}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.category?.name}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">€{Number(p.basePrice).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.wholesalePrice ? `€${Number(p.wholesalePrice).toFixed(2)}` : '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.variantCount || 0}</td>
+                  <td className="px-4 py-3">
+                    {(p.tags?.length ?? 0) > 0 && (
+                      <span className="text-xs text-gray-400">{p.tags.slice(0, 2).join(', ')}{p.tags.length > 2 ? '…' : ''}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button type="button" onClick={() => toggleActive(p.id)} title={p.isActive ? 'Deactivate' : 'Activate'}>
+                      {p.isActive ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
+                      className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
+                  </td>
+                </tr>
+              )
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Categories ────────────────────────────────────────────────────────────────
+
+function CategoriesTab() {
+  const [cats, setCats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [createForm, setCreateForm] = useState({ name: '', slug: '', parentId: '', sortOrder: '0', isCustomizable: false });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/products/admin/categories`, { headers: hdrs() });
+      setCats(res.data || []);
+    } catch { setCats([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function createCat() {
+    if (!createForm.name) return;
+    const res = await axios.post(`${API}/products/admin/categories`, createForm, { headers: hdrs() });
+    setCats(prev => [...prev, { ...res.data, _count: { products: 0 } }]);
+    setShowCreate(false);
+    setCreateForm({ name: '', slug: '', parentId: '', sortOrder: '0', isCustomizable: false });
+  }
+
+  async function saveEdit(id: string) {
+    const res = await axios.patch(`${API}/products/admin/categories/${id}`, editForm, { headers: hdrs() });
+    setCats(prev => prev.map(c => c.id === id ? { ...c, ...res.data } : c));
+    setEditingId(null);
+  }
+
+  async function toggleCat(id: string, current: boolean) {
+    await axios.patch(`${API}/products/admin/categories/${id}`, { isActive: !current }, { headers: hdrs() });
+    setCats(prev => prev.map(c => c.id === id ? { ...c, isActive: !current } : c));
+  }
+
+  const roots = cats.filter(c => !c.parentId);
+  const children = (pid: string) => cats.filter(c => c.parentId === pid);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setShowCreate(!showCreate)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
+          <Plus size={14} /> New Category
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <p className="font-semibold text-gray-900">New Category</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Name *</label>
+              <input title="Name" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="Category name" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Slug (auto-generated)</label>
+              <input title="Slug" value={createForm.slug} onChange={e => setCreateForm(f => ({ ...f, slug: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="auto" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Parent Category</label>
+              <select title="Parent" value={createForm.parentId} onChange={e => setCreateForm(f => ({ ...f, parentId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                <option value="">None (top-level)</option>
+                {roots.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Sort Order</label>
+              <input type="number" title="Sort order" value={createForm.sortOrder}
+                onChange={e => setCreateForm(f => ({ ...f, sortOrder: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={createForm.isCustomizable}
+                  onChange={e => setCreateForm(f => ({ ...f, isCustomizable: e.target.checked }))} />
+                Has Configurator
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={createCat}
+              className="px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">Create</button>
+            <button type="button" onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg">Cancel</button>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+      )}
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
+              {['Name', 'Slug', 'Parent', 'Products', 'Configurator', 'Sort', 'Active', ''].map(h => (
+                <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? <Skel rows={4} cols={8} /> : cats.length === 0 ? (
+              <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400 text-sm">No categories yet</td></tr>
+            ) : roots.map(cat => (
+              <>
+                <CatRow key={cat.id} cat={cat} indent={0}
+                  editing={editingId === cat.id} editForm={editForm} setEditForm={setEditForm}
+                  onEdit={() => { setEditingId(cat.id); setEditForm({ name: cat.name, slug: cat.slug, sortOrder: cat.sortOrder }); }}
+                  onSave={() => saveEdit(cat.id)} onCancel={() => setEditingId(null)}
+                  onToggle={() => toggleCat(cat.id, cat.isActive)} />
+                {children(cat.id).map(child => (
+                  <CatRow key={child.id} cat={child} indent={1}
+                    editing={editingId === child.id} editForm={editForm} setEditForm={setEditForm}
+                    onEdit={() => { setEditingId(child.id); setEditForm({ name: child.name, slug: child.slug, sortOrder: child.sortOrder }); }}
+                    onSave={() => saveEdit(child.id)} onCancel={() => setEditingId(null)}
+                    onToggle={() => toggleCat(child.id, child.isActive)} />
+                ))}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CatRow({ cat, indent, editing, editForm, setEditForm, onEdit, onSave, onCancel, onToggle }: any) {
+  const indentClass = indent > 0 ? 'pl-9 py-2' : 'px-5 py-2';
+  const indentViewClass = indent > 0 ? 'pl-9 py-3' : 'px-5 py-3';
+  return (
+    <tr className="border-b border-gray-50 hover:bg-gray-50">
+      {editing ? (
+        <>
+          <td className={indentClass}>
+            <input title="Name" value={editForm.name ?? cat.name}
+              onChange={(e: any) => setEditForm((f: any) => ({ ...f, name: e.target.value }))}
+              className="border rounded px-2 py-1 text-sm w-36" />
+          </td>
+          <td className="px-5 py-2">
+            <input title="Slug" value={editForm.slug ?? cat.slug}
+              onChange={(e: any) => setEditForm((f: any) => ({ ...f, slug: e.target.value }))}
+              className="border rounded px-2 py-1 text-sm w-32 font-mono" />
+          </td>
+          <td className="px-5 py-2 text-sm text-gray-400">{cat.parent?.name || '—'}</td>
+          <td className="px-5 py-2 text-sm text-gray-500">{cat._count?.products || 0}</td>
+          <td className="px-5 py-2">{cat.isCustomizable ? <Bdg label="yes" color="bg-blue-100 text-blue-700" /> : null}</td>
+          <td className="px-5 py-2">
+            <input type="number" title="Sort order" value={editForm.sortOrder ?? cat.sortOrder}
+              onChange={(e: any) => setEditForm((f: any) => ({ ...f, sortOrder: Number(e.target.value) }))}
+              className="border rounded px-2 py-1 text-sm w-14" />
+          </td>
+          <td className="px-5 py-2" />
+          <td className="px-5 py-2">
+            <div className="flex gap-2">
+              <button type="button" title="Save" onClick={onSave} className="text-green-600 hover:text-green-800"><Check size={14} /></button>
+              <button type="button" title="Cancel" onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+            </div>
+          </td>
+        </>
+      ) : (
+        <>
+          <td className={`${indentViewClass} text-sm font-semibold text-gray-900`}>
+            {indent > 0 && <span className="text-gray-300 mr-1">└</span>}{cat.name}
+          </td>
+          <td className="px-5 py-3 text-xs font-mono text-gray-400">{cat.slug}</td>
+          <td className="px-5 py-3 text-sm text-gray-400">{cat.parent?.name || '—'}</td>
+          <td className="px-5 py-3 text-sm text-gray-500">{cat._count?.products || 0}</td>
+          <td className="px-5 py-3">
+            {cat.isCustomizable ? <Bdg label="yes" color="bg-blue-100 text-blue-700" /> : <Bdg label="no" color="bg-gray-100 text-gray-400" />}
+          </td>
+          <td className="px-5 py-3 text-sm text-gray-500">{cat.sortOrder}</td>
+          <td className="px-5 py-3">
+            <button type="button" onClick={onToggle} title={cat.isActive ? 'Deactivate' : 'Activate'}>
+              {cat.isActive ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
+            </button>
+          </td>
+          <td className="px-5 py-3">
+            <button type="button" title="Edit category" onClick={onEdit} className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
+          </td>
+        </>
+      )}
+    </tr>
+  );
+}
+
+// ── Variants ──────────────────────────────────────────────────────────────────
+
+function VariantsTab() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [variants, setVariants] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [createForm, setCreateForm] = useState({ sku: '', size: '', color: '', material: '', priceModifier: '0', stockQty: '0' });
+
+  useEffect(() => {
+    axios.get(`${API}/products/admin/all?limit=200`, { headers: hdrs() })
+      .then(r => setProducts(r.data.data || [])).catch(() => {});
+  }, []);
+
+  async function loadVariants(productId: string) {
+    setLoading(true);
+    setSelectedProduct(productId);
+    setShowCreate(false);
+    setEditingId(null);
+    try {
+      const url = productId ? `${API}/products/admin/variants?productId=${productId}` : `${API}/products/admin/variants`;
+      const res = await axios.get(url, { headers: hdrs() });
+      setVariants(res.data || []);
+    } catch { setVariants([]); }
+    finally { setLoading(false); }
+  }
+
+  async function createVariant() {
+    if (!selectedProduct) return;
+    const res = await axios.post(`${API}/products/admin/variants`, { ...createForm, productId: selectedProduct }, { headers: hdrs() });
+    setVariants(prev => [...prev, res.data]);
+    setShowCreate(false);
+    setCreateForm({ sku: '', size: '', color: '', material: '', priceModifier: '0', stockQty: '0' });
+  }
+
+  async function saveEdit(id: string) {
+    const res = await axios.patch(`${API}/products/admin/variants/${id}`, editForm, { headers: hdrs() });
+    setVariants(prev => prev.map(v => v.id === id ? { ...v, ...res.data } : v));
+    setEditingId(null);
+  }
+
+  async function deleteVariant(id: string) {
+    if (!confirm('Delete this variant?')) return;
+    await axios.delete(`${API}/products/admin/variants/${id}`, { headers: hdrs() });
+    setVariants(prev => prev.filter(v => v.id !== id));
+  }
+
+  async function toggleVariant(id: string, current: boolean) {
+    await axios.patch(`${API}/products/admin/variants/${id}`, { isActive: !current }, { headers: hdrs() });
+    setVariants(prev => prev.map(v => v.id === id ? { ...v, isActive: !current } : v));
+  }
+
+  const varFields = [
+    { label: 'SKU', key: 'sku', placeholder: 'Auto-generated' },
+    { label: 'Size', key: 'size', placeholder: 'e.g. A4' },
+    { label: 'Color', key: 'color', placeholder: 'e.g. White' },
+    { label: 'Material', key: 'material', placeholder: 'e.g. Matte' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-3 items-center">
+        <select title="Select product" value={selectedProduct} onChange={e => loadVariants(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none w-72">
+          <option value="">— Select a product —</option>
+          {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
+        </select>
+        {selectedProduct && (
+          <button type="button" onClick={() => setShowCreate(s => !s)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
+            <Plus size={14} /> Add Variant
+          </button>
+        )}
+      </div>
+
+      {showCreate && selectedProduct && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <p className="font-semibold text-gray-900">New Variant</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {varFields.map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+                <input title={f.label} value={(createForm as any)[f.key]}
+                  onChange={e => setCreateForm(cf => ({ ...cf, [f.key]: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder={f.placeholder} />
+              </div>
+            ))}
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Price Modifier (€)</label>
+              <input type="number" step="0.01" title="Price modifier" value={createForm.priceModifier}
+                onChange={e => setCreateForm(f => ({ ...f, priceModifier: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Stock Qty</label>
+              <input type="number" title="Stock quantity" value={createForm.stockQty}
+                onChange={e => setCreateForm(f => ({ ...f, stockQty: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={createVariant}
+              className="px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">Add Variant</button>
+            <button type="button" onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {selectedProduct ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                {['Image','SKU','Name','Category','Price','MOQ','Status','Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 font-semibold">{h}</th>
+                {['SKU', 'Size', 'Color', 'Material', 'Price Mod', 'Stock', 'Active', ''].map(h => (
+                  <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading ? [...Array(8)].map((_, i) => (
-                <tr key={i} className="border-b border-gray-50">
-                  {[...Array(8)].map((_, j) => <td key={j} className="px-4 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}
-                </tr>
-              )) : filtered.map(p => {
-                const img = p.images?.find((i: any) => i.isPrimary) || p.images?.[0];
-                return (
-                  <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="relative group">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center text-2xl">
-                          {img ? <img src={img.url} alt={p.name} className="w-full h-full object-cover" /> : '📦'}
-                        </div>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                          <span className="text-white text-xs font-bold">
-                            {uploadingId === p.id ? '...' : '📷'}
-                          </span>
-                          <input type="file" accept="image/*" className="hidden"
-                            onChange={e => { if (e.target.files?.[0]) uploadImage(p.id, e.target.files[0]); }} />
-                        </label>
+              {loading ? <Skel rows={3} cols={8} /> : variants.length === 0 ? (
+                <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400 text-sm">No variants — add one above</td></tr>
+              ) : variants.map(v => (
+                editingId === v.id ? (
+                  <tr key={v.id} className="border-b border-gray-100 bg-yellow-50">
+                    <td className="px-4 py-2"><input title="SKU" defaultValue={v.sku} onChange={(e: any) => setEditForm((f: any) => ({ ...f, sku: e.target.value }))} className="border rounded px-2 py-1 text-sm w-32 font-mono" /></td>
+                    <td className="px-4 py-2"><input title="Size" defaultValue={v.size ?? ''} onChange={(e: any) => setEditForm((f: any) => ({ ...f, size: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" placeholder="—" /></td>
+                    <td className="px-4 py-2"><input title="Color" defaultValue={v.color ?? ''} onChange={(e: any) => setEditForm((f: any) => ({ ...f, color: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" placeholder="—" /></td>
+                    <td className="px-4 py-2"><input title="Material" defaultValue={v.material ?? ''} onChange={(e: any) => setEditForm((f: any) => ({ ...f, material: e.target.value }))} className="border rounded px-2 py-1 text-sm w-24" placeholder="—" /></td>
+                    <td className="px-4 py-2"><input type="number" step="0.01" title="Price modifier" defaultValue={v.priceModifier} onChange={(e: any) => setEditForm((f: any) => ({ ...f, priceModifier: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" /></td>
+                    <td className="px-4 py-2"><input type="number" title="Stock" defaultValue={v.stockQty} onChange={(e: any) => setEditForm((f: any) => ({ ...f, stockQty: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" /></td>
+                    <td className="px-4 py-2" />
+                    <td className="px-4 py-2">
+                      <div className="flex gap-2">
+                        <button type="button" title="Save" onClick={() => saveEdit(v.id)} className="text-green-600 hover:text-green-800"><Check size={14} /></button>
+                        <button type="button" title="Cancel" onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs font-mono text-gray-500">{p.sku}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 max-w-[160px] truncate">{p.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{p.category?.name || '-'}</td>
-                    <td className="px-4 py-3 text-sm font-semibold">€{Number(p.basePrice).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{p.moq}</td>
-                    <td className="px-4 py-3">
-                      {p.isActive
-                        ? <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">Active</span>
-                        : <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-semibold">Inactive</span>}
+                  </tr>
+                ) : (
+                  <tr key={v.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-5 py-3 text-xs font-mono text-gray-500">{v.sku}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">{v.size || '—'}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">{v.color || '—'}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">{v.material || '—'}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      {Number(v.priceModifier) > 0 ? `+€${Number(v.priceModifier).toFixed(2)}`
+                        : Number(v.priceModifier) < 0 ? `-€${Math.abs(Number(v.priceModifier)).toFixed(2)}` : '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => setEditing({...p})}
-                        className="text-xs bg-[#1A3C5E] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#112E4D]">
-                        Edit
+                    <td className="px-5 py-3">
+                      <span className={`text-sm font-semibold ${v.stockQty === 0 ? 'text-red-500' : v.stockQty < 10 ? 'text-amber-600' : 'text-gray-900'}`}>
+                        {v.stockQty}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <button type="button" onClick={() => toggleVariant(v.id, v.isActive)} title={v.isActive ? 'Deactivate' : 'Activate'}>
+                        {v.isActive ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
                       </button>
                     </td>
+                    <td className="px-5 py-3">
+                      <div className="flex gap-3">
+                        <button type="button" title="Edit variant" onClick={() => { setEditingId(v.id); setEditForm({}); }} className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
+                        <button type="button" title="Delete variant" onClick={() => deleteVariant(v.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
                   </tr>
-                );
-              })}
+                )
+              ))}
             </tbody>
           </table>
         </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 text-sm">
+          Select a product above to manage its variants
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Configurator Schemas ──────────────────────────────────────────────────────
+
+function SchemasTab() {
+  const [schemas, setSchemas] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [showCreate, setShowCreate] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [newSteps, setNewSteps] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [jsonErr, setJsonErr] = useState('');
+  const [createForm, setCreateForm] = useState({
+    categoryId: '', basePrice: '0', moq: '1', leadTimeStandardDays: '21',
+    leadTimeExpressDays: '10', expressPriceMultiplier: '1.25', steps: '[]', notes: '',
+  });
+  const [createJsonErr, setCreateJsonErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [sRes, cRes] = await Promise.all([
+        axios.get(`${API}/configurator/admin/schemas`, { headers: hdrs() }),
+        axios.get(`${API}/products/admin/categories`, { headers: hdrs() }),
+      ]);
+      setSchemas(sRes.data || []);
+      setCategories(cRes.data || []);
+    } catch { setSchemas([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function createSchema() {
+    try { JSON.parse(createForm.steps); } catch { setCreateJsonErr('Invalid JSON'); return; }
+    setCreateJsonErr('');
+    try {
+      const res = await axios.post(`${API}/configurator/admin/schemas`,
+        { ...createForm, steps: JSON.parse(createForm.steps) }, { headers: hdrs() });
+      setSchemas(prev => [res.data, ...prev]);
+      setShowCreate(false);
+      setCreateForm({ categoryId: '', basePrice: '0', moq: '1', leadTimeStandardDays: '21', leadTimeExpressDays: '10', expressPriceMultiplier: '1.25', steps: '[]', notes: '' });
+    } catch { /* ignore */ }
+  }
+
+  async function saveEdit(id: string) {
+    await axios.patch(`${API}/configurator/admin/schemas/${id}`, editForm, { headers: hdrs() });
+    setSchemas(prev => prev.map(s => s.id === id ? { ...s, ...editForm } : s));
+    setEditingId(null);
+  }
+
+  async function publishVersion(schemaId: string) {
+    try { JSON.parse(newSteps); } catch { setJsonErr('Invalid JSON'); return; }
+    setJsonErr('');
+    try {
+      const res = await axios.post(`${API}/configurator/admin/schemas/${schemaId}/versions`,
+        { steps: JSON.parse(newSteps), notes: newNotes }, { headers: hdrs() });
+      setSchemas(prev => prev.map(s => s.id === schemaId
+        ? { ...s, latestVersion: res.data, versionCount: (s.versionCount || 0) + 1 } : s));
+      setPublishingId(null);
+      setNewSteps('');
+      setNewNotes('');
+    } catch { /* ignore */ }
+  }
+
+  const numFields = [
+    { label: 'Base Price (€)', key: 'basePrice', step: '0.01' },
+    { label: 'MOQ', key: 'moq' },
+    { label: 'Standard Lead (days)', key: 'leadTimeStandardDays' },
+    { label: 'Express Lead (days)', key: 'leadTimeExpressDays' },
+    { label: 'Express Multiplier', key: 'expressPriceMultiplier', step: '0.01' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setShowCreate(s => !s)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
+          <Plus size={14} /> New Schema
+        </button>
       </div>
+
+      {showCreate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <p className="font-semibold text-gray-900">New Configurator Schema</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Category (customizable) *</label>
+              <select title="Category" value={createForm.categoryId}
+                onChange={e => setCreateForm(f => ({ ...f, categoryId: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none">
+                <option value="">Select…</option>
+                {categories.filter(c => c.isCustomizable).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            {numFields.map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-gray-500 block mb-1">{f.label}</label>
+                <input type="number" step={f.step} title={f.label} value={(createForm as any)[f.key]}
+                  onChange={e => setCreateForm(cf => ({ ...cf, [f.key]: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Initial Steps (JSON array)</label>
+            <textarea title="Steps JSON" value={createForm.steps}
+              onChange={e => { setCreateForm(f => ({ ...f, steps: e.target.value })); setCreateJsonErr(''); }}
+              rows={8} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono outline-none resize-y" />
+            {createJsonErr && <p className="text-xs text-red-500 mt-1">{createJsonErr}</p>}
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Notes</label>
+            <input title="Notes" value={createForm.notes} onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="Initial version notes…" />
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={createSchema}
+              className="px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">Create Schema</button>
+            <button type="button" onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-3">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />)}
+          </div>
+        ) : schemas.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center text-gray-400 text-sm">
+            No configurator schemas yet
+          </div>
+        ) : schemas.map(s => (
+          <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-100">
+            {/* Header row */}
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="font-semibold text-gray-900">{s.category?.name || '—'}</p>
+                  {s.isActive ? <Bdg label="active" color="bg-green-100 text-green-700" /> : <Bdg label="inactive" color="bg-gray-100 text-gray-400" />}
+                  <Bdg label={`v${s.latestVersion?.versionNumber ?? 0}`} color="bg-blue-100 text-blue-700" />
+                  <span className="text-xs text-gray-400">{s.versionCount || 0} version{s.versionCount !== 1 ? 's' : ''}</span>
+                </div>
+
+                {editingId === s.id ? (
+                  <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
+                    {numFields.map(f => (
+                      <div key={f.key}>
+                        <label className="text-xs text-gray-400 block mb-0.5">{f.label.split('(')[0].trim()}</label>
+                        <input type="number" step={f.step} title={f.label}
+                          defaultValue={(s as any)[f.key]}
+                          onChange={e => setEditForm((ef: any) => ({ ...ef, [f.key]: e.target.value }))}
+                          className="border rounded px-2 py-1 text-sm w-full" />
+                      </div>
+                    ))}
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-1 text-xs cursor-pointer">
+                        <input type="checkbox" defaultChecked={s.isActive}
+                          onChange={e => setEditForm((ef: any) => ({ ...ef, isActive: e.target.checked }))} />
+                        Active
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Base: <b>€{Number(s.basePrice).toFixed(2)}</b> · MOQ: <b>{s.moq}</b> · Lead: <b>{s.leadTimeStandardDays}d</b> / <b>{s.leadTimeExpressDays}d</b> exp · ×<b>{Number(s.expressPriceMultiplier).toFixed(2)}</b>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {editingId === s.id ? (
+                  <>
+                    <button type="button" title="Save" onClick={() => saveEdit(s.id)} className="text-green-600 hover:text-green-800"><Check size={16} /></button>
+                    <button type="button" title="Cancel" onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button"
+                      onClick={() => { setEditingId(s.id); setEditForm({}); }}
+                      className="text-xs text-gray-500 hover:text-[#1A3C5E] flex items-center gap-1 border border-gray-200 rounded px-2 py-1.5">
+                      <Pencil size={12} /> Edit
+                    </button>
+                    <button type="button"
+                      onClick={() => {
+                        setPublishingId(publishingId === s.id ? null : s.id);
+                        setNewSteps(s.latestVersion?.steps ? JSON.stringify(s.latestVersion.steps, null, 2) : '[]');
+                        setNewNotes('');
+                        setJsonErr('');
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 border border-blue-200 rounded px-2 py-1.5">
+                      <Plus size={12} /> Version
+                    </button>
+                    <button type="button" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                      className="text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-2 py-1.5">
+                      {expandedId === s.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Publish version form */}
+            {publishingId === s.id && (
+              <div className="border-t border-gray-100 px-5 py-4 bg-blue-50 space-y-3">
+                <p className="text-sm font-semibold text-gray-900">Publish New Version</p>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Steps JSON</label>
+                  <textarea title="Steps JSON" value={newSteps}
+                    onChange={e => { setNewSteps(e.target.value); setJsonErr(''); }}
+                    rows={10} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono outline-none resize-y" />
+                  {jsonErr && <p className="text-xs text-red-500 mt-1">{jsonErr}</p>}
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Release Notes</label>
+                  <input title="Notes" value={newNotes} onChange={e => setNewNotes(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" placeholder="What changed…" />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => publishVersion(s.id)}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">Publish</button>
+                  <button type="button" onClick={() => setPublishingId(null)}
+                    className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Steps viewer */}
+            {expandedId === s.id && (
+              <div className="border-t border-gray-100 px-5 py-4 bg-gray-50">
+                <p className="text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wide">
+                  Steps — v{s.latestVersion?.versionNumber ?? '?'}
+                  {s.latestVersion?.notes && <span className="ml-2 font-normal text-gray-400 normal-case">({s.latestVersion.notes})</span>}
+                </p>
+                <pre className="text-xs bg-white border border-gray-100 rounded-lg p-4 overflow-auto max-h-72 text-gray-700 leading-relaxed">
+                  {s.latestVersion?.steps ? JSON.stringify(s.latestVersion.steps, null, 2) : 'No versions yet'}
+                </pre>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: 'products',   label: 'All Products',        icon: Package },
+  { id: 'categories', label: 'Categories',           icon: Tag },
+  { id: 'variants',   label: 'Variants',             icon: Layers },
+  { id: 'schemas',    label: 'Configurator Schemas', icon: Cpu },
+];
+
+export default function ProductsPage() {
+  const [tab, setTab] = useState<Tab>('products');
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+        <p className="text-gray-500 text-sm mt-1">Manage your catalog, categories, variants, and configurator schemas</p>
+      </div>
+
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
+        {TABS.map(t => {
+          const TIcon = t.icon;
+          return (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+              <TIcon size={14} />{t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'products'   && <ProductsTab />}
+      {tab === 'categories' && <CategoriesTab />}
+      {tab === 'variants'   && <VariantsTab />}
+      {tab === 'schemas'    && <SchemasTab />}
     </div>
   );
 }
