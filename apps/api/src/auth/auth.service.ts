@@ -185,6 +185,29 @@ export class AuthService {
     });
   }
 
+  async getUserDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, email: true, fullName: true, phone: true, companyName: true,
+        vatNumber: true, accountType: true, wholesaleTier: true, isApproved: true,
+        locale: true, currency: true, createdAt: true,
+        addresses: { orderBy: { createdAt: 'desc' } },
+        orders: {
+          select: { id: true, orderNumber: true, status: true, total: true, placedAt: true, items: { select: { quantity: true } } },
+          orderBy: { placedAt: 'desc' }, take: 20,
+        },
+        customOrders: {
+          select: { id: true, status: true, quantity: true, estimatedPriceMin: true, estimatedPriceMax: true, submittedAt: true, product: { select: { name: true } } },
+          orderBy: { createdAt: 'desc' }, take: 20,
+        },
+        _count: { select: { orders: true, customOrders: true } },
+      },
+    });
+    if (!user) throw new Error('User not found');
+    return user;
+  }
+
   async findOrCreateOAuthUser(dto: { email: string; fullName: string; provider: string; providerId: string }) {
     let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) {

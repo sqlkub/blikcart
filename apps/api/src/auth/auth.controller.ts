@@ -69,6 +69,13 @@ export class AuthController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @Get('users/:id')
+  async getUserDetail(@Param('id') id: string) {
+    return this.auth.getUserDetail(id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('admin/stats')
   async adminStats() {
     return this.auth.getAdminStats();

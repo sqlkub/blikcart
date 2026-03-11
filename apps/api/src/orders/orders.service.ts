@@ -204,6 +204,89 @@ export class OrdersService {
     return { data: orders, meta: { total, page: p, limit: l } };
   }
 
+  async getAnalyticsStats(days = 30) {
+    const d = Math.min(90, parseInt(String(days)) || 30);
+    const since = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
+
+    const [revenueByDay, ordersByStatus, topProducts, totalRevenue, totalOrders, customRevenue] = await Promise.all([
+      // Revenue per day for the last N days
+      this.prisma.$queryRaw`
+        SELECT DATE(placed_at) as date, SUM(total)::float as revenue, COUNT(*)::int as orders
+        FROM orders
+        WHERE placed_at >= ${since}
+        GROUP BY DATE(placed_at)
+        ORDER BY date ASC
+      `,
+      // Orders by status
+      this.prisma.order.groupBy({ by: ['status'], _count: { id: true } }),
+      // Top 5 products by revenue
+      this.prisma.orderItem.groupBy({
+        by: ['productId'],
+        _sum: { total: true },
+        _count: { id: true },
+        orderBy: { _sum: { total: 'desc' } },
+        take: 5,
+      }),
+      // Total revenue all time
+      this.prisma.order.aggregate({ _sum: { total: true } }),
+      // Total orders all time
+      this.prisma.order.count(),
+      // Custom order revenue
+      this.prisma.order.aggregate({ where: { orderType: 'custom' }, _sum: { total: true } }),
+    ]);
+
+    // Get product names for top products
+    const productIds = (topProducts as any[]).map((p: any) => p.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true },
+    });
+    const productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
+
+    return {
+      revenueByDay,
+      ordersByStatus: (ordersByStatus as any[]).map(s => ({ status: s.status, count: s._count.id })),
+      topProducts: (topProducts as any[]).map((p: any) => ({
+        name: productMap[p.productId] || 'Unknown',
+        revenue: Number(p._sum.total || 0),
+        orders: p._count.id,
+      })),
+      summary: {
+        totalRevenue: Number(totalRevenue._sum.total || 0),
+        totalOrders,
+        customRevenue: Number(customRevenue._sum.total || 0),
+        avgOrderValue: totalOrders > 0 ? Number(totalRevenue._sum.total || 0) / totalOrders : 0,
+      },
+    };
+  }
+
+  async getAdminPayments(page: any = 1, limit: any = 50, status?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 50);
+    const where: any = {};
+    if (status) where.status = status;
+
+    const [total, payments] = await Promise.all([
+      this.prisma.payment.count({ where }),
+      this.prisma.payment.findMany({
+        where,
+        include: {
+          order: {
+            select: {
+              orderNumber: true,
+              user: { select: { fullName: true, email: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return { data: payments, meta: { total, page: p, limit: l } };
+  }
+
   private formatCart(cart: any) {
     const items = cart.items.map((item: any) => ({
       ...item,

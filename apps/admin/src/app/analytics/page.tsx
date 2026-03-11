@@ -4,99 +4,147 @@ import axios from 'axios';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
+const STATUS_COLORS: Record<string, string> = {
+  pending: '#f59e0b', confirmed: '#3b82f6', in_production: '#8b5cf6',
+  shipped: '#6366f1', delivered: '#10b981', cancelled: '#ef4444',
+};
+
 export default function AnalyticsPage() {
-  const [stats, setStats] = useState<any>(null);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [days, setDays] = useState(30);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          axios.get(`${API}/products?limit=1`),
-          axios.get(`${API}/products/categories`),
-        ]);
-        setStats({ totalProducts: prodRes.data.meta?.total || 0, totalCategories: catRes.data?.length || 0 });
-      } catch {}
-    }
-    load();
-  }, []);
+    const token = localStorage.getItem('adminToken');
+    setLoading(true);
+    axios.get(`${API}/orders/admin/analytics?days=${days}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [days]);
 
-  const kpis = [
-    { label: 'Total Revenue', value: '€24,380', sub: 'This month', color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Total Orders', value: '142', sub: 'This month', color: 'text-[#1A3C5E]', bg: 'bg-blue-50' },
-    { label: 'Avg Order Value', value: '€171', sub: '+8% vs last month', color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Total Products', value: stats?.totalProducts || '...', sub: `${stats?.totalCategories || 0} categories`, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Custom Orders', value: '38', sub: 'This month', color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'New Customers', value: '24', sub: 'This month', color: 'text-teal-600', bg: 'bg-teal-50' },
-    { label: 'Conversion Rate', value: '3.2%', sub: '+0.4% vs last month', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Wholesale Orders', value: '19', sub: '13% of total', color: 'text-pink-600', bg: 'bg-pink-50' },
-  ];
+  const maxRevenue = data?.revenueByDay?.length > 0
+    ? Math.max(...data.revenueByDay.map((d: any) => Number(d.revenue)))
+    : 1;
 
-  const topProducts = [
-    { name: 'Dressage Bridle - Full Custom', orders: 28, revenue: '€4,200', growth: '+12%' },
-    { name: 'Padded Browband', orders: 22, revenue: '€2,640', growth: '+8%' },
-    { name: 'Leather Halter', orders: 19, revenue: '€1,900', growth: '+5%' },
-    { name: 'Competition Girth', orders: 17, revenue: '€2,040', growth: '+18%' },
-    { name: 'Horse Reins - Custom', orders: 14, revenue: '€1,680', growth: '+3%' },
-  ];
+  const maxProductRevenue = data?.topProducts?.length > 0
+    ? Math.max(...data.topProducts.map((p: any) => p.revenue))
+    : 1;
+
+  const totalStatusCount = data?.ordersByStatus?.reduce((s: number, x: any) => s + x.count, 0) || 1;
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-500 text-sm mt-1">Overview — {new Date().toLocaleDateString('en-NL', { month: 'long', year: 'numeric' })}</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-500 text-sm mt-1">Revenue and order performance overview</p>
+        </div>
+        <div className="flex gap-2">
+          {[7, 30, 90].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${days === d ? 'bg-[#1A3C5E] text-white border-[#1A3C5E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
+              {d}d
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {kpis.map(k => (
-          <div key={k.label} className={`${k.bg} rounded-xl p-5`}>
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">{k.label}</p>
-            <p className={`text-3xl font-bold mt-1 ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{k.sub}</p>
+        {loading ? [...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-8 w-16 bg-gray-100 rounded animate-pulse" />
+          </div>
+        )) : [
+          { label: 'Total Revenue', value: `€${(data?.summary?.totalRevenue || 0).toFixed(2)}`, color: 'text-green-600' },
+          { label: 'Total Orders', value: String(data?.summary?.totalOrders || 0), color: 'text-[#1A3C5E]' },
+          { label: 'Avg Order Value', value: `€${(data?.summary?.avgOrderValue || 0).toFixed(2)}`, color: 'text-amber-600' },
+          { label: 'Custom Revenue', value: `€${(data?.summary?.customRevenue || 0).toFixed(2)}`, color: 'text-purple-600' },
+        ].map(kpi => (
+          <div key={kpi.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">{kpi.label}</p>
+            <p className={`text-2xl font-bold mt-1 ${kpi.color}`}>{kpi.value}</p>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-5 border-b border-gray-100"><h2 className="font-bold text-gray-900">Top Products</h2></div>
-          <table className="w-full">
-            <thead>
-              <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                {['Product','Orders','Revenue','Growth'].map(h => <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {topProducts.map((p, i) => (
-                <tr key={i} className="border-b border-gray-50 last:border-0">
-                  <td className="px-5 py-3 text-sm font-medium text-gray-800">{p.name}</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">{p.orders}</td>
-                  <td className="px-5 py-3 text-sm font-semibold">{p.revenue}</td>
-                  <td className="px-5 py-3 text-sm font-semibold text-green-600">{p.growth}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Revenue chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-4">Revenue — Last {days} Days</h2>
+          {loading ? <div className="h-48 bg-gray-50 rounded-lg animate-pulse" /> : (
+            <div className="flex items-end gap-1 h-48">
+              {data?.revenueByDay?.length > 0 ? data.revenueByDay.map((d: any, i: number) => {
+                const height = maxRevenue > 0 ? (Number(d.revenue) / maxRevenue) * 100 : 0;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                      {d.date}: €{Number(d.revenue).toFixed(2)} ({d.orders} orders)
+                    </div>
+                    <div className="w-full bg-[#1A3C5E] rounded-t transition-all hover:bg-[#C8860A]" style={{ height: `${Math.max(height, 2)}%` }} />
+                  </div>
+                );
+              }) : <div className="w-full flex items-center justify-center text-gray-400 text-sm">No revenue data for this period</div>}
+            </div>
+          )}
+          {!loading && data?.revenueByDay?.length > 0 && (
+            <div className="flex justify-between text-xs text-gray-400 mt-2">
+              <span>{data.revenueByDay[0]?.date}</span>
+              <span>{data.revenueByDay[data.revenueByDay.length - 1]?.date}</span>
+            </div>
+          )}
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="p-5 border-b border-gray-100"><h2 className="font-bold text-gray-900">Revenue by Category</h2></div>
-          <div className="p-5 space-y-4">
-            {[
-              { name: 'Bridles', pct: 38, color: 'bg-[#1A3C5E]' },
-              { name: 'Browbands', pct: 22, color: 'bg-[#C8860A]' },
-              { name: 'Halters', pct: 16, color: 'bg-purple-500' },
-              { name: 'Girths', pct: 14, color: 'bg-green-500' },
-              { name: 'Other', pct: 10, color: 'bg-gray-300' },
-            ].map(c => (
-              <div key={c.name}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium text-gray-700">{c.name}</span>
-                  <span className="text-gray-500">{c.pct}%</span>
+
+        {/* Order status donut */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-4">Orders by Status</h2>
+          {loading ? <div className="h-48 bg-gray-50 rounded-lg animate-pulse" /> : (
+            <div className="space-y-3">
+              {data?.ordersByStatus?.map((s: any) => (
+                <div key={s.status}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-600 capitalize">{s.status.replace('_', ' ')}</span>
+                    <span className="font-semibold text-gray-900">{s.count}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="h-2 rounded-full" style={{
+                      width: `${(s.count / totalStatusCount) * 100}%`,
+                      backgroundColor: STATUS_COLORS[s.status] || '#9ca3af',
+                    }} />
+                  </div>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${c.color} rounded-full`} style={{ width: `${c.pct}%` }} />
+              ))}
+              {(!data?.ordersByStatus || data.ordersByStatus.length === 0) && (
+                <p className="text-center text-gray-400 text-sm py-8">No order data</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Top Products */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="font-bold text-gray-900 mb-4">Top Products by Revenue</h2>
+        {loading ? <div className="h-32 bg-gray-50 rounded-lg animate-pulse" /> : (
+          <div className="space-y-4">
+            {data?.topProducts?.length > 0 ? data.topProducts.map((p: any, i: number) => (
+              <div key={i} className="flex items-center gap-4">
+                <span className="text-xs font-bold text-gray-400 w-4">{i + 1}</span>
+                <div className="flex-1">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium text-gray-900">{p.name}</span>
+                    <span className="text-gray-500">€{p.revenue.toFixed(2)} · {p.orders} orders</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="h-2 rounded-full bg-[#C8860A]" style={{ width: `${(p.revenue / maxProductRevenue) * 100}%` }} />
+                  </div>
                 </div>
               </div>
-            ))}
+            )) : <p className="text-center text-gray-400 text-sm py-4">No product data</p>}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

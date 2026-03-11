@@ -62,4 +62,18 @@ export class OrdersController {
   getAdminCustomOrders(@Query() query: any) {
     return this.orders.getAdminCustomOrders(query.page, query.limit, query.status);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/analytics')
+  getAnalytics(@Query('days') days: string) {
+    return this.orders.getAnalyticsStats(parseInt(days) || 30);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/payments')
+  getAdminPayments(@Query() query: any) {
+    return this.orders.getAdminPayments(query.page, query.limit, query.status);
+  }
 }

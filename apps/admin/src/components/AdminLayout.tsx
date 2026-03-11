@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, MessageSquare, Users, Package, BarChart3, LogOut, Briefcase } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, MessageSquare, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -14,7 +14,9 @@ const navItems = [
   { label: 'Products',            href: '/products',            icon: Package },
   { label: 'Customers',           href: '/customers',           icon: Users },
   { label: 'Wholesale Approvals', href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
+  { label: 'Payments',            href: '/payments',            icon: CreditCard },
   { label: 'Analytics',           href: '/analytics',           icon: BarChart3 },
+  { label: 'Settings',            href: '/settings',            icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

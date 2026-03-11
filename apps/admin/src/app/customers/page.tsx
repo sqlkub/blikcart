@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 export default function CustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -51,7 +53,7 @@ export default function CustomersPage() {
                   {[...Array(6)].map((_, j) => <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}
                 </tr>
               )) : filtered.length > 0 ? filtered.map(c => (
-                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/customers/${c.id}`)}>
                   <td className="px-5 py-4 text-sm font-semibold text-gray-900">{c.fullName || '-'}</td>
                   <td className="px-5 py-4 text-sm text-gray-500">{c.email}</td>
                   <td className="px-5 py-4 text-sm text-gray-500">{c.companyName || '-'}</td>
