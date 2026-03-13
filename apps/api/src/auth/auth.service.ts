@@ -151,21 +151,26 @@ export class AuthService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const in48h = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const [ordersToday, revenueToday, customOrdersPending, wholesalePending, quotesExpiring] = await Promise.all([
+    const [ordersToday, revenueToday, customOrdersPending, wholesalePending, quotesExpiring, failedPayments24h, revenueMonth] = await Promise.all([
       this.prisma.order.count({ where: { placedAt: { gte: today, lt: tomorrow } } }),
       this.prisma.order.aggregate({ where: { placedAt: { gte: today, lt: tomorrow } }, _sum: { total: true } }),
       this.prisma.customOrder.count({ where: { status: 'submitted' } }),
       this.prisma.user.count({ where: { accountType: 'wholesale', isApproved: false } }),
       this.prisma.quote.count({ where: { status: 'sent', validUntil: { lte: in48h, gt: new Date() } } }),
+      this.prisma.payment.count({ where: { status: 'failed', createdAt: { gte: since24h } } }),
+      this.prisma.order.aggregate({ where: { placedAt: { gte: new Date(Date.now() - 30 * 86400000) } }, _sum: { total: true } }),
     ]);
 
     return {
       ordersToday,
       revenueToday: Number(revenueToday._sum.total || 0),
+      revenueMonth: Number(revenueMonth._sum.total || 0),
       customOrdersPending,
       wholesalePending,
       quotesExpiring,
+      failedPayments24h,
     };
   }
 

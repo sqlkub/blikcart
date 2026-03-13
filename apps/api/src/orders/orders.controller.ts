@@ -72,6 +72,13 @@ export class OrdersController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @Get('admin/revenue-split')
+  getRevenueSplit(@Query('days') days: string) {
+    return this.orders.getRevenueSplit(parseInt(days) || 30);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('admin/payments')
   getAdminPayments(@Query() query: any) {
     return this.orders.getAdminPayments(query.page, query.limit, query.status);

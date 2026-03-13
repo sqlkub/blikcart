@@ -287,6 +287,39 @@ export class OrdersService {
     return { data: payments, meta: { total, page: p, limit: l } };
   }
 
+  async getRevenueSplit(days = 30) {
+    const d = Math.min(90, parseInt(String(days)) || 30);
+    const since = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
+
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        DATE(placed_at)::text AS date,
+        order_type,
+        SUM(total)::float AS revenue,
+        COUNT(*)::int AS orders
+      FROM orders
+      WHERE placed_at >= ${since}
+      GROUP BY DATE(placed_at), order_type
+      ORDER BY date ASC
+    `;
+
+    const dateSet = new Set<string>(rows.map(r => String(r.date)));
+    const dates = Array.from(dateSet).sort();
+
+    return dates.map(date => {
+      const dayRows = rows.filter(r => String(r.date) === date);
+      const standard = dayRows.filter(r => r.order_type === 'standard');
+      const custom = dayRows.filter(r => r.order_type === 'custom' || r.order_type === 'mixed');
+      return {
+        date,
+        standardRevenue: standard.reduce((s, r) => s + Number(r.revenue), 0),
+        customRevenue: custom.reduce((s, r) => s + Number(r.revenue), 0),
+        totalRevenue: dayRows.reduce((s, r) => s + Number(r.revenue), 0),
+        orders: dayRows.reduce((s, r) => s + Number(r.orders), 0),
+      };
+    });
+  }
+
   async getAdminInvoices(page: any = 1, limit: any = 50) {
     const p = Math.max(1, parseInt(page) || 1);
     const l = Math.min(200, parseInt(limit) || 50);

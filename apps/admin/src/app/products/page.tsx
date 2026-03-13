@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import axios from 'axios';
-import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -39,6 +40,8 @@ function ProductsTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('');
+  const [custFilter, setCustFilter] = useState<boolean | null>(null);
+  const [lowStockOnly, setLowStockOnly] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
@@ -46,6 +49,8 @@ function ProductsTab() {
     name: '', sku: '', categoryId: '', basePrice: '', wholesalePrice: '',
     moq: '1', leadTimeDays: '0', isCustomizable: false, description: '',
   });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,17 +67,69 @@ function ProductsTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = products.filter(p => {
+  const filtered = useMemo(() => products.filter(p => {
     if (statusFilter === 'active' && !p.isActive) return false;
     if (statusFilter === 'inactive' && p.isActive) return false;
     if (catFilter && p.categoryId !== catFilter) return false;
+    if (custFilter !== null && p.isCustomizable !== custFilter) return false;
+    if (lowStockOnly && (p.totalStock ?? 1) > 0) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sku?.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  });
+  }), [products, statusFilter, catFilter, custFilter, lowStockOnly, search]);
 
   async function toggleActive(id: string) {
     await axios.patch(`${API}/products/admin/${id}/toggle`, {}, { headers: hdrs() });
     setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
+  }
+
+  async function deleteProduct(id: string) {
+    if (!confirm('Delete this product? This cannot be undone.')) return;
+    await axios.delete(`${API}/products/admin/${id}`, { headers: hdrs() });
+    setProducts(prev => prev.filter(p => p.id !== id));
+    setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
+  }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filtered.length && filtered.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(p => p.id)));
+    }
+  }
+
+  async function bulkActivate(active: boolean) {
+    setBulkWorking(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => {
+        const p = products.find(x => x.id === id);
+        if (p && p.isActive !== active) return axios.patch(`${API}/products/admin/${id}/toggle`, {}, { headers: hdrs() });
+      }));
+      setProducts(prev => prev.map(p => selected.has(p.id) ? { ...p, isActive: active } : p));
+      setSelected(new Set());
+    } finally { setBulkWorking(false); }
+  }
+
+  async function bulkDelete() {
+    if (!confirm(`Delete ${selected.size} product(s)? This cannot be undone.`)) return;
+    setBulkWorking(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => axios.delete(`${API}/products/admin/${id}`, { headers: hdrs() })));
+      setProducts(prev => prev.filter(p => !selected.has(p.id)));
+      setSelected(new Set());
+    } finally { setBulkWorking(false); }
+  }
+
+  function exportCSV() {
+    const rows = filtered.filter(p => selected.size === 0 || selected.has(p.id));
+    const csv = ['Name,SKU,Category,Base Price,Wholesale Price,Active,Customizable,Stock'].concat(
+      rows.map(p => `"${p.name}","${p.sku}","${p.category?.name ?? ''}","${p.basePrice}","${p.wholesalePrice ?? ''}","${p.isActive}","${p.isCustomizable}","${p.totalStock ?? ''}"`)
+    ).join('\n');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: 'products.csv' });
+    a.click();
   }
 
   async function saveEdit(id: string) {
@@ -123,19 +180,52 @@ function ProductsTab() {
           <option value="">All categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {(['all', 'active', 'inactive'] as const).map(s => (
             <button key={s} type="button" onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${statusFilter === s ? 'bg-[#1A3C5E] text-white border-[#1A3C5E]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
               {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
+          <button type="button" onClick={() => setCustFilter(custFilter === true ? null : true)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${custFilter === true ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
+            Customizable
+          </button>
+          <button type="button" onClick={() => setLowStockOnly(s => !s)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${lowStockOnly ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>
+            Low Stock
+          </button>
         </div>
-        <button type="button" onClick={() => setShowCreate(!showCreate)}
-          className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
-          <Plus size={14} /> New Product
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button type="button" onClick={exportCSV} title="Export CSV"
+            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-50">
+            <Download size={13} /> Export
+          </button>
+          <button type="button" onClick={() => setShowCreate(!showCreate)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
+            <Plus size={14} /> New Product
+          </button>
+        </div>
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-[#1A3C5E] text-white rounded-xl px-5 py-3">
+          <span className="text-sm font-semibold">{selected.size} selected</span>
+          <div className="flex gap-2 ml-auto">
+            <button type="button" onClick={() => bulkActivate(true)} disabled={bulkWorking}
+              className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">Activate</button>
+            <button type="button" onClick={() => bulkActivate(false)} disabled={bulkWorking}
+              className="text-xs bg-gray-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-600 disabled:opacity-50">Deactivate</button>
+            <button type="button" onClick={exportCSV}
+              className="text-xs bg-white/20 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-white/30">Export CSV</button>
+            <button type="button" onClick={bulkDelete} disabled={bulkWorking}
+              className="text-xs bg-red-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-red-600 disabled:opacity-50">Delete</button>
+            <button type="button" title="Clear selection" onClick={() => setSelected(new Set())}
+              className="text-xs text-white/70 hover:text-white px-2 py-1.5"><X size={12} /></button>
+          </div>
+        </div>
+      )}
 
       {/* Create form */}
       {showCreate && (
@@ -202,7 +292,13 @@ function ProductsTab() {
         <table className="w-full">
           <thead>
             <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-              {['Product', 'SKU', 'Category', 'Base €', 'Wholesale €', 'Variants', 'Tags', 'Status', ''].map(h => (
+              <th className="px-4 py-3 w-8">
+                <input type="checkbox" title="Select all"
+                  checked={selected.size === filtered.length && filtered.length > 0}
+                  onChange={toggleSelectAll}
+                  className="rounded" />
+              </th>
+              {['Product', 'SKU', 'Category', 'Base €', 'Wholesale €', 'Stock', 'Status', ''].map(h => (
                 <th key={h} className="text-left px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -213,6 +309,7 @@ function ProductsTab() {
             ) : filtered.map(p => (
               editingId === p.id ? (
                 <tr key={p.id} className="border-b border-gray-100 bg-yellow-50">
+                  <td className="px-4 py-2" />
                   <td className="px-4 py-2">
                     <input title="Name" defaultValue={p.name} onChange={e => setEditForm((f: any) => ({ ...f, name: e.target.value }))}
                       className="border rounded px-2 py-1 text-sm w-40" />
@@ -229,7 +326,7 @@ function ProductsTab() {
                       onChange={e => setEditForm((f: any) => ({ ...f, wholesalePrice: e.target.value }))}
                       className="border rounded px-2 py-1 text-sm w-20" placeholder="—" />
                   </td>
-                  <td className="px-4 py-2 text-sm text-gray-500">{p.variantCount || 0}</td>
+                  <td className="px-4 py-2 text-sm text-gray-500">{p.totalStock ?? '—'}</td>
                   <td /><td />
                   <td className="px-4 py-2">
                     <div className="flex gap-2">
@@ -239,7 +336,10 @@ function ProductsTab() {
                   </td>
                 </tr>
               ) : (
-                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <tr key={p.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(p.id) ? 'bg-blue-50' : ''}`}>
+                  <td className="px-4 py-3">
+                    <input type="checkbox" title="Select" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {p.images?.[0]
@@ -255,11 +355,12 @@ function ProductsTab() {
                   <td className="px-4 py-3 text-sm text-gray-500">{p.category?.name}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">€{Number(p.basePrice).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{p.wholesalePrice ? `€${Number(p.wholesalePrice).toFixed(2)}` : '—'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{p.variantCount || 0}</td>
                   <td className="px-4 py-3">
-                    {(p.tags?.length ?? 0) > 0 && (
-                      <span className="text-xs text-gray-400">{p.tags.slice(0, 2).join(', ')}{p.tags.length > 2 ? '…' : ''}</span>
-                    )}
+                    {p.totalStock !== null && p.totalStock !== undefined ? (
+                      <span className={`text-sm font-semibold ${p.totalStock === 0 ? 'text-red-500' : p.totalStock < 10 ? 'text-amber-600' : 'text-gray-700'}`}>
+                        {p.totalStock}
+                      </span>
+                    ) : <span className="text-gray-400 text-sm">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => toggleActive(p.id)} title={p.isActive ? 'Deactivate' : 'Activate'}>
@@ -267,8 +368,12 @@ function ProductsTab() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
-                      className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
+                    <div className="flex gap-2">
+                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
+                        className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
+                      <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
+                        className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -841,16 +946,10 @@ function SchemasTab() {
                       className="text-xs text-gray-500 hover:text-[#1A3C5E] flex items-center gap-1 border border-gray-200 rounded px-2 py-1.5">
                       <Pencil size={12} /> Edit
                     </button>
-                    <button type="button"
-                      onClick={() => {
-                        setPublishingId(publishingId === s.id ? null : s.id);
-                        setNewSteps(s.latestVersion?.steps ? JSON.stringify(s.latestVersion.steps, null, 2) : '[]');
-                        setNewNotes('');
-                        setJsonErr('');
-                      }}
+                    <Link href={`/products/schemas/${s.id}`}
                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 border border-blue-200 rounded px-2 py-1.5">
-                      <Plus size={12} /> Version
-                    </button>
+                      <ExternalLink size={12} /> Edit Schema
+                    </Link>
                     <button type="button" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
                       className="text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-2 py-1.5">
                       {expandedId === s.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

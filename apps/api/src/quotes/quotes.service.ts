@@ -174,4 +174,12 @@ export class QuotesService {
       data: { status: status as any },
     });
   }
+
+  async updateCustomOrder(id: string, data: { status?: string; internalRef?: string; notes?: string }) {
+    const updateData: any = {};
+    if (data.status) updateData.status = data.status;
+    if (data.internalRef !== undefined) updateData.internalRef = data.internalRef;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    return this.prisma.customOrder.update({ where: { id }, data: updateData });
+  }
 }

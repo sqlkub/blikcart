@@ -44,4 +44,9 @@ export class QuotesController {
   updateCustomOrderStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.quotes.updateCustomOrderStatus(id, status);
   }
+
+  @Patch('admin/custom-orders/:id')
+  updateCustomOrder(@Param('id') id: string, @Body() body: any) {
+    return this.quotes.updateCustomOrder(id, body);
+  }
 }

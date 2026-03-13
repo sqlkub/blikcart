@@ -38,6 +38,12 @@ export class ProductsController {
     return this.products.adminToggle(id);
   }
 
+  @Delete('admin/:id')
+  adminDelete(@Param('id') id: string) {
+    return this.products.adminDelete(id);
+  }
+
+
   // ── Admin: Categories ───────────────────────────────────────────────────────
 
   @Get('admin/categories')

@@ -195,6 +195,22 @@ export class ConfiguratorService {
 
   // ── Admin ───────────────────────────────────────────────────────────────────
 
+  async adminGetSchema(id: string) {
+    const schema = await this.prisma.configuratorSchema.findUnique({
+      where: { id },
+      include: {
+        category: { select: { name: true, slug: true } },
+        versions: { orderBy: { versionNumber: 'desc' } },
+      },
+    });
+    if (!schema) throw new NotFoundException(`Schema not found`);
+    return {
+      ...schema,
+      basePrice: Number(schema.basePrice),
+      expressPriceMultiplier: Number(schema.expressPriceMultiplier),
+    };
+  }
+
   async adminListSchemas() {
     const schemas = await this.prisma.configuratorSchema.findMany({
       include: {

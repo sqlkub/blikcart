@@ -168,6 +168,7 @@ export class ProductsService {
         include: {
           category: { select: { name: true, slug: true } },
           images: { where: { isPrimary: true }, take: 1 },
+          variants: { select: { stockQty: true }, where: { isActive: true } },
           _count: { select: { variants: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -177,7 +178,11 @@ export class ProductsService {
     ]);
 
     return {
-      data: data.map(prod => ({ ...this.fmt(prod), variantCount: (prod as any)._count.variants })),
+      data: data.map(prod => ({
+        ...this.fmt(prod),
+        variantCount: (prod as any)._count.variants,
+        totalStock: (prod as any).variants?.reduce((s: number, v: any) => s + (v.stockQty || 0), 0) ?? null,
+      })),
       meta: { total, page: p, limit: l },
     };
   }
@@ -208,6 +213,11 @@ export class ProductsService {
     const prod = await this.prisma.product.findUnique({ where: { id }, select: { isActive: true } });
     if (!prod) throw new NotFoundException('Product not found');
     return this.prisma.product.update({ where: { id }, data: { isActive: !prod.isActive } });
+  }
+
+  async adminDelete(id: string) {
+    await this.prisma.product.delete({ where: { id } });
+    return { success: true };
   }
 
   // ── Admin: Categories ───────────────────────────────────────────────────────

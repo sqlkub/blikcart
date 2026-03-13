@@ -57,6 +57,11 @@ export class ConfiguratorController {
     return this.configurator.adminListSchemas();
   }
 
+  @Get('admin/schemas/:id')
+  adminGetSchema(@Param('id') id: string) {
+    return this.configurator.adminGetSchema(id);
+  }
+
   @Post('admin/schemas')
   adminCreateSchema(@Body() body: any) {
     return this.configurator.adminCreateSchema(body);
