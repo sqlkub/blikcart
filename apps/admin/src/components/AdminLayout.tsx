@@ -26,6 +26,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [wholesaleCount, setWholesaleCount] = useState<number | null>(null);
 
+  // Global 401 interceptor — catches expired tokens anywhere in the app
+  useEffect(() => {
+    const interceptorId = axios.interceptors.response.use(
+      res => res,
+      err => {
+        if (err.response?.status === 401) {
+          localStorage.removeItem('adminToken');
+          router.push('/login');
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => { axios.interceptors.response.eject(interceptorId); };
+  }, [router]);
+
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token && path !== '/login') {

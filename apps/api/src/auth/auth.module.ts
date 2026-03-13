@@ -16,7 +16,7 @@ import { AppleAuthStrategy } from './strategies/apple.strategy';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '28800') + 's' },
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '604800') + 's' },
       }),
     }),
   ],
