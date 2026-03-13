@@ -3,18 +3,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, MessageSquare, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 const navItems = [
   { label: 'Dashboard',           href: '/dashboard',           icon: LayoutDashboard },
-  { label: 'Orders',              href: '/orders',              icon: ShoppingBag },
-  { label: 'Custom Orders',       href: '/custom-orders',       icon: MessageSquare, countKey: 'customOrders' },
+  { label: 'Orders',              href: '/orders',              icon: ShoppingBag, countKey: 'customOrders' },
   { label: 'Products',            href: '/products',            icon: Package },
   { label: 'Customers',           href: '/customers',           icon: Users },
   { label: 'Wholesale Approvals', href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
   { label: 'Payments',            href: '/payments',            icon: CreditCard },
+  { label: 'Content',             href: '/content',             icon: FileText },
   { label: 'Analytics',           href: '/analytics',           icon: BarChart3 },
   { label: 'Settings',            href: '/settings',            icon: Settings },
 ];

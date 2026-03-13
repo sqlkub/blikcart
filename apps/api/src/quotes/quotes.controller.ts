@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { QuotesService } from './quotes.service';
@@ -33,5 +33,15 @@ export class QuotesController {
   @Post('custom-orders/:id/messages')
   sendMessage(@Param('id') id: string, @Request() req, @Body() body: any) {
     return this.quotes.sendMessage(id, req.user.id, body.body, body.attachments);
+  }
+
+  @Get('admin/all')
+  getAdminQuotes(@Query() query: any) {
+    return this.quotes.getAdminQuotes(query.page, query.limit, query.status);
+  }
+
+  @Patch('admin/custom-orders/:id/status')
+  updateCustomOrderStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.quotes.updateCustomOrderStatus(id, status);
   }
 }

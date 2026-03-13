@@ -132,4 +132,46 @@ export class QuotesService {
       include: { sender: { select: { fullName: true, accountType: true } } },
     });
   }
+
+  async getAdminQuotes(page: any = 1, limit: any = 50, status?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 50);
+    const where: any = {};
+    if (status) where.status = status;
+
+    const [total, quotes] = await Promise.all([
+      this.prisma.quote.count({ where }),
+      this.prisma.quote.findMany({
+        where,
+        include: {
+          customOrder: {
+            include: {
+              user: { select: { fullName: true, email: true, companyName: true } },
+              product: { select: { name: true, slug: true } },
+            },
+          },
+          revisions: { orderBy: { revisionNumber: 'desc' }, take: 1 },
+        },
+        orderBy: { sentAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return {
+      data: quotes.map(q => ({
+        ...q,
+        unitPrice: Number(q.unitPrice),
+        totalPrice: Number(q.totalPrice),
+      })),
+      meta: { total, page: p, limit: l },
+    };
+  }
+
+  async updateCustomOrderStatus(id: string, status: string) {
+    return this.prisma.customOrder.update({
+      where: { id },
+      data: { status: status as any },
+    });
+  }
 }

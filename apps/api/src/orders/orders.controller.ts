@@ -76,4 +76,25 @@ export class OrdersController {
   getAdminPayments(@Query() query: any) {
     return this.orders.getAdminPayments(query.page, query.limit, query.status);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/invoices')
+  getAdminInvoices(@Query() query: any) {
+    return this.orders.getAdminInvoices(query.page, query.limit);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/refunds')
+  getAdminRefunds(@Query() query: any) {
+    return this.orders.getAdminRefunds(query.page, query.limit);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('admin/payments/:id/refund')
+  processRefund(@Param('id') id: string, @Body('amount') amount: number) {
+    return this.orders.processRefund(id, amount);
+  }
 }

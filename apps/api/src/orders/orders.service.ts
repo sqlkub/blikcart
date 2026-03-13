@@ -287,6 +287,88 @@ export class OrdersService {
     return { data: payments, meta: { total, page: p, limit: l } };
   }
 
+  async getAdminInvoices(page: any = 1, limit: any = 50) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 50);
+
+    const [total, orders] = await Promise.all([
+      this.prisma.order.count({ where: { payments: { some: { status: 'paid' } } } }),
+      this.prisma.order.findMany({
+        where: { payments: { some: { status: 'paid' } } },
+        include: {
+          user: { select: { fullName: true, email: true, companyName: true } },
+          payments: { where: { status: 'paid' }, orderBy: { paidAt: 'desc' }, take: 1 },
+        },
+        orderBy: { placedAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return {
+      data: orders.map(o => ({
+        invoiceNumber: `INV-${o.orderNumber}`,
+        orderId: o.id,
+        orderNumber: o.orderNumber,
+        customer: o.user,
+        amount: Number(o.total),
+        currency: 'EUR',
+        paidAt: o.payments[0]?.paidAt || null,
+        provider: o.payments[0]?.provider || null,
+        method: o.payments[0]?.method || null,
+      })),
+      meta: { total, page: p, limit: l },
+    };
+  }
+
+  async getAdminRefunds(page: any = 1, limit: any = 50) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, parseInt(limit) || 50);
+
+    const [total, payments] = await Promise.all([
+      this.prisma.payment.count({ where: { status: { in: ['refunded', 'partially_refunded'] } } }),
+      this.prisma.payment.findMany({
+        where: { status: { in: ['refunded', 'partially_refunded'] } },
+        include: {
+          order: {
+            select: {
+              orderNumber: true,
+              user: { select: { fullName: true, email: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    return { data: payments, meta: { total, page: p, limit: l } };
+  }
+
+  async processRefund(paymentId: string, amount: number) {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Payment not found');
+    if (payment.status !== 'paid' && payment.status !== 'partially_refunded') {
+      throw new BadRequestException('Payment is not eligible for refund');
+    }
+
+    const currentRefunded = Number(payment.refundedAmount || 0);
+    const newRefunded = currentRefunded + amount;
+    const originalAmount = Number(payment.amount);
+
+    if (newRefunded > originalAmount) {
+      throw new BadRequestException('Refund amount exceeds payment amount');
+    }
+
+    const newStatus = newRefunded >= originalAmount ? 'refunded' : 'partially_refunded';
+
+    return this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { refundedAmount: newRefunded, status: newStatus as any },
+    });
+  }
+
   private formatCart(cart: any) {
     const items = cart.items.map((item: any) => ({
       ...item,
