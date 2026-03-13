@@ -64,7 +64,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Get('users')
   async getUsers(@Query() query: any) {
-    return this.auth.getUsers(query.page, query.limit, query.search);
+    return this.auth.getUsers(query.page, query.limit, query.search, query.accountType, query.isApproved);
   }
 
   @ApiBearerAuth()
@@ -85,7 +85,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Get('admin/wholesale-pending')
   async wholesalePending(@Query() query: any) {
-    return this.auth.getUsers(query.page, query.limit, query.search);
+    return this.auth.getUsers(query.page, query.limit, query.search, 'wholesale', 'false');
   }
 
   @ApiBearerAuth()
@@ -98,8 +98,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Patch('admin/users/:id/reject')
-  async rejectUser(@Param('id') id: string) {
-    return this.auth.rejectUser(id);
+  async rejectUser(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.auth.rejectUser(id, reason);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/users/:id/request-info')
+  async requestMoreInfo(@Param('id') id: string, @Body('message') message: string) {
+    return this.auth.requestMoreInfo(id, message);
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────

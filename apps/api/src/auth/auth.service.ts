@@ -120,20 +120,30 @@ export class AuthService {
     return { success: true };
   }
 
-  async getUsers(page: any = 1, limit: any = 50, search?: string) {
+  async getUsers(page: any = 1, limit: any = 50, search?: string, accountType?: string, isApproved?: string) {
     const p = Math.max(1, parseInt(page) || 1);
     const l = Math.min(200, parseInt(limit) || 50);
-    const where: any = search
-      ? { OR: [{ email: { contains: search, mode: 'insensitive' } }, { fullName: { contains: search, mode: 'insensitive' } }] }
-      : {};
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
+        { vatNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (accountType) where.accountType = accountType;
+    if (isApproved === 'true') where.isApproved = true;
+    else if (isApproved === 'false') where.isApproved = false;
 
     const [total, users] = await Promise.all([
       this.prisma.user.count({ where }),
       this.prisma.user.findMany({
         where,
         select: {
-          id: true, email: true, fullName: true, companyName: true,
-          accountType: true, isApproved: true, createdAt: true,
+          id: true, email: true, fullName: true, companyName: true, vatNumber: true,
+          accountType: true, wholesaleTier: true, isApproved: true, createdAt: true,
           _count: { select: { orders: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -142,7 +152,18 @@ export class AuthService {
       }),
     ]);
 
-    return { data: users, meta: { total, page: p, limit: l } };
+    const userIds = users.map(u => u.id);
+    const spends = await this.prisma.order.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds } },
+      _sum: { total: true },
+    });
+    const spendMap = Object.fromEntries(spends.map(s => [s.userId, Number(s._sum.total || 0)]));
+
+    return {
+      data: users.map(u => ({ ...u, totalSpend: spendMap[u.id] || 0 })),
+      meta: { total, page: p, limit: l },
+    };
   }
 
   async getAdminStats() {
@@ -182,12 +203,24 @@ export class AuthService {
     });
   }
 
-  async rejectUser(userId: string) {
-    return this.prisma.user.update({
+  async rejectUser(userId: string, reason?: string) {
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: { isApproved: false, accountType: 'retail' as any },
       select: { id: true, email: true, fullName: true, accountType: true },
     });
+    // reason would be emailed to buyer via a mail service; stored here for API response
+    return { ...user, rejectionReason: reason || null };
+  }
+
+  async requestMoreInfo(userId: string, message: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, fullName: true },
+    });
+    if (!user) throw new Error('User not found');
+    // message would be emailed to buyer via a mail service
+    return { success: true, userId, message };
   }
 
   async getUserDetail(userId: string) {
