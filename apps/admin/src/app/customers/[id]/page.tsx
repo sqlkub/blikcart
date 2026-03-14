@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-500',
 };
 
-type Tab = 'profile' | 'orders' | 'addresses' | 'custom';
+type Tab = 'profile' | 'orders' | 'addresses' | 'custom' | 'notes';
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,10 +44,15 @@ export default function CustomerDetailPage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
 
+  // Admin notes
+  const [adminNotes, setAdminNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     axios.get(`${API}/auth/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => setUser(r.data))
+      .then(r => { setUser(r.data); setAdminNotes(r.data.adminNotes || ''); })
       .catch(() => router.push('/customers'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -68,6 +73,15 @@ export default function CustomerDetailPage() {
       setShowRejectModal(false);
       setRejectReason('');
     } finally { setWorking(false); }
+  }
+
+  async function saveNotes() {
+    setSavingNotes(true);
+    try {
+      await axios.patch(`${API}/auth/admin/users/${id}/notes`, { notes: adminNotes }, { headers: authHeaders() });
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    } finally { setSavingNotes(false); }
   }
 
   async function requestInfo() {
@@ -152,10 +166,10 @@ export default function CustomerDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
-        {(['profile', 'orders', 'addresses', 'custom'] as const).map(t => (
+        {(['profile', 'orders', 'addresses', 'custom', 'notes'] as const).map(t => (
           <button key={t} type="button" onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-            {t === 'custom' ? 'Custom Orders' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'custom' ? 'Custom Orders' : t === 'notes' ? 'Admin Notes' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -274,6 +288,30 @@ export default function CustomerDetailPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Admin Notes Tab */}
+      {tab === 'notes' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-1">Internal Admin Notes</h2>
+          <p className="text-sm text-gray-400 mb-4">These notes are only visible to the admin team and are never shown to the customer.</p>
+          <label htmlFor="admin-notes" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Notes</label>
+          <textarea
+            id="admin-notes"
+            value={adminNotes}
+            onChange={e => setAdminNotes(e.target.value)}
+            rows={8}
+            placeholder="Add internal notes about this customer — e.g. preferred carrier, special pricing agreements, account flags…"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1A3C5E] resize-none"
+          />
+          <div className="flex items-center gap-3 mt-3">
+            <button type="button" onClick={saveNotes} disabled={savingNotes}
+              className="px-5 py-2.5 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#15304e] disabled:opacity-50">
+              {savingNotes ? 'Saving…' : 'Save Notes'}
+            </button>
+            {notesSaved && <span className="text-sm text-green-600 font-medium">✓ Saved</span>}
+          </div>
         </div>
       )}
 

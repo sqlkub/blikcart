@@ -243,6 +243,37 @@ export class OrdersService {
     });
     const productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
 
+    // Custom order funnel
+    const customFunnelStatuses = ['draft', 'submitted', 'quoted', 'approved', 'in_production', 'shipped'];
+    const customFunnelRows = await Promise.all(
+      customFunnelStatuses.map(s =>
+        this.prisma.customOrder.count({ where: { status: s as any } }).then(count => ({ status: s, count }))
+      )
+    );
+
+    // Revenue by category
+    const catRevRows = await this.prisma.$queryRaw<any[]>`
+      SELECT c.name AS category, SUM(oi.total)::float AS revenue, COUNT(oi.id)::int AS orders
+      FROM order_items oi
+      JOIN products p ON p.id = oi.product_id
+      JOIN categories c ON c.id = p.category_id
+      JOIN orders o ON o.id = oi.order_id
+      WHERE o.placed_at >= ${since}
+      GROUP BY c.name
+      ORDER BY revenue DESC
+    `;
+
+    // Geographic breakdown
+    const geoRows = await this.prisma.$queryRaw<any[]>`
+      SELECT a.country_code AS country, COUNT(DISTINCT o.id)::int AS orders, SUM(o.total)::float AS revenue
+      FROM orders o
+      JOIN addresses a ON a.id = o.shipping_address_id
+      WHERE o.placed_at >= ${since}
+      GROUP BY a.country_code
+      ORDER BY revenue DESC
+      LIMIT 10
+    `;
+
     return {
       revenueByDay,
       ordersByStatus: (ordersByStatus as any[]).map(s => ({ status: s.status, count: s._count.id })),
@@ -257,14 +288,22 @@ export class OrdersService {
         customRevenue: Number(customRevenue._sum.total || 0),
         avgOrderValue: totalOrders > 0 ? Number(totalRevenue._sum.total || 0) / totalOrders : 0,
       },
+      customOrderFunnel: customFunnelRows,
+      revenueByCategory: catRevRows,
+      geoBreakdown: geoRows,
     };
   }
 
-  async getAdminPayments(page: any = 1, limit: any = 50, status?: string) {
+  async getAdminPayments(page: any = 1, limit: any = 50, status?: string, dateFrom?: string, dateTo?: string) {
     const p = Math.max(1, parseInt(page) || 1);
     const l = Math.min(200, parseInt(limit) || 50);
     const where: any = {};
     if (status) where.status = status;
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo + 'T23:59:59');
+    }
 
     const [total, payments] = await Promise.all([
       this.prisma.payment.count({ where }),
@@ -320,17 +359,25 @@ export class OrdersService {
     });
   }
 
-  async getAdminInvoices(page: any = 1, limit: any = 50) {
+  async getAdminInvoices(page: any = 1, limit: any = 50, dateFrom?: string, dateTo?: string) {
     const p = Math.max(1, parseInt(page) || 1);
     const l = Math.min(200, parseInt(limit) || 50);
 
+    const where: any = { payments: { some: { status: 'paid' } } };
+    if (dateFrom || dateTo) {
+      where.placedAt = {};
+      if (dateFrom) where.placedAt.gte = new Date(dateFrom);
+      if (dateTo) where.placedAt.lte = new Date(dateTo + 'T23:59:59');
+    }
+
     const [total, orders] = await Promise.all([
-      this.prisma.order.count({ where: { payments: { some: { status: 'paid' } } } }),
+      this.prisma.order.count({ where }),
       this.prisma.order.findMany({
-        where: { payments: { some: { status: 'paid' } } },
+        where,
         include: {
-          user: { select: { fullName: true, email: true, companyName: true } },
+          user: { select: { fullName: true, email: true, companyName: true, vatNumber: true } },
           payments: { where: { status: 'paid' }, orderBy: { paidAt: 'desc' }, take: 1 },
+          items: { include: { product: { select: { name: true, sku: true } } } },
         },
         orderBy: { placedAt: 'desc' },
         skip: (p - 1) * l,
@@ -345,10 +392,21 @@ export class OrdersService {
         orderNumber: o.orderNumber,
         customer: o.user,
         amount: Number(o.total),
+        subtotal: Number(o.subtotal),
+        taxAmount: Number(o.taxAmount),
+        shippingCost: Number(o.shippingCost),
         currency: 'EUR',
         paidAt: o.payments[0]?.paidAt || null,
         provider: o.payments[0]?.provider || null,
         method: o.payments[0]?.method || null,
+        placedAt: o.placedAt,
+        items: o.items.map(i => ({
+          name: (i as any).product?.name || 'Unknown',
+          sku: (i as any).product?.sku || '',
+          quantity: i.quantity,
+          unitPrice: Number(i.unitPrice),
+          total: Number(i.total),
+        })),
       })),
       meta: { total, page: p, limit: l },
     };
@@ -379,7 +437,7 @@ export class OrdersService {
     return { data: payments, meta: { total, page: p, limit: l } };
   }
 
-  async processRefund(paymentId: string, amount: number) {
+  async processRefund(paymentId: string, amount: number, reason?: string) {
     const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
     if (!payment) throw new NotFoundException('Payment not found');
     if (payment.status !== 'paid' && payment.status !== 'partially_refunded') {
@@ -396,10 +454,87 @@ export class OrdersService {
 
     const newStatus = newRefunded >= originalAmount ? 'refunded' : 'partially_refunded';
 
-    return this.prisma.payment.update({
+    const updated = await this.prisma.payment.update({
       where: { id: paymentId },
       data: { refundedAmount: newRefunded, status: newStatus as any },
     });
+    // Update order status when fully refunded
+    if (newStatus === 'refunded') {
+      await this.prisma.order.update({ where: { id: payment.orderId }, data: { status: 'cancelled' as any } });
+    }
+    return { ...updated, refundReason: reason || null };
+  }
+
+  async getAdminShipments(page: any = 1, limit: any = 20, search?: string) {
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(100, parseInt(limit) || 20);
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { trackingNumber: { contains: search, mode: 'insensitive' } },
+        { order: { orderNumber: { contains: search, mode: 'insensitive' } } },
+        { order: { user: { fullName: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+    const [total, shipments] = await Promise.all([
+      this.prisma.shipment.count({ where }),
+      this.prisma.shipment.findMany({
+        where,
+        include: {
+          order: {
+            select: {
+              orderNumber: true,
+              user: { select: { fullName: true, email: true } },
+              shippingAddress: { select: { fullName: true, streetLine1: true, city: true, countryCode: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+    return { data: shipments, meta: { total, page: p, limit: l } };
+  }
+
+  async createShipment(orderId: string, data: { carrier?: string; trackingNumber?: string; trackingUrl?: string; estimatedDelivery?: string }) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    const shipment = await this.prisma.shipment.create({
+      data: {
+        orderId,
+        carrier: data.carrier,
+        trackingNumber: data.trackingNumber,
+        trackingUrl: data.trackingUrl,
+        estimatedDelivery: data.estimatedDelivery ? new Date(data.estimatedDelivery) : undefined,
+        status: 'pending',
+      },
+    });
+    // Update order status to shipped if not already
+    await this.prisma.order.update({ where: { id: orderId }, data: { status: 'shipped' as any } });
+    return shipment;
+  }
+
+  async updateShipment(shipmentId: string, data: { carrier?: string; trackingNumber?: string; trackingUrl?: string; status?: string; shippedAt?: string; deliveredAt?: string; estimatedDelivery?: string }) {
+    const shipment = await this.prisma.shipment.findUnique({ where: { id: shipmentId } });
+    if (!shipment) throw new NotFoundException('Shipment not found');
+    const updated = await this.prisma.shipment.update({
+      where: { id: shipmentId },
+      data: {
+        carrier: data.carrier,
+        trackingNumber: data.trackingNumber,
+        trackingUrl: data.trackingUrl,
+        status: data.status as any,
+        shippedAt: data.shippedAt ? new Date(data.shippedAt) : undefined,
+        deliveredAt: data.deliveredAt ? new Date(data.deliveredAt) : undefined,
+        estimatedDelivery: data.estimatedDelivery ? new Date(data.estimatedDelivery) : undefined,
+      },
+    });
+    // Sync order status with shipment status
+    if (data.status === 'delivered') {
+      await this.prisma.order.update({ where: { id: shipment.orderId }, data: { status: 'delivered' as any } });
+    }
+    return updated;
   }
 
   private formatCart(cart: any) {

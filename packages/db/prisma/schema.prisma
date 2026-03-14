@@ -97,6 +97,7 @@ model User {
   companyName    String?
   vatNumber      String?
   isApproved     Boolean       @default(false)
+  adminNotes     String?
   locale         String        @default("nl")
   currency       String        @default("EUR")
   createdAt      DateTime      @default(now())

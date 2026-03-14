@@ -213,6 +213,14 @@ export class AuthService {
     return { ...user, rejectionReason: reason || null };
   }
 
+  async saveAdminNotes(userId: string, notes: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { adminNotes: notes },
+      select: { id: true, adminNotes: true },
+    });
+  }
+
   async requestMoreInfo(userId: string, message: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -229,7 +237,7 @@ export class AuthService {
       select: {
         id: true, email: true, fullName: true, phone: true, companyName: true,
         vatNumber: true, accountType: true, wholesaleTier: true, isApproved: true,
-        locale: true, currency: true, createdAt: true,
+        adminNotes: true, locale: true, currency: true, createdAt: true,
         addresses: { orderBy: { createdAt: 'desc' } },
         orders: {
           select: { id: true, orderNumber: true, status: true, total: true, placedAt: true, items: { select: { quantity: true } } },

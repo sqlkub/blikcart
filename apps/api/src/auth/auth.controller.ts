@@ -109,6 +109,13 @@ export class AuthController {
     return this.auth.requestMoreInfo(id, message);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/users/:id/notes')
+  async saveAdminNotes(@Param('id') id: string, @Body('notes') notes: string) {
+    return this.auth.saveAdminNotes(id, notes);
+  }
+
   // ── Google OAuth ──────────────────────────────────────────────────────────
   @Get('google')
   @UseGuards(AuthGuard('google'))

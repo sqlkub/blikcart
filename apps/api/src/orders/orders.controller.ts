@@ -81,14 +81,14 @@ export class OrdersController {
   @UseGuards(AuthGuard('jwt'))
   @Get('admin/payments')
   getAdminPayments(@Query() query: any) {
-    return this.orders.getAdminPayments(query.page, query.limit, query.status);
+    return this.orders.getAdminPayments(query.page, query.limit, query.status, query.dateFrom, query.dateTo);
   }
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Get('admin/invoices')
   getAdminInvoices(@Query() query: any) {
-    return this.orders.getAdminInvoices(query.page, query.limit);
+    return this.orders.getAdminInvoices(query.page, query.limit, query.dateFrom, query.dateTo);
   }
 
   @ApiBearerAuth()
@@ -101,7 +101,28 @@ export class OrdersController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Post('admin/payments/:id/refund')
-  processRefund(@Param('id') id: string, @Body('amount') amount: number) {
-    return this.orders.processRefund(id, amount);
+  processRefund(@Param('id') id: string, @Body('amount') amount: number, @Body('reason') reason?: string) {
+    return this.orders.processRefund(id, amount, reason);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/shipments')
+  getAdminShipments(@Query() query: any) {
+    return this.orders.getAdminShipments(query.page, query.limit, query.search);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('admin/orders/:orderId/shipments')
+  createShipment(@Param('orderId') orderId: string, @Body() body: any) {
+    return this.orders.createShipment(orderId, body);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/shipments/:id')
+  updateShipment(@Param('id') id: string, @Body() body: any) {
+    return this.orders.updateShipment(id, body);
   }
 }

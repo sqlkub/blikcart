@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { ArrowLeft, FileText, MessageSquare, Settings, Package, Send, Clock, User, Building2, Calendar, Hash, ExternalLink, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Settings, Package, Send, Clock, User, Building2, Calendar, Hash, ExternalLink, ChevronRight, CreditCard } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -168,6 +168,8 @@ const TABS = [
   { key: 'files',          label: 'Files',          icon: FileText },
   { key: 'quote',          label: 'Quote',          icon: ChevronRight },
   { key: 'messages',       label: 'Messages',       icon: MessageSquare },
+  { key: 'timeline',       label: 'Timeline',       icon: Clock },
+  { key: 'buyer',          label: 'Buyer Info',     icon: User },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
@@ -729,6 +731,100 @@ export default function CustomOrderDetailPage() {
                       No quote sent yet
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ── TIMELINE TAB ── */}
+            {tab === 'timeline' && (() => {
+              type TimelineEvent = { date: Date; label: string; detail?: string; color: string };
+              const events: TimelineEvent[] = [];
+              if (order.createdAt) events.push({ date: new Date(order.createdAt), label: 'Order draft created', color: 'bg-gray-400' });
+              if (order.submittedAt) events.push({ date: new Date(order.submittedAt), label: 'Order submitted by buyer', color: 'bg-yellow-400' });
+              if (order.quote?.sentAt) events.push({ date: new Date(order.quote.sentAt), label: 'Quote sent to buyer', detail: `€${Number(order.quote.unitPrice).toFixed(2)}/unit · ${order.quote.leadTimeDays}d lead time`, color: 'bg-blue-400' });
+              if (order.quote?.revisions) {
+                order.quote.revisions.forEach((rev: any) => {
+                  if (rev.createdAt) events.push({ date: new Date(rev.createdAt), label: `Quote revision #${rev.revisionNumber} sent`, detail: `€${Number(rev.unitPrice).toFixed(2)}/unit`, color: 'bg-indigo-400' });
+                });
+              }
+              if (order.quote?.respondedAt) events.push({ date: new Date(order.quote.respondedAt), label: `Buyer ${order.quote.status === 'accepted' ? 'accepted' : 'responded to'} the quote`, color: order.quote.status === 'accepted' ? 'bg-green-500' : 'bg-orange-400' });
+              (order.messages || []).forEach((msg: any) => {
+                if (msg.createdAt) {
+                  const isAdmin = msg.sender?.accountType === 'admin';
+                  events.push({ date: new Date(msg.createdAt), label: isAdmin ? 'Admin sent a message' : 'Buyer sent a message', detail: msg.body?.slice(0, 80) + (msg.body?.length > 80 ? '…' : ''), color: isAdmin ? 'bg-[#1A3C5E]' : 'bg-amber-400' });
+                }
+              });
+              events.sort((a, b) => a.date.getTime() - b.date.getTime());
+              return (
+                <div className="space-y-0">
+                  {events.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 text-sm">
+                      <Clock size={28} className="mx-auto mb-2 text-gray-200" />
+                      No timeline events yet
+                    </div>
+                  ) : events.map((ev, i) => (
+                    <div key={i} className="flex gap-4 group">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${ev.color}`} />
+                        {i < events.length - 1 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
+                      </div>
+                      <div className="pb-5 flex-1">
+                        <p className="text-sm font-medium text-gray-900">{ev.label}</p>
+                        {ev.detail && <p className="text-xs text-gray-500 mt-0.5 italic">{ev.detail}</p>}
+                        <p className="text-xs text-gray-400 mt-1">{ev.date.toLocaleString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ── BUYER INFO TAB ── */}
+            {tab === 'buyer' && (
+              <div className="space-y-4">
+                {/* Buyer profile */}
+                <div className="border border-gray-100 rounded-xl p-5">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Buyer Profile</h3>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-[#1A3C5E]/10 flex items-center justify-center flex-shrink-0">
+                      <User size={18} className="text-[#1A3C5E]" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{order.user?.fullName}</p>
+                      <p className="text-sm text-gray-500">{order.user?.email}</p>
+                      {order.user?.companyName && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Building2 size={11} /> {order.user.companyName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ['Account Type', order.user?.accountType || '—'],
+                      ['Wholesale Tier', order.user?.wholesaleTier || '—'],
+                      ['VAT Number', order.user?.vatNumber || '—'],
+                      ['Approved', order.user?.isApproved ? 'Yes' : 'No'],
+                    ].map(([label, value]) => (
+                      <div key={label} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+                        <p className="text-sm font-semibold text-gray-900">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buyer's order history */}
+                <div className="border border-gray-100 rounded-xl p-5">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Custom Order History for this Buyer</h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    <span className="font-semibold text-gray-900">{order.user?.email}</span> has submitted custom orders to Blikcart.
+                    View their full profile for complete order history.
+                  </p>
+                  <a href={`/customers/${order.userId}`}
+                    className="inline-flex items-center gap-1.5 text-xs text-[#1A3C5E] font-semibold bg-[#1A3C5E]/5 hover:bg-[#1A3C5E]/10 px-3 py-2 rounded-lg transition-colors">
+                    <CreditCard size={12} /> View full customer profile
+                  </a>
                 </div>
               </div>
             )}

@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Products */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <h2 className="font-bold text-gray-900 mb-4">Top Products by Revenue</h2>
         {loading ? <div className="h-32 bg-gray-50 rounded-lg animate-pulse" /> : (
           <div className="space-y-4">
@@ -145,6 +145,92 @@ export default function AnalyticsPage() {
             )) : <p className="text-center text-gray-400 text-sm py-4">No product data</p>}
           </div>
         )}
+      </div>
+
+      {/* Custom Order Funnel + Revenue by Category */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Custom Order Funnel */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-4">Custom Order Funnel</h2>
+          {loading ? <div className="h-40 bg-gray-50 rounded-lg animate-pulse" /> : (() => {
+            const funnel: any[] = data?.customOrderFunnel || [];
+            const maxCount = Math.max(...funnel.map((f: any) => f.count), 1);
+            const colors: Record<string, string> = { draft: '#9ca3af', submitted: '#f59e0b', quoted: '#3b82f6', approved: '#10b981', in_production: '#8b5cf6', shipped: '#6366f1' };
+            return (
+              <div className="space-y-2">
+                {funnel.map((f: any) => (
+                  <div key={f.status}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600 capitalize font-medium">{f.status.replace('_', ' ')}</span>
+                      <span className="font-bold text-gray-900">{f.count}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-3">
+                      {/* eslint-disable-next-line react/forbid-component-props */}
+                      <div className="h-3 rounded-full transition-all" style={{ width: `${(f.count / maxCount) * 100}%`, backgroundColor: colors[f.status] || '#9ca3af' }} />
+                    </div>
+                  </div>
+                ))}
+                {funnel.length === 0 && <p className="text-center text-gray-400 text-sm py-6">No custom order data</p>}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Revenue by Category */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="font-bold text-gray-900 mb-4">Revenue by Category</h2>
+          {loading ? <div className="h-40 bg-gray-50 rounded-lg animate-pulse" /> : (() => {
+            const cats: any[] = data?.revenueByCategory || [];
+            const maxCatRev = Math.max(...cats.map((c: any) => c.revenue), 1);
+            return (
+              <div className="space-y-3">
+                {cats.length > 0 ? cats.map((c: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-gray-400 w-4">{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-gray-900">{c.category}</span>
+                        <span className="text-gray-500">€{Number(c.revenue).toFixed(2)} · {c.orders} orders</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        {/* eslint-disable-next-line react/forbid-component-props */}
+                        <div className="h-2 rounded-full bg-[#1A3C5E]" style={{ width: `${(c.revenue / maxCatRev) * 100}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                )) : <p className="text-center text-gray-400 text-sm py-6">No category data for this period</p>}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
+      {/* Geographic Breakdown */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="font-bold text-gray-900 mb-4">Revenue by Country</h2>
+        {loading ? <div className="h-32 bg-gray-50 rounded-lg animate-pulse" /> : (() => {
+          const geo: any[] = data?.geoBreakdown || [];
+          const maxGeoRev = Math.max(...geo.map((g: any) => g.revenue), 1);
+          return (
+            <div className="space-y-3">
+              {geo.length > 0 ? geo.map((g: any, i: number) => (
+                <div key={i} className="flex items-center gap-4">
+                  <span className="text-sm font-bold text-gray-700 w-10 uppercase">{g.country}</span>
+                  <div className="flex-1">
+                    <div className="w-full bg-gray-100 rounded-full h-3">
+                      {/* eslint-disable-next-line react/forbid-component-props */}
+                      <div className="h-3 rounded-full bg-[#C8860A]" style={{ width: `${(g.revenue / maxGeoRev) * 100}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-600 w-36 shrink-0">
+                    <span className="font-semibold text-gray-900">€{Number(g.revenue).toFixed(2)}</span>
+                    <span className="text-gray-400"> · {g.orders} orders</span>
+                  </div>
+                </div>
+              )) : <p className="text-center text-gray-400 text-sm py-4">No geographic data for this period</p>}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
