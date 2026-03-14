@@ -257,7 +257,15 @@ export default function CustomOrderDetailPage() {
       setQuoteSent(true);
       setShowPreview(false);
       await load();
-    } catch { } finally { setSending(false); }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || 'Unknown error';
+      if (status === 401) {
+        alert('Session expired. Please log out and log back in, then try again.');
+      } else {
+        alert(`Failed to send quote (${status ?? 'network error'}): ${msg}`);
+      }
+    } finally { setSending(false); }
   }
 
   async function sendMessage() {

@@ -28,7 +28,7 @@ export default function ConfiguratorPage() {
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftIdRef = useRef<string | null>(null);
 
-  const { selections, quantity, notes, reset } = useConfiguratorStore();
+  const { selections, quantity, notes, reset, selectOption, setQuantity } = useConfiguratorStore();
 
   useEffect(() => {
     reset();
@@ -40,10 +40,27 @@ export default function ConfiguratorPage() {
 
     fetch(`${API}/configurator/schema/${category}`)
       .then(r => { if (!r.ok) throw new Error('No configurator found for this category'); return r.json(); })
-      .then(data => { setSchema(data); setSteps(data.steps || []); })
+      .then(data => {
+        setSchema(data);
+        setSteps(data.steps || []);
+
+        // Restore shared configuration from ?cfg= param
+        const cfgParam = searchParams.get('cfg');
+        if (cfgParam) {
+          try {
+            const { selections: saved, quantity: savedQty } = JSON.parse(atob(cfgParam));
+            if (saved && typeof saved === 'object') {
+              Object.entries(saved).forEach(([stepId, optId]) => selectOption(stepId, optId as string));
+            }
+            if (savedQty && typeof savedQty === 'number') {
+              setQuantity(savedQty);
+            }
+          } catch { /* malformed cfg param — ignore */ }
+        }
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [category]);
+  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save every 30 seconds if there are selections
   const autoSave = useCallback(async () => {
@@ -100,7 +117,10 @@ export default function ConfiguratorPage() {
 
   function getShareableLink() {
     const encoded = btoa(JSON.stringify({ selections, quantity }));
-    return `${window.location.origin}/customize/${category}${productId ? `?productId=${productId}` : ''}&cfg=${encoded}`;
+    const params = new URLSearchParams();
+    if (productId) params.set('productId', productId);
+    params.set('cfg', encoded);
+    return `${window.location.origin}/customize/${category}?${params.toString()}`;
   }
 
   function copyShareableLink() {
