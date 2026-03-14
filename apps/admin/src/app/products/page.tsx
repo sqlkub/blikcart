@@ -150,6 +150,64 @@ function ProductsTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
+  // Image manager modal
+  const [imgMgrProduct, setImgMgrProduct] = useState<any | null>(null);
+  const [imgMgrImages, setImgMgrImages] = useState<any[]>([]);
+  const [imgMgrLoading, setImgMgrLoading] = useState(false);
+  const addImgInputRef = useRef<HTMLInputElement>(null);
+
+  async function openImgMgr(p: any) {
+    setImgMgrProduct(p);
+    setImgMgrLoading(true);
+    try {
+      const res = await axios.get(`${API}/products/${p.id}/images`, { headers: hdrs() });
+      setImgMgrImages(res.data || []);
+    } catch { setImgMgrImages(p.images || []); }
+    finally { setImgMgrLoading(false); }
+  }
+
+  async function imgMgrDelete(imageId: string) {
+    if (!imgMgrProduct) return;
+    await axios.delete(`${API}/products/${imgMgrProduct.id}/images/${imageId}`, { headers: hdrs() });
+    const next = imgMgrImages.filter(i => i.id !== imageId);
+    setImgMgrImages(next);
+    setProducts(prev => prev.map(p => p.id === imgMgrProduct.id ? { ...p, images: next } : p));
+  }
+
+  async function imgMgrSetPrimary(imageId: string) {
+    if (!imgMgrProduct) return;
+    await axios.patch(`${API}/products/${imgMgrProduct.id}/images/${imageId}`, { isPrimary: true }, { headers: hdrs() });
+    const next = imgMgrImages.map(i => ({ ...i, isPrimary: i.id === imageId }));
+    setImgMgrImages(next);
+    setProducts(prev => prev.map(p => p.id === imgMgrProduct.id ? { ...p, images: next } : p));
+  }
+
+  async function imgMgrSetType(imageId: string, layerType: string) {
+    if (!imgMgrProduct) return;
+    await axios.patch(`${API}/products/${imgMgrProduct.id}/images/${imageId}`, { layerType }, { headers: hdrs() });
+    setImgMgrImages(prev => prev.map(i => i.id === imageId ? { ...i, layerType } : i));
+  }
+
+  async function imgMgrUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !imgMgrProduct) return;
+    e.target.value = '';
+    setImgMgrLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('isPrimary', imgMgrImages.length === 0 ? 'true' : 'false');
+      const res = await axios.post(`${API}/products/${imgMgrProduct.id}/images`, fd, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const next = [...imgMgrImages, res.data];
+      setImgMgrImages(next);
+      setProducts(prev => prev.map(p => p.id === imgMgrProduct.id ? { ...p, images: next } : p));
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Upload failed');
+    } finally { setImgMgrLoading(false); }
+  }
+
   function triggerUpload(productId: string) {
     uploadTargetRef.current = productId;
     fileInputRef.current?.click();
@@ -178,6 +236,14 @@ function ProductsTab() {
     }
   }
 
+  const VIEW_TYPES = [
+    { value: '', label: 'Photo' },
+    { value: '2d', label: '2D Render' },
+    { value: '3d', label: '3D Render' },
+    { value: 'lifestyle', label: 'Lifestyle' },
+    { value: 'detail', label: 'Detail' },
+  ];
+
   const stats = {
     total: products.length,
     active: products.filter(p => p.isActive).length,
@@ -187,6 +253,69 @@ function ProductsTab() {
 
   return (
     <div className="space-y-5">
+
+      {/* Image Manager Modal */}
+      {imgMgrProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setImgMgrProduct(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Images — {imgMgrProduct.name}</h2>
+              <button type="button" title="Close" onClick={() => setImgMgrProduct(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+
+            {imgMgrLoading && <p className="text-sm text-gray-400 text-center py-6">Loading…</p>}
+
+            {!imgMgrLoading && imgMgrImages.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6">No images yet. Upload one below.</p>
+            )}
+
+            {!imgMgrLoading && imgMgrImages.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                {imgMgrImages.map(img => (
+                  <div key={img.id} className="border border-gray-100 rounded-xl overflow-hidden bg-gray-50">
+                    <div className="relative">
+                      <img src={img.url} alt={img.altText || ''} className="w-full h-36 object-cover" />
+                      {img.isPrimary && (
+                        <span className="absolute top-1 left-1 text-xs bg-[#1A3C5E] text-white px-2 py-0.5 rounded-full font-semibold">Primary</span>
+                      )}
+                    </div>
+                    <div className="p-2 space-y-2">
+                      <select
+                        title="View type"
+                        value={img.layerType || ''}
+                        onChange={e => imgMgrSetType(img.id, e.target.value)}
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white outline-none"
+                      >
+                        {VIEW_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <div className="flex gap-1">
+                        {!img.isPrimary && (
+                          <button type="button" onClick={() => imgMgrSetPrimary(img.id)}
+                            className="flex-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg px-2 py-1 font-medium">
+                            Set Primary
+                          </button>
+                        )}
+                        <button type="button" onClick={() => imgMgrDelete(img.id)}
+                          className="flex-1 text-xs bg-red-50 text-red-500 hover:bg-red-100 rounded-lg px-2 py-1 font-medium flex items-center justify-center gap-1">
+                          <Trash2 size={11} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <input ref={addImgInputRef} type="file" accept="image/*" title="Add image" className="hidden" onChange={imgMgrUpload} />
+            <button type="button" onClick={() => addImgInputRef.current?.click()}
+              disabled={imgMgrLoading}
+              className="w-full border-2 border-dashed border-gray-200 hover:border-[#1A3C5E] text-gray-500 hover:text-[#1A3C5E] rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-40">
+              <ImagePlus size={16} /> Add Image
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -377,9 +506,14 @@ function ProductsTab() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {p.images?.[0]
-                        ? <img src={p.images[0].url} alt={p.name} className="w-8 h-8 rounded object-cover flex-shrink-0 bg-gray-100" />
-                        : <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center flex-shrink-0"><Package size={12} className="text-gray-400" /></div>}
+                      <button type="button" title="Manage images" onClick={() => openImgMgr(p)} className="flex-shrink-0 relative group">
+                        {p.images?.[0]
+                          ? <img src={p.images[0].url} alt={p.name} className="w-8 h-8 rounded object-cover bg-gray-100 group-hover:opacity-70 transition-opacity" />
+                          : <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors"><Package size={12} className="text-gray-400" /></div>}
+                        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ImagePlus size={12} className="text-white drop-shadow" />
+                        </span>
+                      </button>
                       <div>
                         <p className="text-sm font-semibold text-gray-900 max-w-[150px] truncate">{p.name}</p>
                         {p.isCustomizable && <p className="text-xs text-blue-500">customizable</p>}
@@ -404,12 +538,9 @@ function ProductsTab() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2 items-center">
-                      <button type="button" title="Upload image" onClick={() => triggerUpload(p.id)}
-                        disabled={uploadingId === p.id}
-                        className="text-gray-400 hover:text-blue-500 disabled:opacity-40">
-                        {uploadingId === p.id
-                          ? <span className="text-xs text-blue-500 animate-pulse">…</span>
-                          : <ImagePlus size={14} />}
+                      <button type="button" title="Manage images" onClick={() => openImgMgr(p)}
+                        className="text-gray-400 hover:text-blue-500">
+                        <ImagePlus size={14} />
                       </button>
                       <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>

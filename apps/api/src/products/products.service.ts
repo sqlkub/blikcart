@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -116,7 +116,7 @@ export class ProductsService {
     });
     return this.fmt(product);
   }
-  async uploadImage(productId: string, file: Express.Multer.File, isPrimary: boolean) {
+  async uploadImage(productId: string, file: Express.Multer.File, isPrimary: boolean, layerType?: string) {
     const key = `products/${productId}/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
     await this.s3.send(new PutObjectCommand({
@@ -138,8 +138,48 @@ export class ProductsService {
     }
 
     return this.prisma.productImage.create({
-      data: { productId, url, isPrimary, sortOrder: 0 },
+      data: { productId, url, isPrimary, sortOrder: 0, layerType: layerType || null },
     });
+  }
+
+  async listImages(productId: string) {
+    return this.prisma.productImage.findMany({
+      where: { productId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    });
+  }
+
+  async updateImage(productId: string, imageId: string, data: { isPrimary?: boolean; layerType?: string; altText?: string; sortOrder?: number }) {
+    if (data.isPrimary) {
+      await this.prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } });
+    }
+    return this.prisma.productImage.update({
+      where: { id: imageId },
+      data: {
+        ...(data.isPrimary !== undefined && { isPrimary: data.isPrimary }),
+        ...(data.layerType !== undefined && { layerType: data.layerType || null }),
+        ...(data.altText !== undefined && { altText: data.altText }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      },
+    });
+  }
+
+  async deleteImage(productId: string, imageId: string) {
+    const img = await this.prisma.productImage.findUnique({ where: { id: imageId } });
+    if (!img || img.productId !== productId) throw new NotFoundException('Image not found');
+
+    // Extract S3 key from URL and delete from S3
+    try {
+      const bucket = this.config.get('S3_BUCKET_NAME', 'blikcart-assets');
+      const cloudfrontUrl = this.config.get('CLOUDFRONT_URL');
+      const region = this.config.get('AWS_REGION', 'eu-west-1');
+      const baseUrl = cloudfrontUrl || `https://${bucket}.s3.${region}.amazonaws.com`;
+      const key = img.url.replace(`${baseUrl}/`, '');
+      await this.s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    } catch { /* ignore S3 errors — still remove from DB */ }
+
+    await this.prisma.productImage.delete({ where: { id: imageId } });
+    return { deleted: true };
   }
 
   fmt(product: any) {

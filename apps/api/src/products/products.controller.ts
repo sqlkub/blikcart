@@ -97,8 +97,31 @@ export class ProductsController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Body('isPrimary') isPrimary: string,
+    @Body('layerType') layerType: string,
   ) {
-    return this.products.uploadImage(id, file, isPrimary === 'true');
+    return this.products.uploadImage(id, file, isPrimary === 'true', layerType);
+  }
+
+  @Patch(':id/images/:imageId')
+  updateImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Body() body: { isPrimary?: boolean; layerType?: string; altText?: string; sortOrder?: number },
+  ) {
+    return this.products.updateImage(id, imageId, body);
+  }
+
+  @Delete(':id/images/:imageId')
+  deleteImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+  ) {
+    return this.products.deleteImage(id, imageId);
+  }
+
+  @Get(':id/images')
+  listImages(@Param('id') id: string) {
+    return this.products.listImages(id);
   }
 
   @Get(':slug')
