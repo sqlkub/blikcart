@@ -27,11 +27,34 @@ interface StepOption {
   layer_key?: string;
 }
 
+type UiType =
+  | 'image_card_grid'
+  | 'swatch'
+  | 'icon_radio'
+  | 'quantity_delivery'
+  | 'notes_upload'
+  | 'toggle'
+  | 'dropdown'
+  | 'text_input'
+  | 'date_picker';
+
+const UI_TYPE_LABELS: Record<UiType, string> = {
+  image_card_grid: 'Image Card Grid',
+  swatch: 'Colour Swatch',
+  icon_radio: 'Icon Radio',
+  quantity_delivery: 'Quantity & Delivery',
+  notes_upload: 'Notes & Upload',
+  toggle: 'Toggle',
+  dropdown: 'Dropdown',
+  text_input: 'Text Input',
+  date_picker: 'Date Picker',
+};
+
 interface Step {
   id: string;
   title: string;
   description?: string;
-  type: 'radio' | 'grid' | 'dropdown';
+  ui_type: UiType;
   required: boolean;
   condition?: { stepId: string; optionId: string } | null;
   options: StepOption[];
@@ -238,53 +261,8 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                 <p className="text-sm text-gray-500 mb-4">{current.description}</p>
               )}
 
-              {current.type === 'radio' && (
-                <div className="space-y-2">
-                  {current.options.map((opt) => (
-                    <button
-                      type="button"
-                      key={opt.id}
-                      onClick={() => selectOption(current.id, opt.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all text-left ${
-                        selections[current.id] === opt.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
-                            selections[current.id] === opt.id
-                              ? 'border-blue-500 bg-blue-500'
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          {selections[current.id] === opt.id && (
-                            <div className="w-2 h-2 bg-white rounded-full m-auto mt-0.5" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium text-gray-800">
-                          {opt.label}
-                        </span>
-                      </div>
-                      {opt.price_modifier !== 0 && (
-                        <span
-                          className={`text-xs font-semibold ${
-                            opt.price_modifier > 0
-                              ? 'text-green-600'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          {opt.price_modifier > 0 ? '+' : ''}€
-                          {opt.price_modifier.toFixed(2)}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {current.type === 'grid' && (
+              {/* image_card_grid / icon_radio — card grid */}
+              {(current.ui_type === 'image_card_grid' || current.ui_type === 'icon_radio') && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {current.options.map((opt) => (
                     <button
@@ -297,19 +275,13 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                           : 'border-gray-200 hover:border-gray-300 bg-white'
                       }`}
                     >
-                      <span className="text-sm font-medium text-gray-800 text-center">
-                        {opt.label}
-                      </span>
+                      {opt.image_url && (
+                        <img src={opt.image_url} alt={opt.label} className="w-12 h-12 object-cover rounded" />
+                      )}
+                      <span className="text-sm font-medium text-gray-800 text-center">{opt.label}</span>
                       {opt.price_modifier !== 0 && (
-                        <span
-                          className={`text-xs font-semibold ${
-                            opt.price_modifier > 0
-                              ? 'text-green-600'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          {opt.price_modifier > 0 ? '+' : ''}€
-                          {opt.price_modifier.toFixed(2)}
+                        <span className={`text-xs font-semibold ${opt.price_modifier > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {opt.price_modifier > 0 ? '+' : ''}€{opt.price_modifier.toFixed(2)}
                         </span>
                       )}
                     </button>
@@ -317,7 +289,59 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                 </div>
               )}
 
-              {current.type === 'dropdown' && (
+              {/* swatch — colour circles */}
+              {current.ui_type === 'swatch' && (
+                <div className="flex flex-wrap gap-3">
+                  {current.options.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      title={opt.label}
+                      onClick={() => selectOption(current.id, opt.id)}
+                      className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all ${
+                        selections[current.id] === opt.id ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-full border border-gray-200 shadow-sm"
+                        style={{ background: opt.layer_key || '#ccc' }}
+                      />
+                      <span className="text-xs text-gray-600 max-w-[64px] text-center leading-tight">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* icon_radio (list style fallback) / standalone radio list */}
+              {current.ui_type === 'quantity_delivery' && (
+                <div className="space-y-2">
+                  {current.options.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => selectOption(current.id, opt.id)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                        selections[current.id] === opt.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${selections[current.id] === opt.id ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
+                          {selections[current.id] === opt.id && <div className="w-2 h-2 bg-white rounded-full m-auto mt-0.5" />}
+                        </div>
+                        <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+                      </div>
+                      {opt.price_modifier !== 0 && (
+                        <span className={`text-xs font-semibold ${opt.price_modifier > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {opt.price_modifier > 0 ? '+' : ''}€{opt.price_modifier.toFixed(2)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* dropdown */}
+              {current.ui_type === 'dropdown' && (
                 <select
                   title={`Select ${current.title}`}
                   value={selections[current.id] || ''}
@@ -327,13 +351,65 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                   <option value="">— Select an option —</option>
                   {current.options.map((opt) => (
                     <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                      {opt.price_modifier !== 0
-                        ? ` (${opt.price_modifier > 0 ? '+' : ''}€${opt.price_modifier.toFixed(2)})`
-                        : ''}
+                      {opt.label}{opt.price_modifier !== 0 ? ` (${opt.price_modifier > 0 ? '+' : ''}€${opt.price_modifier.toFixed(2)})` : ''}
                     </option>
                   ))}
                 </select>
+              )}
+
+              {/* toggle */}
+              {current.ui_type === 'toggle' && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label={selections[current.id] === 'true' ? 'Disable' : 'Enable'}
+                    aria-pressed={selections[current.id] === 'true' ? 'true' : 'false'}
+                    onClick={() => selectOption(current.id, selections[current.id] === 'true' ? 'false' : 'true')}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${selections[current.id] === 'true' ? 'bg-blue-500' : 'bg-gray-300'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${selections[current.id] === 'true' ? 'translate-x-6' : ''}`} />
+                  </button>
+                  <span className="text-sm text-gray-700">{selections[current.id] === 'true' ? (current.options[0]?.label || 'Enabled') : 'Disabled'}</span>
+                </div>
+              )}
+
+              {/* text_input */}
+              {current.ui_type === 'text_input' && (
+                <input
+                  type="text"
+                  placeholder={current.description || 'Enter text…'}
+                  value={selections[current.id] || ''}
+                  onChange={(e) => selectOption(current.id, e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+
+              {/* date_picker */}
+              {current.ui_type === 'date_picker' && (
+                <input
+                  type="date"
+                  title={current.title}
+                  aria-label={current.title}
+                  value={selections[current.id] || ''}
+                  onChange={(e) => selectOption(current.id, e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+
+              {/* notes_upload */}
+              {current.ui_type === 'notes_upload' && (
+                <div className="space-y-3">
+                  <textarea
+                    placeholder="Add notes or special instructions…"
+                    value={selections[current.id] || ''}
+                    onChange={(e) => selectOption(current.id, e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-3 hover:border-blue-400 transition-colors">
+                    <span>📎</span> Attach reference file (preview only)
+                  </label>
+                </div>
               )}
             </div>
 
@@ -518,7 +594,7 @@ export default function SchemaEditorPage() {
     const newStep: Step = {
       id: newStepId(),
       title: 'New Step',
-      type: 'radio',
+      ui_type: 'image_card_grid',
       required: true,
       options: [],
     };
@@ -957,7 +1033,7 @@ export default function SchemaEditorPage() {
                               {step.title}
                             </span>
                             <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-mono">
-                              {step.type}
+                              {step.ui_type}
                             </span>
                             <span className="text-xs text-gray-400">
                               {step.options.length} option
@@ -1070,17 +1146,17 @@ export default function SchemaEditorPage() {
                         <select
                           id="step-type"
                           title="Step type"
-                          value={selectedStep.type}
+                          value={selectedStep.ui_type}
                           onChange={(e) =>
                             updateStep(selectedStep.id, {
-                              type: e.target.value as Step['type'],
+                              ui_type: e.target.value as UiType,
                             })
                           }
                           className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                         >
-                          <option value="radio">Radio</option>
-                          <option value="grid">Grid</option>
-                          <option value="dropdown">Dropdown</option>
+                          {(Object.keys(UI_TYPE_LABELS) as UiType[]).map((t) => (
+                            <option key={t} value={t}>{UI_TYPE_LABELS[t]}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
