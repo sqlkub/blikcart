@@ -161,5 +161,107 @@ export default function ConfiguratorStep({ step }: Props) {
     );
   }
 
+  if (step.ui_type === 'toggle') {
+    const isOn = selected === 'true';
+    return (
+      <div
+        role="switch"
+        aria-checked={isOn ? 'true' : 'false'}
+        tabIndex={0}
+        onClick={() => selectOption(step.id, isOn ? '' : 'true')}
+        onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); selectOption(step.id, isOn ? '' : 'true'); } }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', background: 'white', border: `2px solid ${isOn ? 'var(--gold)' : '#e5e7eb'}`, borderRadius: 12, cursor: 'pointer', transition: 'border-color 0.2s' }}
+      >
+        <div>
+          <p style={{ fontWeight: 600, color: 'var(--navy)', fontSize: 15 }}>{step.options[0]?.label || 'Enable'}</p>
+          {step.options[0]?.description && <p style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{step.options[0].description}</p>}
+        </div>
+        <div style={{ width: 52, height: 28, borderRadius: 14, background: isOn ? 'var(--gold)' : '#e5e7eb', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'white', position: 'absolute', top: 2, left: isOn ? 26 : 2, transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (step.ui_type === 'dropdown') {
+    const selectedOpt = step.options.find(o => o.id === selected);
+    return (
+      <div>
+        <div style={{ position: 'relative' }}>
+          <select
+            aria-label={step.title}
+            value={selected || ''}
+            onChange={e => selectOption(step.id, e.target.value)}
+            style={{ width: '100%', padding: '14px 44px 14px 16px', border: `2px solid ${selected ? 'var(--gold)' : '#e5e7eb'}`, borderRadius: 10, fontSize: 15, color: selected ? 'var(--navy)' : '#9ca3af', background: 'white', cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+          >
+            <option value="" disabled>Choose an option…</option>
+            {step.options.map(opt => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}{(opt.price_modifier ?? 0) > 0 ? ` (+€${(opt.price_modifier ?? 0).toFixed(2)})` : ''}
+              </option>
+            ))}
+          </select>
+          <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: 12, color: '#6b7280' }}>▼</span>
+        </div>
+        {selectedOpt && (
+          <p style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>
+            Selected: <strong style={{ color: 'var(--navy)' }}>{selectedOpt.label}</strong>
+            {(selectedOpt.price_modifier ?? 0) > 0 && <span style={{ color: 'var(--gold)', marginLeft: 8 }}>+€{(selectedOpt.price_modifier ?? 0).toFixed(2)}</span>}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (step.ui_type === 'text_input') {
+    const maxLength = parseInt(step.options[0]?.description || '200') || 200;
+    const placeholder = step.options[0]?.label || 'Enter value…';
+    return (
+      <div>
+        <input
+          type="text"
+          aria-label={step.title}
+          value={selected || ''}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          onChange={e => selectOption(step.id, e.target.value)}
+          style={{ width: '100%', padding: '14px 16px', border: `2px solid ${selected ? 'var(--gold)' : '#e5e7eb'}`, borderRadius: 10, fontSize: 15, color: 'var(--navy)', background: 'white', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+        />
+        <p style={{ marginTop: 6, fontSize: 12, color: '#9ca3af', textAlign: 'right' }}>{(selected || '').length} / {maxLength} chars</p>
+        {step.options.slice(1).map(opt => (
+          <button key={opt.id} type="button" onClick={() => selectOption(step.id, opt.id === selected ? '' : opt.id)}
+            style={{ marginTop: 8, marginRight: 8, padding: '6px 14px', border: `2px solid ${selected === opt.id ? 'var(--gold)' : '#e5e7eb'}`, borderRadius: 20, fontSize: 13, fontWeight: 600, color: selected === opt.id ? 'var(--gold)' : '#374151', background: 'white', cursor: 'pointer' }}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  if (step.ui_type === 'date_picker') {
+    const today = new Date().toISOString().slice(0, 10);
+    const formatted = selected ? new Date(selected + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return (
+      <div>
+        <input
+          type="date"
+          aria-label={step.title}
+          value={selected || ''}
+          min={today}
+          onChange={e => selectOption(step.id, e.target.value)}
+          style={{ width: '100%', padding: '14px 16px', border: `2px solid ${selected ? 'var(--gold)' : '#e5e7eb'}`, borderRadius: 10, fontSize: 15, color: selected ? 'var(--navy)' : '#9ca3af', background: 'white', outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+        />
+        {selected && (
+          <p style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>
+            Requested delivery: <strong style={{ color: 'var(--navy)' }}>{formatted}</strong>
+          </p>
+        )}
+        {!step.required && (
+          <p style={{ marginTop: 6, fontSize: 12, color: '#9ca3af' }}>Optional — skip if no specific date required</p>
+        )}
+      </div>
+    );
+  }
+
   return <p style={{ color: '#9ca3af' }}>Step type not supported.</p>;
 }

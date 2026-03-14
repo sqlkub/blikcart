@@ -78,7 +78,7 @@ export interface ConfiguratorStep {
   order: number;
   title: string;
   description?: string;
-  ui_type: 'image_card_grid' | 'swatch' | 'icon_radio' | 'quantity_delivery' | 'notes_upload';
+  ui_type: 'image_card_grid' | 'swatch' | 'icon_radio' | 'quantity_delivery' | 'notes_upload' | 'toggle' | 'dropdown' | 'text_input' | 'date_picker';
   required: boolean;
   min_quantity?: number;
   conditional?: { show_if: Record<string, string> };
