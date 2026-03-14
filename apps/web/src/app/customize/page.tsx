@@ -12,6 +12,14 @@ const CATEGORIES = [
     minOrder: 1,
   },
   {
+    slug: 'browbands',
+    name: 'Browbands',
+    description: 'Personalised browbands with crystal, leather, or embroidered detailing. Choose width, colours, and hardware.',
+    icon: '💎',
+    leadTime: '7–10 days',
+    minOrder: 1,
+  },
+  {
     slug: 'saddle-pads',
     name: 'Saddle Pads',
     description: 'Design your perfect saddle pad — shape, piping colours, logo embroidery, and fabrics.',

@@ -105,6 +105,7 @@ export class OrdersService {
           create: cart.items.map((item: any) => ({
             productId: item.productId,
             variantId: item.variantId,
+            productName: item.product?.name || '',
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             total: item.unitPrice * item.quantity,

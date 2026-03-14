@@ -10,7 +10,7 @@ const CONFIGURATOR_MAP: Record<string, string> = {
   bridles: 'bridles',
   'dressage-bridles': 'bridles',
   'jumping-bridles': 'bridles',
-  browbands: 'bridles',
+  browbands: 'browbands',
   halters: 'halters',
   'horse-reins': 'horse-reins',
   girths: 'girths',
