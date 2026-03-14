@@ -163,7 +163,7 @@ export default function ProductsPage() {
                       {p.isCustomizable && (
                         <Link href={`/customize/${configSlug}?productId=${p.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--gold)', color: 'white', padding: '10px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>🎨 Customize & Order →</Link>
                       )}
-                      <Link href={`/products/${p.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View Details</Link>
+                      <Link href={`/products/${p.category?.slug || category}/${p.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--navy)', color: 'var(--navy)', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>View Details</Link>
                     </div>
                   </div>
                 </div>
