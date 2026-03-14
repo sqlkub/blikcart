@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink } from 'lucide-react';
+import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink, ImagePlus } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -146,6 +146,38 @@ function ProductsTab() {
     setCreateForm({ name: '', sku: '', categoryId: '', basePrice: '', wholesalePrice: '', moq: '1', leadTimeDays: '0', isCustomizable: false, description: '' });
   }
 
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<string | null>(null);
+
+  function triggerUpload(productId: string) {
+    uploadTargetRef.current = productId;
+    fileInputRef.current?.click();
+  }
+
+  async function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const productId = uploadTargetRef.current;
+    if (!file || !productId) return;
+    e.target.value = '';
+    setUploadingId(productId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('isPrimary', 'true');
+      const res = await axios.post(`${API}/products/${productId}/images`, fd, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      setProducts(prev => prev.map(p =>
+        p.id === productId ? { ...p, images: [res.data, ...(p.images || []).filter((i: any) => !i.isPrimary)] } : p
+      ));
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Image upload failed');
+    } finally {
+      setUploadingId(null);
+    }
+  }
+
   const stats = {
     total: products.length,
     active: products.filter(p => p.isActive).length,
@@ -170,6 +202,9 @@ function ProductsTab() {
           </div>
         ))}
       </div>
+
+      {/* Hidden file input for image uploads */}
+      <input ref={fileInputRef} type="file" accept="image/*" title="Upload product image" className="hidden" onChange={handleImageFile} />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
@@ -368,7 +403,14 @@ function ProductsTab() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <button type="button" title="Upload image" onClick={() => triggerUpload(p.id)}
+                        disabled={uploadingId === p.id}
+                        className="text-gray-400 hover:text-blue-500 disabled:opacity-40">
+                        {uploadingId === p.id
+                          ? <span className="text-xs text-blue-500 animate-pulse">…</span>
+                          : <ImagePlus size={14} />}
+                      </button>
                       <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}

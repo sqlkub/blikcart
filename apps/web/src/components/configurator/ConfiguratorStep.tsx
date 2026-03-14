@@ -1,6 +1,9 @@
 'use client';
+import { useRef, useState } from 'react';
 import type { ConfiguratorStep as StepType } from '@blikcart/types';
 import { useConfiguratorStore } from '@/store/configurator.store';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 interface Props { step: StepType; }
 
@@ -9,6 +12,45 @@ export default function ConfiguratorStep({ step }: Props) {
   const selected = selections[step.id];
   // Guard: newly-created steps may have options: null from the DB
   const opts: StepType['options'] = step.options ?? [];
+
+  // File upload state (used only by notes_upload steps)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (file.size > 10 * 1024 * 1024) { setUploadError('File must be under 10 MB'); return; }
+    setUploading(true);
+    setUploadError('');
+    try {
+      const tok = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const res = await fetch(`${API}/configurator/upload-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      });
+      if (!res.ok) throw new Error('Could not get upload URL');
+      const { uploadUrl, fileUrl } = await res.json();
+      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      const next = [...uploadedFiles, { name: file.name, url: fileUrl }];
+      setUploadedFiles(next);
+      selectOption(step.id, JSON.stringify(next.map(f => f.url)));
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeFile(url: string) {
+    const next = uploadedFiles.filter(f => f.url !== url);
+    setUploadedFiles(next);
+    selectOption(step.id, next.length ? JSON.stringify(next.map(f => f.url)) : '');
+  }
 
   if (step.ui_type === 'image_card_grid') {
     return (
@@ -155,12 +197,56 @@ export default function ConfiguratorStep({ step }: Props) {
   if (step.ui_type === 'notes_upload') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <textarea style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, fontSize: 14, resize: 'none', height: 120, fontFamily: 'inherit' }} placeholder="Add any special instructions, colour codes, measurements, or requests..." onChange={e => useConfiguratorStore.getState().setNotes(e.target.value)} />
-        <div style={{ border: '2px dashed #e5e7eb', borderRadius: 10, padding: 32, textAlign: 'center' }}>
-          <p style={{ fontSize: 14, color: '#6b7280' }}>📎 Drop reference images or files here</p>
-          <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>JPG, PNG, PDF up to 10MB</p>
-          <button type="button" style={{ marginTop: 12, fontSize: 14, color: 'var(--gold)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>Browse files</button>
+        <textarea
+          style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, fontSize: 14, resize: 'none', height: 120, fontFamily: 'inherit' }}
+          placeholder="Add any special instructions, colour codes, measurements, or requests..."
+          onChange={e => useConfiguratorStore.getState().setNotes(e.target.value)}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          title="Upload reference file"
+          accept="image/*,.pdf"
+          style={{ display: 'none' }}
+          onChange={handleFileSelect}
+        />
+        <div
+          style={{ border: '2px dashed #e5e7eb', borderRadius: 10, padding: 32, textAlign: 'center', background: uploading ? '#fafafa' : 'white' }}
+          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--gold)'; }}
+          onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; }}
+          onDrop={e => {
+            e.preventDefault();
+            e.currentTarget.style.borderColor = '#e5e7eb';
+            const file = e.dataTransfer.files?.[0];
+            if (file) handleFileSelect({ target: { files: [file], value: '' } } as any);
+          }}
+        >
+          {uploading ? (
+            <p style={{ fontSize: 14, color: 'var(--gold)', fontWeight: 600 }}>Uploading…</p>
+          ) : (
+            <>
+              <p style={{ fontSize: 14, color: '#6b7280' }}>📎 Drop reference images or files here</p>
+              <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>JPG, PNG, PDF up to 10MB</p>
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                style={{ marginTop: 12, fontSize: 14, color: 'var(--gold)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>
+                Browse files
+              </button>
+            </>
+          )}
         </div>
+        {uploadError && <p style={{ fontSize: 13, color: '#ef4444' }}>{uploadError}</p>}
+        {uploadedFiles.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {uploadedFiles.map(f => (
+              <div key={f.url} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                <span style={{ fontSize: 16 }}>📄</span>
+                <span style={{ fontSize: 13, color: '#374151', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                <button type="button" onClick={() => removeFile(f.url)}
+                  style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
