@@ -50,8 +50,89 @@ export class ConfiguratorService {
       leadTimeStandardDays: schema.leadTimeStandardDays,
       leadTimeExpressDays: schema.leadTimeExpressDays,
       expressPriceMultiplier: Number(schema.expressPriceMultiplier),
-      steps: version.steps,
+      steps: this.normalizeSteps(version.steps as any[]),
     };
+  }
+
+  /**
+   * Converts legacy / spec-document step formats to the canonical ConfiguratorStep shape.
+   * The admin editor saves steps correctly, but schemas imported from spec docs
+   * may use `name` instead of `title`, plain string options, `parameters` objects, etc.
+   */
+  private normalizeSteps(steps: any[]): any[] {
+    if (!Array.isArray(steps)) return [];
+    return steps.map((s, index) => {
+      // Already in correct format — has id and ui_type as expected
+      if (s.id && s.ui_type && Array.isArray(s.options) && (s.options.length === 0 || typeof s.options[0] === 'object')) {
+        return s;
+      }
+
+      // Legacy / spec-doc format: `name`, `step`, string options, `parameters`, `checks`
+      const id = s.id || `step-${index + 1}`;
+      const title = s.title || s.name || `Step ${index + 1}`;
+      const description = s.description || '';
+      const order = typeof s.order === 'number' ? s.order : (typeof s.step === 'number' ? s.step : index + 1);
+
+      // Build flat options list from whichever fields are present
+      let rawOpts: string[] = [];
+
+      if (Array.isArray(s.options)) {
+        // options: ["Straight", "Curved"] or [{ label, id }]
+        rawOpts = s.options.map((o: any) => (typeof o === 'string' ? o : o.label || String(o)));
+      } else if (s.parameters && typeof s.parameters === 'object') {
+        // parameters: { leather_type: [...], padding: [...] }
+        for (const [groupName, values] of Object.entries(s.parameters)) {
+          if (Array.isArray(values)) {
+            for (const v of values) {
+              if (typeof v === 'string') {
+                rawOpts.push(`${this.titleCase(groupName)}: ${v}`);
+              } else if (typeof v === 'object' && v !== null) {
+                // e.g. { size: "Pony", width_mm: 18, length_mm: 380 }
+                const label = (v as any).size || (v as any).label || JSON.stringify(v);
+                const desc = Object.entries(v as object)
+                  .filter(([k]) => k !== 'size' && k !== 'label')
+                  .map(([k, val]) => `${k}: ${val}`)
+                  .join(', ');
+                rawOpts.push(desc ? `${label} (${desc})` : label);
+              }
+            }
+          } else if (typeof values === 'string' || typeof values === 'number') {
+            rawOpts.push(`${this.titleCase(groupName)}: ${values}`);
+          }
+        }
+      } else if (Array.isArray(s.checks)) {
+        // Quality control steps — list checks as info options, make step optional
+        rawOpts = s.checks;
+      }
+
+      const options = rawOpts.map((label: string, i: number) => ({
+        id: `${id}-opt-${i + 1}`,
+        label,
+        price_modifier: 0,
+      }));
+
+      // Determine best ui_type
+      let ui_type = s.ui_type || 'image_card_grid';
+      if (!s.ui_type) {
+        if (Array.isArray(s.checks)) ui_type = 'notes_upload';
+        else if (options.length > 6) ui_type = 'dropdown';
+        else if (options.length <= 2) ui_type = 'icon_radio';
+      }
+
+      return {
+        id,
+        title,
+        description,
+        order,
+        ui_type,
+        required: Array.isArray(s.checks) ? false : (s.required !== false),
+        options,
+      };
+    });
+  }
+
+  private titleCase(str: string): string {
+    return str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
   async createDraft(userId: string, productId: string, schemaVersionId: string, selections?: Record<string, string>) {
