@@ -86,30 +86,43 @@ enum CartItemType {
   custom
 }
 
-model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
-  passwordHash   String
-  fullName       String
-  phone          String?
-  accountType    AccountType   @default(retail)
-  wholesaleTier  WholesaleTier?
-  companyName    String?
-  vatNumber      String?
-  isApproved     Boolean       @default(false)
-  adminNotes     String?
-  locale         String        @default("nl")
-  currency       String        @default("EUR")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+// Matches the asset_type ENUM from the spec
+enum ConfiguratorAssetType {
+  base
+  color
+  hardware
+  padding
+  stitch
+  overlay
+}
 
-  addresses      Address[]
-  carts          Cart[]
-  orders         Order[]
-  customOrders   CustomOrder[]
-  sentQuotes     Quote[]       @relation("AdminQuotes")
-  messages       Message[]
-  refreshTokens  RefreshToken[]
+model User {
+  id               String         @id @default(uuid())
+  email            String         @unique
+  emailVerifiedAt  DateTime?
+  passwordHash     String
+  fullName         String
+  phone            String?
+  accountType      AccountType    @default(retail)
+  wholesaleTier    WholesaleTier?
+  companyName      String?
+  vatNumber        String?
+  isApproved       Boolean        @default(false)
+  adminNotes       String?
+  locale           String         @default("nl")
+  currency         String         @default("EUR")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  addresses        Address[]
+  carts            Cart[]
+  orders           Order[]
+  customOrders     CustomOrder[]
+  sentQuotes       Quote[]           @relation("AdminQuotes")
+  messages         Message[]
+  refreshTokens    RefreshToken[]
+  schemaVersions   SchemaVersion[]   @relation("SchemaCreator")
+  quoteRevisions   QuoteRevision[]   @relation("QuoteRevisionCreator")
 
   @@map("users")
 }
@@ -146,45 +159,45 @@ model Address {
 }
 
 model Category {
-  id            String    @id @default(uuid())
-  parentId      String?
-  slug          String    @unique
-  name          String
-  description   String?
-  imageUrl      String?
-  sortOrder     Int       @default(0)
-  isActive      Boolean   @default(true)
+  id             String   @id @default(uuid())
+  parentId       String?
+  slug           String   @unique
+  name           String
+  description    String?
+  imageUrl       String?
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
   isCustomizable Boolean  @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  parent    Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[]          @relation("CategoryHierarchy")
-  products  Product[]
+  parent             Category?          @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children           Category[]         @relation("CategoryHierarchy")
+  products           Product[]
   configuratorSchema ConfiguratorSchema?
 
   @@map("categories")
 }
 
 model Product {
-  id            String    @id @default(uuid())
-  categoryId    String
-  slug          String    @unique
-  sku           String    @unique
-  name          String
-  description   String?
-  basePrice     Decimal   @db.Decimal(10, 2)
-  wholesalePrice Decimal? @db.Decimal(10, 2)
-  moq           Int       @default(1)
-  isCustomizable Boolean  @default(false)
-  isActive      Boolean   @default(true)
-  weightGrams   Int?
-  leadTimeDays  Int       @default(0)
-  tags          String[]
-  metaTitle     String?
+  id              String   @id @default(uuid())
+  categoryId      String
+  slug            String   @unique
+  sku             String?  @unique
+  name            String
+  description     String?
+  basePrice       Decimal  @db.Decimal(10, 2)
+  wholesalePrice  Decimal? @db.Decimal(10, 2)
+  moq             Int      @default(1)
+  isCustomizable  Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  weightGrams     Int?
+  leadTimeDays    Int      @default(21)
+  tags            String[]
+  metaTitle       String?
   metaDescription String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   category     Category         @relation(fields: [categoryId], references: [id])
   variants     ProductVariant[]
@@ -236,6 +249,7 @@ model ProductImage {
 model ConfiguratorSchema {
   id                     String   @id @default(uuid())
   categoryId             String   @unique
+  currentVersionId       String?
   basePrice              Decimal  @db.Decimal(10, 2)
   moq                    Int      @default(1)
   leadTimeStandardDays   Int      @default(21)
@@ -245,9 +259,10 @@ model ConfiguratorSchema {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  category      Category        @relation(fields: [categoryId], references: [id])
-  versions      SchemaVersion[]
-  assets        ConfiguratorAsset[]
+  category       Category           @relation(fields: [categoryId], references: [id])
+  currentVersion SchemaVersion?     @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  versions       SchemaVersion[]    @relation("SchemaVersions")
+  assets         ConfiguratorAsset[]
 
   @@map("configurator_schemas")
 }
@@ -257,11 +272,14 @@ model SchemaVersion {
   schemaId      String
   versionNumber Int
   steps         Json
+  createdById   String?
   notes         String?
   createdAt     DateTime @default(now())
 
-  schema       ConfiguratorSchema @relation(fields: [schemaId], references: [id], onDelete: Cascade)
-  customOrders CustomOrder[]
+  schema           ConfiguratorSchema  @relation("SchemaVersions", fields: [schemaId], references: [id], onDelete: Cascade)
+  activeForSchemas ConfiguratorSchema[] @relation("CurrentVersion")
+  createdBy        User?               @relation("SchemaCreator", fields: [createdById], references: [id])
+  customOrders     CustomOrder[]
 
   @@unique([schemaId, versionNumber])
   @@index([schemaId])
@@ -269,12 +287,12 @@ model SchemaVersion {
 }
 
 model ConfiguratorAsset {
-  id        String @id @default(uuid())
+  id        String                @id @default(uuid())
   schemaId  String
   layerKey  String
-  assetType String
+  assetType ConfiguratorAssetType
   url       String
-  sortOrder Int    @default(0)
+  sortOrder Int                   @default(0)
 
   schema ConfiguratorSchema @relation(fields: [schemaId], references: [id], onDelete: Cascade)
 
@@ -286,7 +304,7 @@ model Cart {
   id          String    @id @default(uuid())
   userId      String?
   guestToken  String?   @unique
-  expiresAt   DateTime
+  expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -297,15 +315,15 @@ model Cart {
 }
 
 model CartItem {
-  id                String       @id @default(uuid())
-  cartId            String
-  productId         String
-  variantId         String?
+  id                 String       @id @default(uuid())
+  cartId             String
+  productId          String
+  variantId          String?
   customOrderDraftId String?
-  quantity          Int
-  unitPrice         Decimal      @db.Decimal(10, 2)
-  itemType          CartItemType @default(standard)
-  createdAt         DateTime     @default(now())
+  quantity           Int
+  unitPrice          Decimal      @db.Decimal(10, 2)
+  itemType           CartItemType @default(standard)
+  createdAt          DateTime     @default(now())
 
   cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product         @relation(fields: [productId], references: [id])
@@ -347,13 +365,14 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  productId String
-  variantId String?
-  quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
-  total     Decimal @db.Decimal(10, 2)
+  id          String  @id @default(uuid())
+  orderId     String
+  productId   String
+  productName String
+  variantId   String?
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -363,25 +382,25 @@ model OrderItem {
 }
 
 model CustomOrder {
-  id                  String            @id @default(uuid())
-  userId              String
-  orderId             String?
-  productId           String
-  schemaId            String?
-  schemaVersionId     String?
-  status              CustomOrderStatus @default(draft)
-  configSnapshot      Json
-  quantity            Int               @default(1)
-  estimatedPriceMin   Decimal?          @db.Decimal(10, 2)
-  estimatedPriceMax   Decimal?          @db.Decimal(10, 2)
-  confirmedUnitPrice  Decimal?          @db.Decimal(10, 2)
-  leadTimeDays        Int?
-  internalRef         String?
-  referenceFiles      String[]
-  notes               String?
-  submittedAt         DateTime?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  id                 String            @id @default(uuid())
+  userId             String
+  orderId            String?
+  productId          String
+  schemaId           String?
+  schemaVersionId    String?
+  status             CustomOrderStatus @default(draft)
+  configSnapshot     Json
+  quantity           Int               @default(1)
+  estimatedPriceMin  Decimal?          @db.Decimal(10, 2)
+  estimatedPriceMax  Decimal?          @db.Decimal(10, 2)
+  confirmedUnitPrice Decimal?          @db.Decimal(10, 2)
+  leadTimeDays       Int?
+  internalRef        String?
+  referenceFiles     String[]
+  notes              String?
+  submittedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   user          User           @relation(fields: [userId], references: [id])
   order         Order?         @relation(fields: [orderId], references: [id])
@@ -396,18 +415,18 @@ model CustomOrder {
 }
 
 model Quote {
-  id             String      @id @default(uuid())
-  customOrderId  String      @unique
-  adminId        String
-  unitPrice      Decimal     @db.Decimal(10, 2)
-  totalPrice     Decimal     @db.Decimal(10, 2)
-  leadTimeDays   Int
-  validUntil     DateTime
-  status         QuoteStatus @default(sent)
-  message        String?
-  pdfUrl         String?
-  sentAt         DateTime    @default(now())
-  respondedAt    DateTime?
+  id            String      @id @default(uuid())
+  customOrderId String      @unique
+  adminId       String
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  totalPrice    Decimal     @db.Decimal(10, 2)
+  leadTimeDays  Int
+  validUntil    DateTime
+  status        QuoteStatus @default(sent)
+  message       String?
+  pdfUrl        String?
+  sentAt        DateTime    @default(now())
+  respondedAt   DateTime?
 
   customOrder  CustomOrder     @relation(fields: [customOrderId], references: [id])
   admin        User            @relation("AdminQuotes", fields: [adminId], references: [id])
@@ -422,9 +441,11 @@ model QuoteRevision {
   revisionNumber Int
   unitPrice      Decimal  @db.Decimal(10, 2)
   message        String?
+  createdById    String?
   createdAt      DateTime @default(now())
 
-  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quote     Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("QuoteRevisionCreator", fields: [createdById], references: [id])
 
   @@map("quote_revisions")
 }

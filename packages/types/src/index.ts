@@ -22,6 +22,7 @@ export type WholesaleTier = 'bronze' | 'silver' | 'gold';
 export interface UserDto {
   id: string;
   email: string;
+  emailVerifiedAt?: string;
   fullName: string;
   phone?: string;
   accountType: AccountType;
@@ -39,7 +40,7 @@ export interface UserDto {
 export interface ProductDto {
   id: string;
   slug: string;
-  sku: string;
+  sku?: string;
   name: string;
   description?: string;
   basePrice: number;
@@ -73,6 +74,8 @@ export interface ProductVariantDto {
 
 // ─── Configurator ─────────────────────────────────────────────────────────────
 
+export type ConfiguratorAssetType = 'base' | 'color' | 'hardware' | 'padding' | 'stitch' | 'overlay';
+
 export interface ConfiguratorStep {
   id: string;
   order: number;
@@ -93,6 +96,7 @@ export interface ConfiguratorOption {
   image?: string;
   icon?: string;
   color_hex?: string | null;
+  layer_key?: string;
   is_express?: boolean;
 }
 
@@ -107,6 +111,14 @@ export interface ConfiguratorSchemaDto {
   steps: ConfiguratorStep[];
 }
 
+export interface ConfiguratorAssetDto {
+  id: string;
+  layerKey: string;
+  assetType: ConfiguratorAssetType;
+  url: string;
+  sortOrder: number;
+}
+
 export interface PriceEstimate {
   min: number;
   max: number;
@@ -118,11 +130,14 @@ export interface PriceEstimate {
 
 export interface CustomOrderDraftDto {
   id: string;
-  status: string;
+  status: CustomOrderStatus;
   selections: Record<string, string>;
   quantity: number;
   estimatedPrice?: PriceEstimate;
   completionPercent: number;
+  notes?: string;
+  internalRef?: string;
+  referenceFiles?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -173,6 +188,7 @@ export interface OrderItemDto {
   id: string;
   productId: string;
   productName: string;
+  variantId?: string;
   quantity: number;
   unitPrice: number;
   total: number;
@@ -191,6 +207,16 @@ export interface QuoteDto {
   message?: string;
   pdfUrl?: string;
   sentAt: string;
+  respondedAt?: string;
+}
+
+export interface QuoteRevisionDto {
+  id: string;
+  revisionNumber: number;
+  unitPrice: number;
+  message?: string;
+  createdById?: string;
+  createdAt: string;
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────
