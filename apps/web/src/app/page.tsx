@@ -2,18 +2,18 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 const categories = [
-  { name: 'Bridles', slug: 'bridles', emoji: '🐴', count: '12 styles' },
-  { name: 'Browbands', slug: 'browbands', emoji: '✨', count: '8 styles' },
-  { name: 'Halters', slug: 'halters', emoji: '🎯', count: '6 styles' },
-  { name: 'Reins', slug: 'horse-reins', emoji: '🔗', count: '9 styles' },
-  { name: 'Girths', slug: 'girths', emoji: '⚡', count: '5 styles' },
-  { name: 'Parts & Components', slug: 'parts-components', emoji: '🔧', count: '4 styles' },
+  { name: 'Bridles', slug: 'bridles', count: '12 styles' },
+  { name: 'Browbands', slug: 'browbands', count: '8 styles' },
+  { name: 'Halters', slug: 'halters', count: '6 styles' },
+  { name: 'Reins', slug: 'horse-reins', count: '9 styles' },
+  { name: 'Girths', slug: 'girths', count: '5 styles' },
+  { name: 'Parts & Components', slug: 'parts-components', count: '4 styles' },
 ];
 
 const features = [
-  { icon: '🎨', title: 'Fully Customisable', desc: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
-  { icon: '🌿', title: 'Eco-Friendly Options', desc: 'Bio-certified leather tanning. Sustainable packaging. Carbon-tracked shipping.' },
-  { icon: '🏭', title: 'Direct from Manufacturer', desc: 'No middlemen. Better quality control. Competitive wholesale pricing from 5 units.' },
+  { title: 'Fully Customisable', desc: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
+  { title: 'Eco-Friendly Options', desc: 'Bio-certified leather tanning. Sustainable packaging. Carbon-tracked shipping.' },
+  { title: 'Direct from Manufacturer', desc: 'No middlemen. Better quality control. Competitive wholesale pricing from 5 units.' },
 ];
 
 export default function HomePage() {
@@ -46,8 +46,8 @@ export default function HomePage() {
 
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 24, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 120, border: '1px solid rgba(255,255,255,0.08)' }}>
-                🐴
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 24, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: 80, fontWeight: 800, color: 'rgba(255,255,255,0.08)', letterSpacing: '-0.04em' }}>BK</span>
               </div>
               <div style={{ position: 'absolute', bottom: -12, right: -12, background: '#C8860A', color: 'white', borderRadius: 12, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                 <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>from</p>
@@ -66,7 +66,6 @@ export default function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {categories.map(cat => (
               <Link key={cat.slug} href={`/products/${cat.slug}`} style={{ background: 'white', borderRadius: 12, padding: '28px 20px', textAlign: 'center', border: '1px solid #e0e0e0', display: 'block', transition: 'box-shadow 0.2s, transform 0.2s' }}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>{cat.emoji}</div>
                 <p style={{ fontWeight: 700, color: '#1a1a1a', fontSize: 15 }}>{cat.name}</p>
                 <p style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{cat.count}</p>
               </Link>
@@ -104,7 +103,6 @@ export default function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {features.map((f, i) => (
               <div key={i} style={{ background: 'white', borderRadius: 12, padding: '28px 24px', border: '1px solid #e0e0e0' }}>
-                <div style={{ fontSize: 36, marginBottom: 16 }}>{f.icon}</div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{f.title}</h3>
                 <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
               </div>
