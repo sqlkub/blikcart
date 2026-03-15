@@ -136,6 +136,16 @@ export class ProductsController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post(':id/variants/:variantId/image-url')
+  setVariantImageUrl(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Body('url') url: string,
+  ) {
+    return this.products.setVariantImageUrl(id, variantId, url);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id/variants/:variantId/image')
   deleteVariantImage(
     @Param('id') id: string,

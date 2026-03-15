@@ -872,6 +872,10 @@ function VariantsTab() {
   const varImgTargetRef = useRef<{ productId: string; variantId: string } | null>(null);
   const [varImgUploading, setVarImgUploading] = useState<string | null>(null);
 
+  // Gallery picker
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [galleryPickerVariant, setGalleryPickerVariant] = useState<string | null>(null);
+
   function triggerVariantImgUpload(productId: string, variantId: string) {
     varImgTargetRef.current = { productId, variantId };
     varImgInputRef.current?.click();
@@ -910,12 +914,23 @@ function VariantsTab() {
     setSelectedProduct(productId);
     setShowCreate(false);
     setEditingId(null);
+    setGalleryImages([]);
     try {
       const url = productId ? `${API}/products/admin/variants?productId=${productId}` : `${API}/products/admin/variants`;
-      const res = await axios.get(url, { headers: hdrs() });
-      setVariants(res.data || []);
+      const [vRes, imgRes] = await Promise.all([
+        axios.get(url, { headers: hdrs() }),
+        productId ? axios.get(`${API}/products/${productId}/images`, { headers: hdrs() }).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      ]);
+      setVariants(vRes.data || []);
+      setGalleryImages((imgRes.data || []).filter((i: any) => !i.layerType || i.layerType === '' || i.layerType === 'photo' || i.layerType === '2d' || i.layerType === '3d' || i.layerType === 'lifestyle' || i.layerType === 'detail'));
     } catch { setVariants([]); }
     finally { setLoading(false); }
+  }
+
+  async function assignGalleryImage(variantId: string, url: string) {
+    await axios.post(`${API}/products/${selectedProduct}/variants/${variantId}/image-url`, { url }, { headers: hdrs() });
+    setVariants(prev => prev.map(v => v.id === variantId ? { ...v, variantImage: { url } } : v));
+    setGalleryPickerVariant(null);
   }
 
   async function createVariant() {
@@ -1002,6 +1017,30 @@ function VariantsTab() {
 
       <input ref={varImgInputRef} type="file" accept="image/*" title="Upload variant swatch" className="hidden" onChange={handleVariantImgFile} />
 
+      {/* Gallery Picker Modal */}
+      {galleryPickerVariant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setGalleryPickerVariant(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-900">Select from Gallery</h2>
+              <button type="button" title="Close" onClick={() => setGalleryPickerVariant(null)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+            </div>
+            {galleryImages.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-8">No gallery images — upload images in the Products tab first.</p>
+            ) : (
+              <div className="grid grid-cols-4 gap-3 max-h-72 overflow-y-auto">
+                {galleryImages.map(img => (
+                  <button key={img.id} type="button" onClick={() => assignGalleryImage(galleryPickerVariant, img.url)}
+                    className="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-[#1A3C5E] transition-all">
+                    <img src={img.url} alt={img.altText || ''} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {selectedProduct ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full">
@@ -1044,15 +1083,24 @@ function VariantsTab() {
                           <div className="relative group">
                             <img src={v.variantImage.url} alt="swatch" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
                             <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
-                              <button type="button" title="Replace image" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)} className="text-white hover:text-blue-300"><ImagePlus size={12} /></button>
+                              <button type="button" title="Upload new image" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)} className="text-white hover:text-blue-300"><ImagePlus size={12} /></button>
+                              <button type="button" title="Select from gallery" onClick={() => setGalleryPickerVariant(v.id)} className="text-white hover:text-yellow-300"><Layers size={12} /></button>
                               <button type="button" title="Remove image" onClick={() => deleteVariantImg(selectedProduct, v.id)} className="text-white hover:text-red-400"><Trash2 size={12} /></button>
                             </div>
                           </div>
                         ) : (
-                          <button type="button" title="Upload swatch" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)}
-                            className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 hover:border-[#1A3C5E] flex items-center justify-center text-gray-300 hover:text-[#1A3C5E] transition-colors">
-                            <ImagePlus size={14} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button type="button" title="Upload swatch" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)}
+                              className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 hover:border-[#1A3C5E] flex items-center justify-center text-gray-300 hover:text-[#1A3C5E] transition-colors">
+                              <ImagePlus size={14} />
+                            </button>
+                            {galleryImages.length > 0 && (
+                              <button type="button" title="Select from gallery" onClick={() => setGalleryPickerVariant(v.id)}
+                                className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 hover:border-[#C9A84C] flex items-center justify-center text-gray-300 hover:text-[#C9A84C] transition-colors">
+                                <Layers size={14} />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>

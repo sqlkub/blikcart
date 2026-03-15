@@ -355,6 +355,21 @@ export class ProductsService {
     });
   }
 
+  async setVariantImageUrl(productId: string, variantId: string, url: string) {
+    const existing = await this.prisma.productImage.findFirst({
+      where: { productId, layerType: 'variant', layerVariantKey: variantId },
+    });
+    if (existing) {
+      return this.prisma.productImage.update({
+        where: { id: existing.id },
+        data: { url },
+      });
+    }
+    return this.prisma.productImage.create({
+      data: { productId, url, isPrimary: false, sortOrder: 99, layerType: 'variant', layerVariantKey: variantId },
+    });
+  }
+
   async deleteVariantImage(productId: string, variantId: string) {
     const bucket = this.config.get('S3_BUCKET_NAME', 'blikcart-assets');
     const region = this.config.get('AWS_REGION', 'eu-west-1');
