@@ -34,7 +34,7 @@ export default function HomePage() {
               Design your perfect bridle, browband, or halter with our step-by-step configurator. Premium leather, your colours, your hardware. Direct from our workshop.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/customize/bridles" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15 }}>
+              <Link href="/design-your-own" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15 }}>
                 Design Your Own <ArrowRight size={16} />
               </Link>
               <Link href="/products/for-horses" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'white', padding: '12px 28px', borderRadius: 8, fontWeight: 600, fontSize: 15, border: '1.5px solid rgba(255,255,255,0.2)' }}>
@@ -91,7 +91,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <Link href="/customize/bridles" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '14px 32px', borderRadius: 8, fontWeight: 700, fontSize: 16 }}>
+            <Link href="/design-your-own" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '14px 32px', borderRadius: 8, fontWeight: 700, fontSize: 16 }}>
               Start Configuring <ArrowRight size={18} />
             </Link>
           </div>

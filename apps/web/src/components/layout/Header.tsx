@@ -87,7 +87,7 @@ export default function Header() {
             </div>
           ))}
 
-          <Link href="/customize/bridles" style={{ padding: '8px 14px', borderRadius: 6, fontSize: 14, fontWeight: 700, color: '#C8860A', textDecoration: 'none', border: '1px solid rgba(200,134,10,0.4)', marginLeft: 4 }}>
+          <Link href="/design-your-own" style={{ padding: '8px 14px', borderRadius: 6, fontSize: 14, fontWeight: 700, color: '#C8860A', textDecoration: 'none', border: '1px solid rgba(200,134,10,0.4)', marginLeft: 4 }}>
             Design Your Own ✦
           </Link>
           <Link href="/wholesale" style={{ padding: '8px 12px', borderRadius: 6, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.9)', textDecoration: 'none' }}>
