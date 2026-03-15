@@ -1,22 +1,15 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', border: '1.5px solid #e8e4de', borderRadius: 8,
   fontSize: 14, outline: 'none', background: '#faf9f7', color: '#1a1a1a',
-  boxSizing: 'border-box' as const, transition: 'border-color 0.15s',
-  fontFamily: 'inherit',
+  boxSizing: 'border-box' as const, transition: 'border-color 0.15s', fontFamily: 'inherit',
 };
 
 const TOPICS = [
-  'General enquiry',
-  'Custom order / quote',
-  'Existing order',
-  'Wholesale / B2B',
-  'Returns & refunds',
-  'Product information',
-  'Technical / website issue',
+  'General enquiry', 'Custom order / quote', 'Existing order',
+  'Wholesale / B2B', 'Returns & refunds', 'Product information', 'Technical / website issue',
 ];
 
 export default function ContactPage() {
@@ -44,16 +37,15 @@ export default function ContactPage() {
       <section style={{ maxWidth: 1000, margin: '0 auto', padding: 'clamp(40px, 5vw, 64px) 24px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 48 }}>
           {[
-            { icon: '📧', label: 'General Support', value: 'support@blikcart.nl', sub: 'Mon – Fri, replies within 4 hours' },
-            { icon: '💼', label: 'Wholesale & B2B', value: 'wholesale@blikcart.nl', sub: 'Account & pricing enquiries' },
-            { icon: '📞', label: 'Phone', value: '+31 (0)20 123 4567', sub: 'Mon – Fri, 09:00 – 17:00 CET' },
-            { icon: '📍', label: 'Workshop', value: 'Amsterdam, NL', sub: 'Not open to walk-ins' },
+            { label: 'General Support',  value: 'support@blikcart.nl',    sub: 'Mon – Fri, replies within 4 hours' },
+            { label: 'Wholesale & B2B',  value: 'wholesale@blikcart.nl',  sub: 'Account & pricing enquiries' },
+            { label: 'Phone',            value: '+31 (0)20 123 4567',      sub: 'Mon – Fri, 09:00 – 17:00 CET' },
+            { label: 'Workshop',         value: 'Amsterdam, NL',           sub: 'Not open to walk-ins' },
           ].map(c => (
             <div key={c.label} style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, padding: '22px 20px' }}>
-              <span style={{ fontSize: 28, display: 'block', marginBottom: 10 }}>{c.icon}</span>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#C8860A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{c.label}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#C8860A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{c.label}</p>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>{c.value}</p>
-              <p style={{ fontSize: 12, color: '#888' }}>{c.sub}</p>
+              <p style={{ fontSize: 12, color: '#888', margin: 0 }}>{c.sub}</p>
             </div>
           ))}
         </div>
@@ -66,11 +58,11 @@ export default function ContactPage() {
               Fill in the form and we'll get back to you within one business day. For urgent order issues, email us directly.
             </p>
             <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 24, color: 'white' }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#C8860A', marginBottom: 6 }}>Response Times</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#C8860A', marginBottom: 8 }}>Response Times</p>
               <ul style={{ fontSize: 13, color: '#888', lineHeight: 2, paddingLeft: 0, listStyle: 'none', margin: 0 }}>
-                <li>✦ General enquiries — same day</li>
-                <li>✦ Custom quotes — within 24 hours</li>
-                <li>✦ Order updates — within 4 hours</li>
+                <li>General enquiries — same day</li>
+                <li>Custom quotes — within 24 hours</li>
+                <li>Order updates — within 4 hours</li>
               </ul>
             </div>
           </div>
@@ -78,7 +70,6 @@ export default function ContactPage() {
           <div style={{ background: '#fff', borderRadius: 16, border: '1.5px solid #e8e4de', padding: 'clamp(24px, 4vw, 36px)' }}>
             {submitted ? (
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
-                <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
                 <h3 style={{ fontWeight: 800, color: '#1a1a1a', fontSize: 20, marginBottom: 8 }}>Message Sent</h3>
                 <p style={{ color: '#666', fontSize: 14 }}>We'll reply to {form.email} within one business day.</p>
                 <button onClick={() => { setSubmitted(false); setForm({ name: '', email: '', topic: '', message: '' }); }}
@@ -100,8 +91,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Topic *</label>
-                  <select required value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })}
-                    style={{ ...inputStyle, appearance: 'auto' }}>
+                  <select required title="Topic" value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} style={{ ...inputStyle, appearance: 'auto' }}>
                     <option value="">Select a topic…</option>
                     {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -109,11 +99,10 @@ export default function ContactPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Message *</label>
                   <textarea required rows={5} value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}
-                    placeholder="Tell us how we can help…"
-                    style={{ ...inputStyle, resize: 'vertical' }} />
+                    placeholder="Tell us how we can help…" style={{ ...inputStyle, resize: 'vertical' }} />
                 </div>
                 <button type="submit" style={{ background: '#C8860A', color: '#fff', fontWeight: 700, fontSize: 15, padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
-                  Send Message →
+                  Send Message
                 </button>
               </form>
             )}

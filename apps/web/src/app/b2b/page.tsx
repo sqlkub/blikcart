@@ -3,17 +3,17 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 const FEATURES = [
-  { icon: '💼', title: 'Dedicated Account Manager', desc: 'One named contact for all your orders, quotes, and questions. Available Mon–Fri 09:00–17:00 CET.' },
-  { icon: '💰', title: 'Volume Pricing', desc: 'Automatic discounts from 5 units. Custom pricing available for regular high-volume partners.' },
-  { icon: '🏷️', title: 'Private Label & White Label', desc: 'Custom branding, swing tags, and packaging with your logo. Apply for branding requirements at time of ordering.' },
-  { icon: '📋', title: 'Net-30 Payment Terms', desc: 'Approved accounts receive Net-30 invoicing after 3 completed orders. Apply after your first order.' },
-  { icon: '📊', title: 'Order Management Portal', desc: 'Your account dashboard tracks every quote, order, and shipment across your entire purchase history.' },
-  { icon: '🚚', title: 'Priority Production', desc: 'B2B accounts get priority scheduling in our production queue during peak seasons.' },
+  { title: 'Dedicated Account Manager', desc: 'One named contact for all your orders, quotes, and questions. Available Mon–Fri 09:00–17:00 CET.' },
+  { title: 'Volume Pricing',            desc: 'Automatic discounts from 5 units. Custom pricing available for regular high-volume partners.' },
+  { title: 'Private Label & White Label', desc: 'Custom branding, swing tags, and packaging with your logo. Apply for branding requirements at time of ordering.' },
+  { title: 'Net-30 Payment Terms',      desc: 'Approved accounts receive Net-30 invoicing after 3 completed orders. Apply after your first order.' },
+  { title: 'Order Management Portal',   desc: 'Your account dashboard tracks every quote, order, and shipment across your entire purchase history.' },
+  { title: 'Priority Production',       desc: 'B2B accounts get priority scheduling in our production queue during peak seasons.' },
 ];
 
 const STEPS = [
-  { step: '01', title: 'Apply for Wholesale Access', desc: 'Complete the form on our Wholesale page. We review and respond within 1 business day.', link: '/wholesale', linkText: 'Apply now' },
-  { step: '02', title: 'Get Your Account Activated', desc: 'Once approved, you receive your B2B login, custom pricing tier, and your account manager\'s direct contact details.' },
+  { step: '01', title: 'Apply for Wholesale Access', desc: "Complete the form on our Wholesale page. We review and respond within 1 business day.", link: '/wholesale', linkText: 'Apply now' },
+  { step: '02', title: 'Get Your Account Activated', desc: "Once approved, you receive your B2B login, custom pricing tier, and your account manager's direct contact details." },
   { step: '03', title: 'Place Orders via Configurator', desc: 'Log in and use the same step-by-step configurator — your wholesale prices are applied automatically.' },
   { step: '04', title: 'Manage Everything in One Place', desc: 'All quotes, orders, shipments, and invoices are accessible from your account dashboard.' },
 ];
@@ -43,9 +43,9 @@ export default function B2BPage() {
       <section style={{ background: '#fff', borderBottom: '1px solid #e8e4de' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
           {[
-            { value: '500+', label: 'Wholesale Partners' },
-            { value: '24h', label: 'Quote Response' },
-            { value: '30%', label: 'Max Volume Discount' },
+            { value: '500+',   label: 'Wholesale Partners' },
+            { value: '24h',    label: 'Quote Response' },
+            { value: '30%',    label: 'Max Volume Discount' },
             { value: 'Net-30', label: 'Payment Terms (approved)' },
           ].map((s, i) => (
             <div key={s.label} style={{ padding: '24px 16px', textAlign: 'center', borderRight: i < 3 ? '1px solid #e8e4de' : 'none' }}>
@@ -63,7 +63,6 @@ export default function B2BPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 56 }}>
           {FEATURES.map(f => (
             <div key={f.title} style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, padding: '24px 20px' }}>
-              <span style={{ fontSize: 28, display: 'block', marginBottom: 12 }}>{f.icon}</span>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>{f.title}</h3>
               <p style={{ fontSize: 13.5, color: '#666', margin: 0, lineHeight: 1.65 }}>{f.desc}</p>
             </div>
@@ -79,23 +78,23 @@ export default function B2BPage() {
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 8 }}>{s.title}</h3>
               <p style={{ fontSize: 13, color: '#666', lineHeight: 1.65, margin: 0 }}>{s.desc}</p>
               {s.link && (
-                <Link href={s.link} style={{ display: 'inline-block', marginTop: 12, fontSize: 13, fontWeight: 700, color: '#C8860A', textDecoration: 'none' }}>
-                  {s.linkText} →
+                <Link href={s.link} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 12, fontSize: 13, fontWeight: 700, color: '#C8860A', textDecoration: 'none' }}>
+                  {s.linkText} <ArrowRight size={12} />
                 </Link>
               )}
             </div>
           ))}
         </div>
 
-        {/* Volume pricing */}
+        {/* Volume tiers */}
         <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 16, padding: 'clamp(24px, 3vw, 36px)', marginBottom: 32 }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', marginBottom: 20, textAlign: 'center' }}>Volume Pricing Tiers</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {[
-              { range: '5 – 19 units', pct: '10%', note: '' },
-              { range: '20 – 49 units', pct: '15%', note: 'Popular' },
-              { range: '50 – 99 units', pct: '20%', note: '' },
-              { range: '100+ units', pct: '30%', note: 'Best Value' },
+              { range: '5 – 19 units',   pct: '10%', note: '' },
+              { range: '20 – 49 units',  pct: '15%', note: 'Popular' },
+              { range: '50 – 99 units',  pct: '20%', note: '' },
+              { range: '100+ units',     pct: '30%', note: 'Best Value' },
             ].map(t => (
               <div key={t.range} style={{ background: t.note ? '#fff8ec' : '#f9f8f6', border: `1.5px solid ${t.note ? '#C8860A' : '#e8e4de'}`, borderRadius: 10, padding: '18px 14px', textAlign: 'center', position: 'relative' }}>
                 {t.note && <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#C8860A', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>{t.note}</span>}

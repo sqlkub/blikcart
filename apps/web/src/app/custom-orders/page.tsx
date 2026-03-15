@@ -3,22 +3,22 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 const PROCESS = [
-  { step: 1, icon: '🎯', title: 'Choose a Category', desc: 'Pick the product type below. Each category has its own guided configurator.' },
-  { step: 2, icon: '🎨', title: 'Configure Your Design', desc: 'Step through material, colour, hardware, sizing, and delivery options. Live price shown throughout.' },
-  { step: 3, icon: '📋', title: 'Submit for Quote', desc: 'No payment needed yet. Your spec is sent to our team for review.' },
-  { step: 4, icon: '✅', title: 'Quote Approval', desc: 'We confirm the final price within 24 hours. You approve and pay to start production.' },
-  { step: 5, icon: '🏭', title: 'Handmade in Workshop', desc: 'Your order is manufactured by our craftspeople to your exact specification.' },
-  { step: 6, icon: '📦', title: 'Quality Check & Dispatch', desc: 'Every item passes a 12-point QC check before being packed and shipped directly to you.' },
+  { step: 1, title: 'Choose a Category',    desc: 'Pick the product type below. Each category has its own guided configurator.' },
+  { step: 2, title: 'Configure Your Design', desc: 'Step through material, colour, hardware, sizing, and delivery options. Live price shown throughout.' },
+  { step: 3, title: 'Submit for Quote',      desc: 'No payment needed yet. Your spec is sent to our team for review.' },
+  { step: 4, title: 'Quote Approval',        desc: 'We confirm the final price within 24 hours. You approve and pay to start production.' },
+  { step: 5, title: 'Handmade in Workshop', desc: 'Your order is manufactured by our craftspeople to your exact specification.' },
+  { step: 6, title: 'Quality Check & Dispatch', desc: 'Every item passes a 12-point QC check before being packed and shipped directly to you.' },
 ];
 
 const CATEGORIES = [
-  { slug: 'bridles', name: 'Bridles', icon: '🐴', from: 38, leadTime: '10–14 days', moq: 1 },
-  { slug: 'browbands', name: 'Browbands', icon: '💎', from: 18, leadTime: '7–10 days', moq: 1 },
-  { slug: 'saddle-pads', name: 'Saddle Pads', icon: '🪡', from: 24, leadTime: '7–10 days', moq: 5 },
-  { slug: 'rugs', name: 'Horse Rugs', icon: '🧥', from: 65, leadTime: '14–21 days', moq: 3 },
-  { slug: 'head-collars', name: 'Head Collars', icon: '🔖', from: 16, leadTime: '7–12 days', moq: 1 },
-  { slug: 'numnahs', name: 'Numnahs', icon: '🪢', from: 20, leadTime: '7–10 days', moq: 5 },
-  { slug: 'boots', name: 'Leg Boots', icon: '🥾', from: 28, leadTime: '10–14 days', moq: 4 },
+  { slug: 'bridles',      name: 'Bridles',      from: 38, leadTime: '10–14 days', moq: 1 },
+  { slug: 'browbands',    name: 'Browbands',    from: 18, leadTime: '7–10 days',  moq: 1 },
+  { slug: 'saddle-pads',  name: 'Saddle Pads',  from: 24, leadTime: '7–10 days',  moq: 5 },
+  { slug: 'rugs',         name: 'Horse Rugs',   from: 65, leadTime: '14–21 days', moq: 3 },
+  { slug: 'head-collars', name: 'Head Collars', from: 16, leadTime: '7–12 days',  moq: 1 },
+  { slug: 'numnahs',      name: 'Numnahs',      from: 20, leadTime: '7–10 days',  moq: 5 },
+  { slug: 'boots',        name: 'Leg Boots',    from: 28, leadTime: '10–14 days', moq: 4 },
 ];
 
 export default function CustomOrdersPage() {
@@ -47,7 +47,6 @@ export default function CustomOrdersPage() {
                 {p.step}
               </div>
               <div>
-                <p style={{ fontSize: 24, marginBottom: 6 }}>{p.icon}</p>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 5 }}>{p.title}</h3>
                 <p style={{ fontSize: 13, color: '#666', lineHeight: 1.65, margin: 0 }}>{p.desc}</p>
               </div>
@@ -62,23 +61,20 @@ export default function CustomOrdersPage() {
         <p style={{ fontSize: 14, color: '#777', textAlign: 'center', marginBottom: 32 }}>Each category opens its own step-by-step configurator with live pricing.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
           {CATEGORIES.map(cat => (
-            <Link key={cat.slug} href={`/customize/${cat.slug}`} style={{
-              background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14,
-              padding: '24px 20px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 10,
-              transition: 'border-color 0.15s, box-shadow 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#C8860A'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e8e4de'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none'; }}>
-              <span style={{ fontSize: 32 }}>{cat.icon}</span>
+            <Link key={cat.slug} href={`/customize/${cat.slug}`} style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, padding: '24px 20px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#C8860A'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e8e4de'; (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none'; }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', margin: '0 0 4px' }}>{cat.name}</h3>
                 <p style={{ fontSize: 13, color: '#C8860A', fontWeight: 700, margin: 0 }}>From €{cat.from}</p>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#666', background: '#f3f0eb', borderRadius: 20, padding: '3px 9px' }}>⏱ {cat.leadTime}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#666', background: '#f3f0eb', borderRadius: 20, padding: '3px 9px' }}>{cat.leadTime}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#666', background: '#f3f0eb', borderRadius: 20, padding: '3px 9px' }}>MOQ {cat.moq}</span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#C8860A' }}>Configure →</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 700, color: '#C8860A' }}>
+                Configure <ArrowRight size={13} />
+              </div>
             </Link>
           ))}
         </div>
@@ -90,17 +86,16 @@ export default function CustomOrdersPage() {
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', marginBottom: 24, textAlign: 'center' }}>What You Can Customise</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
             {[
-              { icon: '🎨', label: 'Colours', desc: '20+ leather and fabric colour options per category' },
-              { icon: '⚙️', label: 'Hardware', desc: 'Stainless, brass, antique brass, and rose gold finishes' },
-              { icon: '🧵', label: 'Stitching', desc: 'Contrast or matching thread, multiple stitch patterns' },
-              { icon: '🏷️', label: 'Branding', desc: 'Logo embossing, name plates, custom labels' },
-              { icon: '📐', label: 'Sizing', desc: 'Standard sizes plus custom measurements on request' },
-              { icon: '🌿', label: 'Eco Options', desc: 'Bio-certified leather tanning and recycled fill on rugs' },
+              { label: 'Colours',          desc: '20+ leather and fabric colour options per category' },
+              { label: 'Hardware',         desc: 'Stainless, brass, antique brass, and rose gold finishes' },
+              { label: 'Stitching',        desc: 'Contrast or matching thread, multiple stitch patterns' },
+              { label: 'Branding',         desc: 'Logo embossing, name plates, custom labels' },
+              { label: 'Sizing',           desc: 'Standard sizes plus custom measurements on request' },
+              { label: 'Eco Options',      desc: 'Bio-certified leather tanning and recycled fill on rugs' },
             ].map(c => (
-              <div key={c.label} style={{ textAlign: 'center', padding: '16px 12px' }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>{c.icon}</div>
+              <div key={c.label} style={{ padding: '14px 12px' }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>{c.label}</p>
-                <p style={{ fontSize: 12, color: '#888', lineHeight: 1.6 }}>{c.desc}</p>
+                <p style={{ fontSize: 12, color: '#888', lineHeight: 1.6, margin: 0 }}>{c.desc}</p>
               </div>
             ))}
           </div>
