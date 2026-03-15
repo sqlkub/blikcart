@@ -111,6 +111,7 @@ export default function ProductDetailPage() {
   const unitPrice = Number(product.basePrice) + (selectedVariant ? Number(selectedVariant.priceModifier) : 0);
   const totalPrice = unitPrice * quantity;
   const images: any[] = product.images?.length > 0 ? product.images : [];
+  const variantImageUrl: string | null = selectedVariant?.imageUrl || null;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
@@ -135,9 +136,11 @@ export default function ProductDetailPage() {
 
           {/* ── Left: Image gallery ── */}
           <div>
-            {/* Main image */}
+            {/* Main image — shows variant swatch image when a variant is selected */}
             <div style={{ background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative' }}>
-              {images.length > 0 ? (
+              {variantImageUrl ? (
+                <img src={variantImageUrl} alt={selectedVariant?.color || product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : images.length > 0 ? (
                 <img
                   src={images[activeImage]?.url}
                   alt={images[activeImage]?.altText || product.name}
@@ -232,23 +235,32 @@ export default function ProductDetailPage() {
                         type="button"
                         onClick={() => setSelectedVariant(v)}
                         style={{
-                          padding: '8px 16px',
-                          borderRadius: 8,
+                          padding: v.imageUrl ? '4px 12px 4px 4px' : '8px 16px',
+                          borderRadius: 10,
                           fontSize: 13,
                           fontWeight: 600,
                           border: '2px solid',
                           borderColor: isSelected ? 'var(--gold)' : '#e5e7eb',
-                          background: isSelected ? 'var(--gold)' : 'white',
-                          color: isSelected ? 'white' : '#374151',
+                          background: isSelected ? '#fff8ee' : 'white',
+                          color: '#374151',
                           cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: isSelected ? '0 0 0 2px var(--gold)' : 'none',
                         }}
                       >
-                        {label}
-                        {v.priceModifier !== 0 && (
-                          <span style={{ marginLeft: 6, opacity: 0.8 }}>
-                            ({v.priceModifier > 0 ? '+' : ''}€{Number(v.priceModifier).toFixed(2)})
-                          </span>
+                        {v.imageUrl && (
+                          <img src={v.imageUrl} alt={label} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }} />
                         )}
+                        <span>
+                          {label}
+                          {v.priceModifier !== 0 && (
+                            <span style={{ marginLeft: 6, opacity: 0.7, fontSize: 12 }}>
+                              ({v.priceModifier > 0 ? '+' : ''}€{Number(v.priceModifier).toFixed(2)})
+                            </span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}

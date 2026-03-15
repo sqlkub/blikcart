@@ -867,6 +867,39 @@ function VariantsTab() {
   const [editForm, setEditForm] = useState<any>({});
   const [createForm, setCreateForm] = useState({ sku: '', size: '', color: '', material: '', priceModifier: '0', stockQty: '0' });
 
+  // Variant image upload
+  const varImgInputRef = useRef<HTMLInputElement>(null);
+  const varImgTargetRef = useRef<{ productId: string; variantId: string } | null>(null);
+  const [varImgUploading, setVarImgUploading] = useState<string | null>(null);
+
+  function triggerVariantImgUpload(productId: string, variantId: string) {
+    varImgTargetRef.current = { productId, variantId };
+    varImgInputRef.current?.click();
+  }
+
+  async function handleVariantImgFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const target = varImgTargetRef.current;
+    if (!file || !target) return;
+    e.target.value = '';
+    setVarImgUploading(target.variantId);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await axios.post(`${API}/products/${target.productId}/variants/${target.variantId}/image`, fd, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      setVariants(prev => prev.map(v => v.id === target.variantId ? { ...v, variantImage: res.data } : v));
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Upload failed');
+    } finally { setVarImgUploading(null); }
+  }
+
+  async function deleteVariantImg(productId: string, variantId: string) {
+    await axios.delete(`${API}/products/${productId}/variants/${variantId}/image`, { headers: hdrs() });
+    setVariants(prev => prev.map(v => v.id === variantId ? { ...v, variantImage: null } : v));
+  }
+
   useEffect(() => {
     axios.get(`${API}/products/admin/all?limit=200`, { headers: hdrs() })
       .then(r => setProducts(r.data.data || [])).catch(() => {});
@@ -967,22 +1000,25 @@ function VariantsTab() {
         </div>
       )}
 
+      <input ref={varImgInputRef} type="file" accept="image/*" title="Upload variant swatch" className="hidden" onChange={handleVariantImgFile} />
+
       {selectedProduct ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                {['SKU', 'Size', 'Color', 'Material', 'Price Mod', 'Stock', 'Active', ''].map(h => (
-                  <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
+                {['Swatch', 'SKU', 'Size', 'Color', 'Material', 'Price Mod', 'Stock', 'Active', ''].map(h => (
+                  <th key={h} className="text-left px-4 py-3 font-semibold">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {loading ? <Skel rows={3} cols={8} /> : variants.length === 0 ? (
-                <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400 text-sm">No variants — add one above</td></tr>
+              {loading ? <Skel rows={3} cols={9} /> : variants.length === 0 ? (
+                <tr><td colSpan={9} className="px-5 py-10 text-center text-gray-400 text-sm">No variants — add one above</td></tr>
               ) : variants.map(v => (
                 editingId === v.id ? (
                   <tr key={v.id} className="border-b border-gray-100 bg-yellow-50">
+                    <td className="px-4 py-2" />
                     <td className="px-4 py-2"><input title="SKU" defaultValue={v.sku} onChange={(e: any) => setEditForm((f: any) => ({ ...f, sku: e.target.value }))} className="border rounded px-2 py-1 text-sm w-32 font-mono" /></td>
                     <td className="px-4 py-2"><input title="Size" defaultValue={v.size ?? ''} onChange={(e: any) => setEditForm((f: any) => ({ ...f, size: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" placeholder="—" /></td>
                     <td className="px-4 py-2"><input title="Color" defaultValue={v.color ?? ''} onChange={(e: any) => setEditForm((f: any) => ({ ...f, color: e.target.value }))} className="border rounded px-2 py-1 text-sm w-20" placeholder="—" /></td>
@@ -999,25 +1035,46 @@ function VariantsTab() {
                   </tr>
                 ) : (
                   <tr key={v.id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-5 py-3 text-xs font-mono text-gray-500">{v.sku}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{v.size || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{v.color || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{v.material || '—'}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">
+                    {/* Swatch image */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {varImgUploading === v.id ? (
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center animate-pulse text-xs text-gray-400">…</div>
+                        ) : v.variantImage ? (
+                          <div className="relative group">
+                            <img src={v.variantImage.url} alt="swatch" className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                            <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
+                              <button type="button" title="Replace image" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)} className="text-white hover:text-blue-300"><ImagePlus size={12} /></button>
+                              <button type="button" title="Remove image" onClick={() => deleteVariantImg(selectedProduct, v.id)} className="text-white hover:text-red-400"><Trash2 size={12} /></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" title="Upload swatch" onClick={() => triggerVariantImgUpload(selectedProduct, v.id)}
+                            className="w-10 h-10 rounded-lg border-2 border-dashed border-gray-200 hover:border-[#1A3C5E] flex items-center justify-center text-gray-300 hover:text-[#1A3C5E] transition-colors">
+                            <ImagePlus size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-mono text-gray-500">{v.sku}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{v.size || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{v.color || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{v.material || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
                       {Number(v.priceModifier) > 0 ? `+€${Number(v.priceModifier).toFixed(2)}`
                         : Number(v.priceModifier) < 0 ? `-€${Math.abs(Number(v.priceModifier)).toFixed(2)}` : '—'}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       <span className={`text-sm font-semibold ${v.stockQty === 0 ? 'text-red-500' : v.stockQty < 10 ? 'text-amber-600' : 'text-gray-900'}`}>
                         {v.stockQty}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       <button type="button" onClick={() => toggleVariant(v.id, v.isActive)} title={v.isActive ? 'Deactivate' : 'Activate'}>
                         {v.isActive ? <ToggleRight size={20} className="text-green-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
                       </button>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       <div className="flex gap-3">
                         <button type="button" title="Edit variant" onClick={() => { setEditingId(v.id); setEditForm({}); }} className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                         <button type="button" title="Delete variant" onClick={() => deleteVariant(v.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>

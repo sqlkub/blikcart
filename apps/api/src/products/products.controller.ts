@@ -124,6 +124,26 @@ export class ProductsController {
     return this.products.listImages(id);
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(FileInterceptor('file'))
+  @Post(':id/variants/:variantId/image')
+  uploadVariantImage(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.products.uploadVariantImage(id, variantId, file);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id/variants/:variantId/image')
+  deleteVariantImage(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+  ) {
+    return this.products.deleteVariantImage(id, variantId);
+  }
+
   @Get(':slug')
   findOne(@Param('slug') slug: string) {
     return this.products.findBySlug(slug);

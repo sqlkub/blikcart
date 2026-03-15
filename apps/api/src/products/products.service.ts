@@ -77,7 +77,17 @@ export class ProductsService {
       },
     });
     if (!product) return null;
-    return this.fmt(product);
+
+    // Attach variant swatch images (stored as ProductImage with layerType='variant')
+    const variantImages = await this.prisma.productImage.findMany({
+      where: { productId: product.id, layerType: 'variant' },
+    });
+    const varImgMap = new Map(variantImages.map(i => [i.layerVariantKey, i.url]));
+
+    return this.fmt({
+      ...product,
+      variants: product.variants.map((v: any) => ({ ...v, imageUrl: varImgMap.get(v.id) || null })),
+    });
   }
 
   async findCategories() {
@@ -303,12 +313,62 @@ export class ProductsService {
   async adminListVariants(productId?: string) {
     const where: any = {};
     if (productId) where.productId = productId;
-    return this.prisma.productVariant.findMany({
+    const variants = await this.prisma.productVariant.findMany({
       where,
       include: { product: { select: { name: true, sku: true } } },
       orderBy: [{ productId: 'asc' }, { createdAt: 'asc' }],
       take: 500,
     });
+    if (variants.length === 0) return variants;
+    const variantIds = variants.map((v: any) => v.id);
+    const images = await this.prisma.productImage.findMany({
+      where: { layerType: 'variant', layerVariantKey: { in: variantIds } },
+    });
+    const imgMap = new Map(images.map(i => [i.layerVariantKey, i]));
+    return variants.map((v: any) => ({ ...v, variantImage: imgMap.get(v.id) || null }));
+  }
+
+  async uploadVariantImage(productId: string, variantId: string, file: Express.Multer.File) {
+    const bucket = this.config.get('S3_BUCKET_NAME', 'blikcart-assets');
+    const region = this.config.get('AWS_REGION', 'eu-west-1');
+    const cloudfrontUrl = this.config.get('CLOUDFRONT_URL');
+
+    // Remove previous swatch
+    const existing = await this.prisma.productImage.findFirst({
+      where: { productId, layerType: 'variant', layerVariantKey: variantId },
+    });
+    if (existing) {
+      try {
+        const baseUrl = cloudfrontUrl || `https://${bucket}.s3.${region}.amazonaws.com`;
+        const key = existing.url.replace(`${baseUrl}/`, '');
+        await this.s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+      } catch { /* ignore */ }
+      await this.prisma.productImage.delete({ where: { id: existing.id } });
+    }
+
+    const key = `products/${productId}/variants/${variantId}/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    await this.s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: file.buffer, ContentType: file.mimetype }));
+    const url = cloudfrontUrl ? `${cloudfrontUrl}/${key}` : `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    return this.prisma.productImage.create({
+      data: { productId, url, isPrimary: false, sortOrder: 99, layerType: 'variant', layerVariantKey: variantId },
+    });
+  }
+
+  async deleteVariantImage(productId: string, variantId: string) {
+    const bucket = this.config.get('S3_BUCKET_NAME', 'blikcart-assets');
+    const region = this.config.get('AWS_REGION', 'eu-west-1');
+    const cloudfrontUrl = this.config.get('CLOUDFRONT_URL');
+    const img = await this.prisma.productImage.findFirst({
+      where: { productId, layerType: 'variant', layerVariantKey: variantId },
+    });
+    if (!img) return { deleted: false };
+    try {
+      const baseUrl = cloudfrontUrl || `https://${bucket}.s3.${region}.amazonaws.com`;
+      await this.s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: img.url.replace(`${baseUrl}/`, '') }));
+    } catch { /* ignore */ }
+    await this.prisma.productImage.delete({ where: { id: img.id } });
+    return { deleted: true };
   }
 
   async adminCreateVariant(data: any) {
