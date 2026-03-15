@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+
 const categories = [
   { name: 'Bridles', slug: 'bridles', count: '12 styles' },
   { name: 'Browbands', slug: 'browbands', count: '8 styles' },
@@ -16,26 +18,81 @@ const features = [
   { title: 'Direct from Manufacturer', desc: 'No middlemen. Better quality control. Competitive wholesale pricing from 5 units.' },
 ];
 
-export default function HomePage() {
+async function getHeroBanner() {
+  try {
+    const res = await fetch(`${API}/content/banners?position=hero`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getPromoBanner() {
+  try {
+    const res = await fetch(`${API}/content/banners?position=promo`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function HomePage() {
+  const [heroBanner, promoBanner] = await Promise.all([getHeroBanner(), getPromoBanner()]);
+
+  const heroTitle   = heroBanner?.title    || null;
+  const heroSub     = heroBanner?.subtitle || null;
+  const heroLink    = heroBanner?.linkUrl  || '/design-your-own';
+  const heroLinkTxt = heroBanner?.linkText || 'Design Your Own';
+
   return (
     <div style={{ minHeight: '100vh' }}>
+
+      {/* Promo banner (CMS — position: promo) */}
+      {promoBanner && (
+        <div style={{ background: '#C8860A', color: '#fff', textAlign: 'center', padding: '10px 24px', fontSize: 13, fontWeight: 600 }}>
+          {promoBanner.linkUrl ? (
+            <a href={promoBanner.linkUrl} style={{ color: '#fff', textDecoration: 'none' }}>
+              {promoBanner.title}{promoBanner.linkText && ` — ${promoBanner.linkText}`}
+            </a>
+          ) : promoBanner.title}
+        </div>
+      )}
 
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%)', color: 'white', padding: '88px 24px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
           <div>
             <p style={{ color: '#C8860A', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 16 }}>Premium Saddlery</p>
-            <h1 style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.1, marginBottom: 20, letterSpacing: '-0.02em' }}>
-              Fully Customised.<br />
-              <span style={{ color: '#C8860A' }}>Handcrafted.</span><br />
-              Delivered.
-            </h1>
-            <p style={{ color: '#999', fontSize: 17, marginBottom: 32, lineHeight: 1.7, maxWidth: 480 }}>
-              Design your perfect bridle, browband, or halter with our step-by-step configurator. Premium leather, your colours, your hardware. Direct from our workshop.
-            </p>
+
+            {heroTitle ? (
+              <>
+                <h1 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 800, lineHeight: 1.15, marginBottom: 20, letterSpacing: '-0.02em' }}>
+                  {heroTitle}
+                </h1>
+                {heroSub && (
+                  <p style={{ color: '#999', fontSize: 17, marginBottom: 32, lineHeight: 1.7, maxWidth: 480 }}>{heroSub}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <h1 style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.1, marginBottom: 20, letterSpacing: '-0.02em' }}>
+                  Fully Customised.<br />
+                  <span style={{ color: '#C8860A' }}>Handcrafted.</span><br />
+                  Delivered.
+                </h1>
+                <p style={{ color: '#999', fontSize: 17, marginBottom: 32, lineHeight: 1.7, maxWidth: 480 }}>
+                  Design your perfect bridle, browband, or halter with our step-by-step configurator. Premium leather, your colours, your hardware. Direct from our workshop.
+                </p>
+              </>
+            )}
+
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/design-your-own" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15 }}>
-                Design Your Own <ArrowRight size={16} />
+              <Link href={heroLink} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15 }}>
+                {heroLinkTxt} <ArrowRight size={16} />
               </Link>
               <Link href="/products/for-horses" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', color: 'white', padding: '12px 28px', borderRadius: 8, fontWeight: 600, fontSize: 15, border: '1.5px solid rgba(255,255,255,0.2)' }}>
                 Browse Products
