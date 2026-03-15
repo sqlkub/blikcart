@@ -46,6 +46,7 @@ export class ProductsService {
     if (categoryIds) where.categoryId = { in: categoryIds };
     if (search) where.name = { contains: search, mode: 'insensitive' };
     if (isCustomizable !== undefined) where.isCustomizable = isCustomizable === 'true';
+    if (params.tags) where.tags = { has: params.tags };
 
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -101,7 +102,7 @@ export class ProductsService {
 
 
   async update(id: string, data: any) {
-    const allowed = ['name', 'description', 'basePrice', 'wholesalePrice', 'moq', 'leadTimeDays', 'isActive', 'isCustomizable', 'imageUrl'];
+    const allowed = ['name', 'description', 'basePrice', 'wholesalePrice', 'moq', 'leadTimeDays', 'isActive', 'isCustomizable', 'imageUrl', 'tags'];
     const updateData: any = {};
     for (const key of allowed) {
       if (data[key] !== undefined) updateData[key] = data[key];

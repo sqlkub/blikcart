@@ -150,6 +150,43 @@ function ProductsTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
+  // Stock management modal
+  const [stockProduct, setStockProduct] = useState<any | null>(null);
+  const [stockVariants, setStockVariants] = useState<any[]>([]);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockValues, setStockValues] = useState<Record<string, number>>({});
+
+  async function openStockModal(p: any) {
+    setStockProduct(p);
+    setStockLoading(true);
+    try {
+      const res = await axios.get(`${API}/products/admin/variants?productId=${p.id}`, { headers: hdrs() });
+      const vars = res.data || [];
+      setStockVariants(vars);
+      setStockValues(Object.fromEntries(vars.map((v: any) => [v.id, v.stockQty])));
+    } catch { setStockVariants([]); }
+    finally { setStockLoading(false); }
+  }
+
+  async function saveStock() {
+    if (!stockProduct) return;
+    await Promise.all(stockVariants.map(v =>
+      axios.patch(`${API}/products/admin/variants/${v.id}`, { stockQty: stockValues[v.id] ?? v.stockQty }, { headers: hdrs() })
+    ));
+    setProducts(prev => prev.map(p => p.id === stockProduct.id
+      ? { ...p, totalStock: Object.values(stockValues).reduce((a: number, b) => a + (b as number), 0) }
+      : p
+    ));
+    setStockProduct(null);
+  }
+
+  async function toggleAddon(p: any) {
+    const tags: string[] = p.tags || [];
+    const next = tags.includes('addon') ? tags.filter((t: string) => t !== 'addon') : [...tags, 'addon'];
+    await axios.patch(`${API}/products/${p.id}`, { tags: next }, { headers: hdrs() });
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, tags: next } : x));
+  }
+
   // Image manager modal
   const [imgMgrProduct, setImgMgrProduct] = useState<any | null>(null);
   const [imgMgrImages, setImgMgrImages] = useState<any[]>([]);
@@ -253,6 +290,66 @@ function ProductsTab() {
 
   return (
     <div className="space-y-5">
+
+      {/* Stock Management Modal */}
+      {stockProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setStockProduct(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Stock — {stockProduct.name}</h2>
+              <button type="button" title="Close" onClick={() => setStockProduct(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            {stockLoading && <p className="text-sm text-gray-400 text-center py-6">Loading…</p>}
+            {!stockLoading && stockVariants.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">No variants. Add variants in the Variants tab first.</p>
+            )}
+            {!stockLoading && stockVariants.length > 0 && (
+              <div className="space-y-3 mb-5">
+                {stockVariants.map(v => {
+                  const label = [v.size, v.color, v.material].filter(Boolean).join(' · ') || v.sku;
+                  const qty = stockValues[v.id] ?? v.stockQty;
+                  return (
+                    <div key={v.id} className="flex items-center justify-between gap-4 p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{label}</p>
+                        <p className="text-xs text-gray-400 font-mono">{v.sku}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button type="button" title="Decrease"
+                          onClick={() => setStockValues(s => ({ ...s, [v.id]: Math.max(0, (s[v.id] ?? v.stockQty) - 1) }))}
+                          className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-red-50 hover:border-red-300 font-bold text-lg flex items-center justify-center">−</button>
+                        <input
+                          type="number"
+                          title="Stock quantity"
+                          min={0}
+                          value={qty}
+                          onChange={e => setStockValues(s => ({ ...s, [v.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold outline-none"
+                        />
+                        <button type="button" title="Increase"
+                          onClick={() => setStockValues(s => ({ ...s, [v.id]: (s[v.id] ?? v.stockQty) + 1 }))}
+                          className="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-green-50 hover:border-green-300 font-bold text-lg flex items-center justify-center">+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!stockLoading && stockVariants.length > 0 && (
+              <div className="flex gap-2">
+                <button type="button" onClick={saveStock}
+                  className="flex-1 bg-[#1A3C5E] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#112E4D]">
+                  Save Stock
+                </button>
+                <button type="button" onClick={() => setStockProduct(null)}
+                  className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Image Manager Modal */}
       {imgMgrProduct && (
@@ -525,11 +622,14 @@ function ProductsTab() {
                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">€{Number(p.basePrice).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{p.wholesalePrice ? `€${Number(p.wholesalePrice).toFixed(2)}` : '—'}</td>
                   <td className="px-4 py-3">
-                    {p.totalStock !== null && p.totalStock !== undefined ? (
-                      <span className={`text-sm font-semibold ${p.totalStock === 0 ? 'text-red-500' : p.totalStock < 10 ? 'text-amber-600' : 'text-gray-700'}`}>
-                        {p.totalStock}
-                      </span>
-                    ) : <span className="text-gray-400 text-sm">—</span>}
+                    <button type="button" title="Edit stock" onClick={() => openStockModal(p)}
+                      className="group flex items-center gap-1 hover:opacity-80">
+                      {p.totalStock !== null && p.totalStock !== undefined ? (
+                        <span className={`text-sm font-semibold underline decoration-dashed underline-offset-2 ${p.totalStock === 0 ? 'text-red-500' : p.totalStock < 10 ? 'text-amber-600' : 'text-gray-700'}`}>
+                          {p.totalStock}
+                        </span>
+                      ) : <span className="text-gray-400 text-sm underline decoration-dashed underline-offset-2">—</span>}
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <button type="button" onClick={() => toggleActive(p.id)} title={p.isActive ? 'Deactivate' : 'Activate'}>
@@ -538,6 +638,12 @@ function ProductsTab() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2 items-center">
+                      <button type="button"
+                        title={p.tags?.includes('addon') ? 'Remove add-on tag' : 'Mark as add-on'}
+                        onClick={() => toggleAddon(p)}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors ${p.tags?.includes('addon') ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-amber-50 hover:text-amber-600'}`}>
+                        +Add-on
+                      </button>
                       <button type="button" title="Manage images" onClick={() => openImgMgr(p)}
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />

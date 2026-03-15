@@ -27,6 +27,8 @@ export default function ConfiguratorPage() {
   const [lastAutoSaved, setLastAutoSaved] = useState<string | null>(null);
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftIdRef = useRef<string | null>(null);
+  const [addons, setAddons] = useState<any[]>([]);
+  const [addonAdding, setAddonAdding] = useState<string | null>(null);
 
   const { selections, quantity, notes, reset, selectOption, setQuantity } = useConfiguratorStore();
 
@@ -60,6 +62,11 @@ export default function ConfiguratorPage() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+
+    fetch(`${API}/products?tags=addon&limit=8`)
+      .then(r => r.json())
+      .then(d => setAddons(d.data || []))
+      .catch(() => {});
   }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save every 30 seconds if there are selections
@@ -299,6 +306,49 @@ export default function ConfiguratorPage() {
             <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>* Prices are estimates. Final quote confirmed by our team after review.</p>
           </div>
         </div>
+
+        {/* Add-ons */}
+        {addons.length > 0 && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 32, boxShadow: '0 2px 16px rgba(0,0,0,0.07)', marginBottom: 24 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', marginBottom: 16 }}>🧩 Frequently Added Together</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+              {addons.map((a: any) => {
+                const img = a.images?.find((i: any) => i.isPrimary) || a.images?.[0];
+                return (
+                  <div key={a.id} style={{ border: '1.5px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ aspectRatio: '1', background: '#f9f9f9' }}>
+                      {img
+                        ? <img src={img.url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🐴</div>}
+                    </div>
+                    <div style={{ padding: '10px 12px' }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginBottom: 2, lineHeight: 1.3 }}>{a.name}</p>
+                      <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>€{Number(a.basePrice).toFixed(2)}</p>
+                      <button
+                        type="button"
+                        disabled={addonAdding === a.id}
+                        onClick={async () => {
+                          setAddonAdding(a.id);
+                          try {
+                            const tok = localStorage.getItem('accessToken');
+                            await fetch(`${API}/cart/add`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+                              body: JSON.stringify({ productId: a.id, quantity: a.moq || 1 }),
+                            });
+                          } finally { setAddonAdding(null); }
+                        }}
+                        style={{ width: '100%', background: addonAdding === a.id ? '#9ca3af' : 'var(--navy)', color: 'white', border: 'none', padding: '7px 0', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {addonAdding === a.id ? 'Adding…' : '+ Add to Cart'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>

@@ -36,6 +36,8 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [addons, setAddons] = useState<any[]>([]);
+  const [addonAdding, setAddonAdding] = useState<string | null>(null);
   const { addItem } = useCartStore();
 
   useEffect(() => {
@@ -58,6 +60,13 @@ export default function ProductDetailPage() {
       }
     }
     load();
+  }, [slug]);
+
+  useEffect(() => {
+    fetch(`${API}/products?tags=addon&limit=8`)
+      .then(r => r.json())
+      .then(d => setAddons((d.data || []).filter((a: any) => a.slug !== slug)))
+      .catch(() => {});
   }, [slug]);
 
   async function handleAddToCart() {
@@ -308,6 +317,45 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Add-ons section */}
+      {addons.length > 0 && (
+        <div style={{ marginTop: 48, paddingTop: 40, borderTop: '1px solid #e5e7eb' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 20 }}>
+            🧩 Frequently Added Together
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+            {addons.map((a: any) => {
+              const img = a.images?.find((i: any) => i.isPrimary) || a.images?.[0];
+              return (
+                <div key={a.id} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ aspectRatio: '1', background: '#f9f9f9', position: 'relative' }}>
+                    {img
+                      ? <img src={img.url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🐴</div>}
+                    <span style={{ position: 'absolute', top: 6, left: 6, background: 'var(--gold)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>Add-on</span>
+                  </div>
+                  <div style={{ padding: '12px 14px' }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 4, lineHeight: 1.3 }}>{a.name}</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)', marginBottom: 10 }}>€{Number(a.basePrice).toFixed(2)}</p>
+                    <button
+                      type="button"
+                      disabled={addonAdding === a.id}
+                      onClick={async () => {
+                        setAddonAdding(a.id);
+                        try { await addItem(a.id, a.moq || 1); } finally { setAddonAdding(null); }
+                      }}
+                      style={{ width: '100%', background: addonAdding === a.id ? '#9ca3af' : 'var(--navy)', color: 'white', border: 'none', padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      {addonAdding === a.id ? 'Adding…' : '+ Add to Cart'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

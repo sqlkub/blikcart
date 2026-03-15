@@ -30,7 +30,7 @@ export default function ProductCard({ product, isWholesale }: Props) {
             <span className="text-6xl">🐴</span>
           </div>
         )}
-        <div className="absolute top-2 left-2 flex gap-1">
+        <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
           {product.isCustomizable && (
             <span className="bg-gold text-white text-xs px-2 py-0.5 rounded-full font-semibold">
               🎨 Customizable
@@ -39,6 +39,11 @@ export default function ProductCard({ product, isWholesale }: Props) {
           {isWholesale && (
             <span className="bg-navy text-white text-xs px-2 py-0.5 rounded-full font-semibold">
               Wholesale
+            </span>
+          )}
+          {product.tags?.includes('addon') && (
+            <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+              🧩 Add-on
             </span>
           )}
         </div>
