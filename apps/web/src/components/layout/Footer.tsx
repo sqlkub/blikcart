@@ -20,19 +20,21 @@ export default function Footer() {
         <div>
           <h4 className="text-white font-semibold mb-3">Business</h4>
           <ul className="space-y-2 text-sm">
-            {['Wholesale', 'Custom Orders', 'B2B Portal', 'Price Lists'].map(l => (
-              <li key={l}><Link href="#" className="hover:text-gold transition-colors">{l}</Link></li>
-            ))}
+            <li><Link href="/wholesale" className="hover:text-gold transition-colors">Wholesale</Link></li>
+            <li><Link href="/custom-orders" className="hover:text-gold transition-colors">Custom Orders</Link></li>
+            <li><Link href="/b2b" className="hover:text-gold transition-colors">B2B Portal</Link></li>
+            <li><Link href="/price-lists" className="hover:text-gold transition-colors">Price Lists</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="text-white font-semibold mb-3">Support</h4>
           <ul className="space-y-2 text-sm">
-            {['Sizing Guide', 'FAQ', 'Contact Us', 'Returns'].map(l => (
-              <li key={l}><Link href="#" className="hover:text-gold transition-colors">{l}</Link></li>
-            ))}
+            <li><Link href="/sizing-guide" className="hover:text-gold transition-colors">Sizing Guide</Link></li>
+            <li><Link href="/faq" className="hover:text-gold transition-colors">FAQ</Link></li>
+            <li><Link href="/contact" className="hover:text-gold transition-colors">Contact Us</Link></li>
+            <li><Link href="/returns" className="hover:text-gold transition-colors">Returns</Link></li>
           </ul>
-          <p className="text-sm mt-4">support@blikcart.nl</p>
+          <a href="mailto:support@blikcart.nl" className="text-sm mt-4 block hover:text-gold transition-colors">support@blikcart.nl</a>
         </div>
       </div>
       <div className="border-t border-navy-700 py-4">
