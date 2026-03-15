@@ -1,5 +1,34 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+
+const DEFAULT = {
+  hero: {
+    eyebrow: 'Get in Touch',
+    title: 'Contact Us',
+    subtitle: "Questions about an order, a custom quote, or just want to say hello — we're here.",
+  },
+  contactCards: [
+    { label: 'General Support', value: 'support@blikcart.nl',   sub: 'Mon – Fri, replies within 4 hours', link: 'mailto:support@blikcart.nl' },
+    { label: 'Wholesale & B2B', value: 'wholesale@blikcart.nl', sub: 'Account & pricing enquiries',        link: 'mailto:wholesale@blikcart.nl' },
+    { label: 'Phone',           value: '+31 (0)20 123 4567',     sub: 'Mon – Fri, 09:00 – 17:00 CET',     link: 'tel:+31201234567' },
+    { label: 'Workshop',        value: 'Amsterdam, NL',           sub: 'Not open to walk-ins',             link: '' },
+  ],
+  formSection: {
+    title: 'Send a Message',
+    body: "Fill in the form and we'll get back to you within one business day.",
+    topics: [
+      'General enquiry', 'Custom order / quote', 'Existing order',
+      'Wholesale / B2B', 'Returns & refunds', 'Product information', 'Technical / website issue',
+    ],
+  },
+  responseTimes: [
+    'General enquiries — same day',
+    'Custom quotes — within 24 hours',
+    'Order updates — within 4 hours',
+  ],
+};
 
 const inputStyle = {
   width: '100%', padding: '11px 14px', border: '1.5px solid #e8e4de', borderRadius: 8,
@@ -7,14 +36,17 @@ const inputStyle = {
   boxSizing: 'border-box' as const, transition: 'border-color 0.15s', fontFamily: 'inherit',
 };
 
-const TOPICS = [
-  'General enquiry', 'Custom order / quote', 'Existing order',
-  'Wholesale / B2B', 'Returns & refunds', 'Product information', 'Technical / website issue',
-];
-
 export default function ContactPage() {
+  const [content, setContent] = useState(DEFAULT);
   const [form, setForm] = useState({ name: '', email: '', topic: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/content/pages/contact`)
+      .then(r => r.ok ? r.json() : null)
+      .then(p => { if (p?.content) try { setContent(JSON.parse(p.content)); } catch {} })
+      .catch(() => {});
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,22 +58,17 @@ export default function ContactPage() {
 
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2017 100%)', color: '#fff', padding: 'clamp(56px, 7vw, 88px) 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>Get in Touch</p>
-        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>Contact Us</h1>
+        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>{content.hero.eyebrow}</p>
+        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>{content.hero.title}</h1>
         <p style={{ fontSize: 16, color: '#aaa', maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
-          Questions about an order, a custom quote, or just want to say hello — we're here.
+          {content.hero.subtitle}
         </p>
       </section>
 
       {/* Contact cards */}
       <section style={{ maxWidth: 1000, margin: '0 auto', padding: 'clamp(40px, 5vw, 64px) 24px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 48 }}>
-          {[
-            { label: 'General Support',  value: 'support@blikcart.nl',    sub: 'Mon – Fri, replies within 4 hours' },
-            { label: 'Wholesale & B2B',  value: 'wholesale@blikcart.nl',  sub: 'Account & pricing enquiries' },
-            { label: 'Phone',            value: '+31 (0)20 123 4567',      sub: 'Mon – Fri, 09:00 – 17:00 CET' },
-            { label: 'Workshop',         value: 'Amsterdam, NL',           sub: 'Not open to walk-ins' },
-          ].map(c => (
+          {content.contactCards.map((c: any) => (
             <div key={c.label} style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, padding: '22px 20px' }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#C8860A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{c.label}</p>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>{c.value}</p>
@@ -53,16 +80,16 @@ export default function ContactPage() {
         {/* Form */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 40, alignItems: 'start' }}>
           <div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 12 }}>Send a Message</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 12 }}>{content.formSection.title}</h2>
             <p style={{ fontSize: 14, color: '#666', lineHeight: 1.7, marginBottom: 24 }}>
-              Fill in the form and we'll get back to you within one business day. For urgent order issues, email us directly.
+              {content.formSection.body} For urgent order issues, email us directly.
             </p>
             <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 24, color: 'white' }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#C8860A', marginBottom: 8 }}>Response Times</p>
               <ul style={{ fontSize: 13, color: '#888', lineHeight: 2, paddingLeft: 0, listStyle: 'none', margin: 0 }}>
-                <li>General enquiries — same day</li>
-                <li>Custom quotes — within 24 hours</li>
-                <li>Order updates — within 4 hours</li>
+                {content.responseTimes.map((t: string) => (
+                  <li key={t}>{t}</li>
+                ))}
               </ul>
             </div>
           </div>
@@ -93,7 +120,7 @@ export default function ContactPage() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Topic *</label>
                   <select required title="Topic" value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} style={{ ...inputStyle, appearance: 'auto' }}>
                     <option value="">Select a topic…</option>
-                    {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+                    {content.formSection.topics.map((t: string) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>

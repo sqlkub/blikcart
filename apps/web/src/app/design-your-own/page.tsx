@@ -3,38 +3,77 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-const LIFECYCLE = [
-  { phase: 'You',      step: 1, title: 'Choose a Category',   desc: 'Pick the product type you want — bridle, browband, saddle pad, rug, and more.',                                                                                    color: '#C8860A', bg: '#fff8ec', border: '#f0d080' },
-  { phase: 'You',      step: 2, title: 'Configure Your Design', desc: 'Walk through our guided step-by-step configurator. Choose material, colour, hardware, padding, stitching, size, and delivery speed.',                             color: '#C8860A', bg: '#fff8ec', border: '#f0d080' },
-  { phase: 'You',      step: 3, title: 'Review Live Pricing',  desc: 'Your price updates in real time as you configure. Quantity discounts apply automatically from 5 units.',                                                           color: '#C8860A', bg: '#fff8ec', border: '#f0d080' },
-  { phase: 'You',      step: 4, title: 'Submit Your Quote',    desc: "Send your configuration to us — no payment yet. We'll review your spec and confirm the final price within 24 hours.",                                              color: '#C8860A', bg: '#fff8ec', border: '#f0d080' },
-  { phase: 'Blikcart', step: 5, title: 'Quote Confirmed',      desc: 'Our team reviews your configuration and sends you a final quote. You approve and confirm the order with payment.',                                                  color: '#1a1a1a', bg: '#f5f5f5', border: '#d1d5db' },
-  { phase: 'Blikcart', step: 6, title: 'In Production',        desc: 'Your bespoke order enters our workshop. Skilled craftspeople handmake every item to your exact specification.',                                                    color: '#1a1a1a', bg: '#f5f5f5', border: '#d1d5db' },
-  { phase: 'Blikcart', step: 7, title: 'Quality Control',      desc: 'Every piece passes our 12-point QC checklist — stitching, hardware, fit, and finish — before it leaves the workshop.',                                            color: '#1a1a1a', bg: '#f5f5f5', border: '#d1d5db' },
-  { phase: 'Delivered',step: 8, title: 'Shipped to You',       desc: 'Your order is carefully packed and dispatched direct to your door with full tracking and delivery notification.',                                                  color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
-];
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-const CATEGORIES = [
-  { slug: 'bridles',      name: 'Bridles',       description: 'Custom-fitted bridles from premium leather. Choose hardware, padding, and personalisation.',              leadTime: '10–14 days', minOrder: 1, steps: 9 },
-  { slug: 'browbands',    name: 'Browbands',     description: 'Crystal, leather, or embroidered detailing. Choose width, colours, and hardware.',                        leadTime: '7–10 days',  minOrder: 1, steps: 7 },
-  { slug: 'saddle-pads',  name: 'Saddle Pads',   description: 'Shape, piping colours, logo embroidery, and fabrics — exactly as you need.',                             leadTime: '7–10 days',  minOrder: 5, steps: 8 },
-  { slug: 'rugs',         name: 'Horse Rugs',    description: 'Fill weight, shell material, and custom trim built to order.',                                            leadTime: '14–21 days', minOrder: 3, steps: 8 },
-  { slug: 'head-collars', name: 'Head Collars',  description: 'Bespoke leather or nylon with name plates, colour choices, and fittings.',                               leadTime: '7–12 days',  minOrder: 1, steps: 6 },
-  { slug: 'numnahs',      name: 'Numnahs',       description: 'Quilting pattern, binding, and branding options to your specification.',                                  leadTime: '7–10 days',  minOrder: 5, steps: 7 },
-  { slug: 'boots',        name: 'Leg Boots',     description: 'Shell, lining, fastenings, and colours tailored by discipline.',                                         leadTime: '10–14 days', minOrder: 4, steps: 7 },
-];
+const PHASE_STYLES: Record<string, { bg: string; border: string; color: string; label: string }> = {
+  'You':       { bg: '#fff8ec', border: '#f0d080', color: '#C8860A',  label: 'You' },
+  'Blikcart':  { bg: '#f0f0f0', border: '#d0d0d0', color: '#1a1a1a',  label: 'Blikcart' },
+  'Delivered': { bg: '#f0fdf4', border: '#86efac', color: '#166534',  label: 'Delivered' },
+};
 
-const FAQS = [
-  { q: 'Do I need to pay before the quote is confirmed?',   a: 'No. You configure and submit for free. Payment is only required after we confirm the final quote and you approve it.' },
-  { q: 'How long does the whole process take?',             a: 'Quote confirmation within 24 hours. Production lead time is 7–21 days depending on the product. Express options are available on most categories.' },
-  { q: 'Can I make changes after submitting a quote?',      a: "Yes — before you approve the quote, you can request revisions. We'll update the spec and re-confirm pricing." },
-  { q: 'What is the minimum order quantity (MOQ)?',         a: 'MOQ varies by product — as low as 1 unit for bridles and head collars, up to 5 units for saddle pads and numnahs.' },
-  { q: 'Do I get a dedicated account manager?',             a: 'Yes. Every wholesale and custom order account gets a dedicated contact who handles your project from quote to delivery.' },
-];
+const DEFAULT = {
+  hero: {
+    eyebrow: 'Bespoke Manufacturing',
+    title: 'Design Your Own',
+    subtitle: "From first click to your door — here's exactly how the Blikcart custom order process works.",
+  },
+  stats: [
+    { num: '7',    label: 'Product Categories' },
+    { num: '24h',  label: 'Quote Turnaround' },
+    { num: '7–21', label: 'Days Lead Time' },
+    { num: '30%',  label: 'Max Volume Discount' },
+  ],
+  lifecycle: [
+    { phase: 'You',      step: 1, title: 'Choose a Category',    desc: 'Pick the product you want to customise. Each category has its own guided configurator tailored to that product.' },
+    { phase: 'You',      step: 2, title: 'Configure Your Design', desc: 'Step through material, colour, hardware, stitching, sizing, and delivery options. A live price updates with every choice.' },
+    { phase: 'You',      step: 3, title: 'Submit for Quote',      desc: 'No payment required yet. Your full specification is sent to our team for review and final pricing.' },
+    { phase: 'You',      step: 4, title: 'Approve & Pay',         desc: 'We confirm the final price within 24 hours. You review, approve, and pay to release your order into production.' },
+    { phase: 'Blikcart', step: 5, title: 'Production Starts',     desc: 'Your order enters our manufacturing queue. Our craftspeople begin production to your exact specification.' },
+    { phase: 'Blikcart', step: 6, title: '12-Point Quality Check',desc: 'Every finished item is inspected against your original specification before it leaves our workshop.' },
+    { phase: 'Blikcart', step: 7, title: 'Packed & Dispatched',   desc: 'Your order is carefully packed and handed to our courier. You receive a tracking link by email.' },
+    { phase: 'Delivered',step: 8, title: 'Delivered to You',      desc: 'Your custom order arrives at your door. EU delivery typically takes 2–5 business days after dispatch.' },
+  ],
+  categories: [
+    { slug: 'bridles',      name: 'Bridles',      description: 'Custom-fitted leather bridles in 4 styles, 3 materials, 8 colours, and 4 hardware finishes.',   leadTime: '10–14 days', minOrder: 1, steps: 9 },
+    { slug: 'browbands',    name: 'Browbands',    description: 'Plain leather, crystal-set, or embroidered. Your colours, your pattern.',                        leadTime: '7–10 days',  minOrder: 1, steps: 7 },
+    { slug: 'saddle-pads',  name: 'Saddle Pads',  description: 'GP, dressage, or jumping cut. Choose fabric, colour, piping, and embroidery.',                  leadTime: '7–10 days',  minOrder: 5, steps: 8 },
+    { slug: 'rugs',         name: 'Horse Rugs',   description: 'Turnout and stable rugs. Select weight, lining, colour, and custom fit.',                       leadTime: '14–21 days', minOrder: 3, steps: 8 },
+    { slug: 'head-collars', name: 'Head Collars', description: 'Leather or nylon with optional name plate. Multiple colour combinations.',                      leadTime: '7–12 days',  minOrder: 1, steps: 6 },
+    { slug: 'numnahs',      name: 'Numnahs',      description: 'Quilted and fleece-lined. Match your saddle pad or create a contrast.',                         leadTime: '7–10 days',  minOrder: 5, steps: 7 },
+    { slug: 'boots',        name: 'Leg Boots',    description: 'Brushing, tendon, and over-reach styles. Choose colour, fastening, and lining.',                leadTime: '10–14 days', minOrder: 4, steps: 7 },
+  ],
+  whyBlikcart: [
+    { title: 'Direct from Workshop',  desc: 'No middlemen. We manufacture everything in-house at our Amsterdam workshop.' },
+    { title: 'Live Price Preview',    desc: 'See the exact price as you configure. No surprises at checkout.' },
+    { title: '24h Quote Confirmation',desc: 'We review every order and confirm within one business day.' },
+    { title: '12-Point QC',           desc: "Every item is inspected before dispatch. We won't ship anything we wouldn't use ourselves." },
+    { title: 'Wholesale Pricing',     desc: 'Volume discounts from 5 units. Up to 30% off for orders of 100+.' },
+    { title: 'EU-Wide Delivery',      desc: 'Free shipping over €150. Standard EU delivery in 2–5 days after dispatch.' },
+  ],
+  faqs: [
+    { q: 'Do I need to pay before the quote is confirmed?', a: 'No. You configure and submit for free. Payment is only requested after you approve the final quote.' },
+    { q: 'Can I make changes after submitting?',            a: 'Yes — before you approve the quote you can request any revisions. Once payment is made and production starts, changes may incur additional charges.' },
+    { q: 'Is there a minimum order quantity?',              a: 'Bridles, browbands, and head collars start at 1 unit. Other products have MOQs of 3–5 units. MOQ is shown on each category card.' },
+    { q: 'How accurate is the live price?',                 a: 'The configurator price is typically within 5% of the final confirmed quote. Any difference is explained in the quote email.' },
+  ],
+  finalCta: {
+    title: 'Ready to Start?',
+    body: 'Pick a category above, or jump straight into our most popular configurator — bridles.',
+  },
+};
 
 export default function DesignYourOwnPage() {
   const router = useRouter();
+  const [content, setContent] = useState(DEFAULT);
+
+  useEffect(() => {
+    fetch(`${API}/content/pages/design-your-own`)
+      .then(r => r.ok ? r.json() : null)
+      .then(p => { if (p?.content) try { setContent(JSON.parse(p.content)); } catch {} })
+      .catch(() => {});
+  }, []);
 
   return (
     <main style={{ minHeight: '100vh', background: '#faf9f7' }}>
@@ -43,10 +82,10 @@ export default function DesignYourOwnPage() {
       <section style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2017 100%)', color: '#fff', padding: 'clamp(56px, 8vw, 96px) 24px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 600, borderRadius: '50%', border: '1px solid rgba(200,134,10,0.12)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
-          <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', marginBottom: 18, fontWeight: 700 }}>Bespoke Manufacturing</p>
-          <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 800, margin: '0 0 20px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>Design Your Own</h1>
+          <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', marginBottom: 18, fontWeight: 700 }}>{content.hero.eyebrow}</p>
+          <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 800, margin: '0 0 20px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{content.hero.title}</h1>
           <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: '#aaa', margin: '0 auto 32px', lineHeight: 1.75, maxWidth: 560 }}>
-            From first click to your door — here's exactly how the Blikcart custom order process works. Transparent, step-by-step, no surprises.
+            {content.hero.subtitle}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href="#start" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
@@ -62,12 +101,7 @@ export default function DesignYourOwnPage() {
       {/* Stats bar */}
       <section style={{ background: '#fff', borderBottom: '1px solid #e8e4de' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px', display: 'flex', justifyContent: 'center', gap: 'clamp(24px, 5vw, 72px)', flexWrap: 'wrap' }}>
-          {[
-            { num: '7',    label: 'Product Categories' },
-            { num: '24h',  label: 'Quote Turnaround' },
-            { num: '7–21', label: 'Days to Production' },
-            { num: '1',    label: 'Dedicated Account Manager' },
-          ].map(s => (
+          {content.stats.map((s: any) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#C8860A', lineHeight: 1 }}>{s.num}</div>
               <div style={{ fontSize: 12, color: '#888', marginTop: 4, fontWeight: 500 }}>{s.label}</div>
@@ -100,22 +134,25 @@ export default function DesignYourOwnPage() {
 
         {/* Steps grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-          {LIFECYCLE.map((item) => (
-            <div key={item.step} style={{ background: item.bg, border: `1.5px solid ${item.border}`, borderRadius: 16, padding: '24px 20px', position: 'relative', transition: 'transform 0.15s, box-shadow 0.15s' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.10)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
-                  {item.step}
+          {content.lifecycle.map((item: any) => {
+            const ps = PHASE_STYLES[item.phase] || PHASE_STYLES['Blikcart'];
+            return (
+              <div key={item.step} style={{ background: ps.bg, border: `1.5px solid ${ps.border}`, borderRadius: 16, padding: '24px 20px', position: 'relative', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.10)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: ps.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
+                    {item.step}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: ps.color, background: 'rgba(0,0,0,0.06)', padding: '3px 9px', borderRadius: 20, letterSpacing: '0.04em' }}>
+                    {item.phase}
+                  </span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: item.color, background: 'rgba(0,0,0,0.06)', padding: '3px 9px', borderRadius: 20, letterSpacing: '0.04em' }}>
-                  {item.phase}
-                </span>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>{item.title}</h3>
+                <p style={{ fontSize: 13.5, color: '#666', margin: 0, lineHeight: 1.65 }}>{item.desc}</p>
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px' }}>{item.title}</h3>
-              <p style={{ fontSize: 13.5, color: '#666', margin: 0, lineHeight: 1.65 }}>{item.desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -125,12 +162,12 @@ export default function DesignYourOwnPage() {
           <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 28, textAlign: 'center', color: '#fff' }}>Timeline at a Glance</h3>
           <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', overflowX: 'auto', paddingBottom: 4 }}>
             {[
-              { label: 'Configure', time: '~15 min',  color: '#C8860A' },
-              { label: 'Submit',    time: 'Instant',  color: '#C8860A' },
-              { label: 'Quote',     time: '< 24h',    color: '#9ca3af' },
-              { label: 'Production',time: '7–21 days',color: '#9ca3af' },
-              { label: 'QC',        time: '1–2 days', color: '#9ca3af' },
-              { label: 'Delivery',  time: '2–5 days', color: '#34d399' },
+              { label: 'Configure', time: '~15 min',   color: '#C8860A' },
+              { label: 'Submit',    time: 'Instant',   color: '#C8860A' },
+              { label: 'Quote',     time: '< 24h',     color: '#9ca3af' },
+              { label: 'Production',time: '7–21 days', color: '#9ca3af' },
+              { label: 'QC',        time: '1–2 days',  color: '#9ca3af' },
+              { label: 'Delivery',  time: '2–5 days',  color: '#34d399' },
             ].map((t, i, arr) => (
               <div key={t.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 80 }}>
                 <div style={{ textAlign: 'center', flex: 1 }}>
@@ -155,7 +192,7 @@ export default function DesignYourOwnPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 20 }}>
-          {CATEGORIES.map((cat) => (
+          {content.categories.map((cat: any) => (
             <button key={cat.slug} type="button" onClick={() => router.push(`/customize/${cat.slug}`)}
               style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 16, padding: '28px 24px', textAlign: 'left', cursor: 'pointer', transition: 'box-shadow 0.18s, border-color 0.18s, transform 0.15s', display: 'flex', flexDirection: 'column', gap: 10 }}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 28px rgba(0,0,0,0.09)'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#C8860A'; (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; }}
@@ -180,14 +217,7 @@ export default function DesignYourOwnPage() {
         <div style={{ background: '#fff', borderRadius: 20, border: '1.5px solid #e8e4de', padding: 'clamp(32px, 4vw, 48px)' }}>
           <h2 style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800, color: '#1a1a1a', textAlign: 'center', marginBottom: 36 }}>Why Design with Blikcart?</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 28 }}>
-            {[
-              { title: 'Direct from Workshop',  desc: 'No middlemen. We manufacture everything in-house for better quality and pricing.' },
-              { title: 'Live Price Preview',     desc: 'See your total cost update as you configure. No hidden fees, no surprises on invoice.' },
-              { title: 'Revision-Friendly',      desc: 'Request changes before approving your quote. We refine until the spec is exactly right.' },
-              { title: 'Spec Accuracy',          desc: 'Backend-driven configurator prevents invalid combinations — what you design is what we can build.' },
-              { title: 'Dedicated Contact',      desc: 'A real account manager handles every step from quote to delivery for your orders.' },
-              { title: 'Sustainable Options',    desc: 'Bio-certified leather tanning and sustainable packaging available on selected products.' },
-            ].map(f => (
+            {content.whyBlikcart.map((f: any) => (
               <div key={f.title} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>{f.title}</h4>
                 <p style={{ fontSize: 13, color: '#666', margin: 0, lineHeight: 1.6 }}>{f.desc}</p>
@@ -201,7 +231,7 @@ export default function DesignYourOwnPage() {
       <section style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(48px, 6vw, 72px) 24px 0' }}>
         <h2 style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800, color: '#1a1a1a', textAlign: 'center', marginBottom: 32 }}>Common Questions</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {FAQS.map(faq => (
+          {content.faqs.map((faq: any) => (
             <details key={faq.q} style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 12 }}>
               <summary style={{ padding: '16px 20px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#1a1a1a', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, userSelect: 'none' }}>
                 {faq.q}
@@ -216,9 +246,9 @@ export default function DesignYourOwnPage() {
       {/* Final CTA */}
       <section style={{ maxWidth: 800, margin: 'clamp(56px, 6vw, 80px) auto 0', padding: '0 24px clamp(56px, 6vw, 80px)' }}>
         <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2017 100%)', borderRadius: 20, padding: 'clamp(36px, 5vw, 56px)', textAlign: 'center', color: '#fff' }}>
-          <h2 style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 800, marginBottom: 12 }}>Ready to Start?</h2>
+          <h2 style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 800, marginBottom: 12 }}>{content.finalCta.title}</h2>
           <p style={{ color: '#888', marginBottom: 28, fontSize: 15, maxWidth: 440, margin: '0 auto 28px', lineHeight: 1.7 }}>
-            Pick a category above, or jump straight into our most popular configurator — bridles.
+            {content.finalCta.body}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/customize/bridles" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: 'white', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>

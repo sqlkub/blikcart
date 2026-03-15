@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -116,6 +116,9 @@ export class ContentService {
     const updateData: any = {};
     for (const key of allowed) {
       if (data[key] !== undefined) updateData[key] = data[key];
+    }
+    if (updateData.content !== undefined) {
+      try { JSON.parse(updateData.content); } catch { throw new BadRequestException('Page content must be valid JSON'); }
     }
     return this.prisma.staticPage.update({ where: { id }, data: updateData });
   }

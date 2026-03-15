@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 
@@ -453,6 +454,346 @@ function FaqTab() {
   );
 }
 
+// ── Page Content Editor ───────────────────────────────────────────────────────
+
+const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own'];
+
+function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawContent: string; onChange: (v: string) => void }) {
+  const parsed = (() => { try { return JSON.parse(rawContent || '{}'); } catch { return {}; } })();
+
+  function update(path: string[], value: any) {
+    const next = JSON.parse(JSON.stringify(parsed));
+    let obj = next;
+    for (let i = 0; i < path.length - 1; i++) {
+      if (obj[path[i]] === undefined) obj[path[i]] = {};
+      obj = obj[path[i]];
+    }
+    obj[path[path.length - 1]] = value;
+    onChange(JSON.stringify(next));
+  }
+
+  function updateItem(arrayPath: string, index: number, field: string, value: any) {
+    const arr = [...(parsed[arrayPath] || [])];
+    arr[index] = { ...arr[index], [field]: value };
+    update([arrayPath], arr);
+  }
+
+  function addItem(arrayPath: string, template: object) {
+    const arr = [...(parsed[arrayPath] || []), { ...template }];
+    update([arrayPath], arr);
+  }
+
+  function removeItem(arrayPath: string, index: number) {
+    const arr = (parsed[arrayPath] || []).filter((_: any, i: number) => i !== index);
+    update([arrayPath], arr);
+  }
+
+  // Shared styles
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]';
+  const ta = `${inp} resize-y`;
+  const label = 'block text-xs font-semibold text-gray-500 uppercase mb-1';
+  const secHead = 'text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 mt-5';
+  const card = 'bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3';
+
+  // Hero section — common to all pages
+  const HeroEditor = () => (
+    <div className="mb-6">
+      <p className={secHead}>Hero Section</p>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className={label}>Eyebrow label</label>
+          <input type="text" className={inp} value={parsed.hero?.eyebrow || ''} onChange={e => update(['hero', 'eyebrow'], e.target.value)} />
+        </div>
+        <div>
+          <label className={label}>Page Title</label>
+          <input type="text" className={inp} value={parsed.hero?.title || ''} onChange={e => update(['hero', 'title'], e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <label className={label}>Subtitle</label>
+        <textarea className={ta} rows={2} value={parsed.hero?.subtitle || ''} onChange={e => update(['hero', 'subtitle'], e.target.value)} />
+      </div>
+    </div>
+  );
+
+  // Repeatable list helper
+  function RepeatableList({ field, title, template, renderItem }: { field: string; title: string; template: object; renderItem: (item: any, i: number) => React.ReactNode }) {
+    const items = parsed[field] || [];
+    return (
+      <div className="mb-6">
+        <p className={secHead}>{title}</p>
+        {items.map((item: any, i: number) => (
+          <div key={i} className={card}>
+            <div className="flex justify-between items-start mb-3">
+              <span className="text-xs font-medium text-gray-400">#{i + 1}</span>
+              <button type="button" onClick={() => removeItem(field, i)} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+            </div>
+            {renderItem(item, i)}
+          </div>
+        ))}
+        <button type="button" onClick={() => addItem(field, template)} className="text-xs px-3 py-1.5 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#1A3C5E] hover:text-[#1A3C5E] w-full">
+          + Add Item
+        </button>
+      </div>
+    );
+  }
+
+  if (slug === 'returns') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="summaryCards" title="Summary Cards (top strip)" template={{ label: '', sub: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('summaryCards', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Sub-text</label><input className={inp} value={item.sub || ''} onChange={e => updateItem('summaryCards', i, 'sub', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="sections" title="Policy Sections" template={{ title: '', paragraphs: [], bullets: [], footer: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div><label className={label}>Section Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('sections', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Paragraphs (one per line)</label><textarea className={ta} rows={3} value={(item.paragraphs || []).join('\n')} onChange={e => updateItem('sections', i, 'paragraphs', e.target.value.split('\n'))} /></div>
+          <div><label className={label}>Bullet points (one per line)</label><textarea className={ta} rows={4} value={(item.bullets || []).join('\n')} onChange={e => updateItem('sections', i, 'bullets', e.target.value.split('\n').filter(Boolean))} /></div>
+          <div><label className={label}>Footer text</label><input className={inp} value={item.footer || ''} onChange={e => updateItem('sections', i, 'footer', e.target.value)} /></div>
+        </div>
+      )} />
+      <div className="mb-4">
+        <p className={secHead}>CTA Block</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={label}>Title</label><input className={inp} value={parsed.cta?.title || ''} onChange={e => update(['cta', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Email</label><input className={inp} value={parsed.cta?.email || ''} onChange={e => update(['cta', 'email'], e.target.value)} /></div>
+          <div className="col-span-2"><label className={label}>Body</label><textarea className={ta} rows={2} value={parsed.cta?.body || ''} onChange={e => update(['cta', 'body'], e.target.value)} /></div>
+          <div><label className={label}>Last updated text</label><input className={inp} value={parsed.cta?.lastUpdated || ''} onChange={e => update(['cta', 'lastUpdated'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (slug === 'sizing-guide') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="bridleSizes" title="Bridle Sizes Table" template={{ size: '', headpiece: '', browband: '', noseband: '', cheekpieces: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-5 gap-2">
+          {['size','headpiece','browband','noseband','cheekpieces'].map(f => (
+            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('bridleSizes', i, f, e.target.value)} /></div>
+          ))}
+        </div>
+      )} />
+      <RepeatableList field="rugSizes" title="Rug Sizes Table" template={{ size: '', cm: '', back: '', chest: '', breeds: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-5 gap-2">
+          {['size','cm','back','chest','breeds'].map(f => (
+            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('rugSizes', i, f, e.target.value)} /></div>
+          ))}
+        </div>
+      )} />
+      <RepeatableList field="bootSizes" title="Boot Sizes Table" template={{ size: '', canon: '', fits: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          {['size','canon','fits'].map(f => (
+            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('bootSizes', i, f, e.target.value)} /></div>
+          ))}
+        </div>
+      )} />
+      <RepeatableList field="howToMeasure" title="How to Measure Cards" template={{ title: '', steps: [] }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div><label className={label}>Card Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('howToMeasure', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Steps (one per line)</label><textarea className={ta} rows={4} value={(item.steps || []).join('\n')} onChange={e => updateItem('howToMeasure', i, 'steps', e.target.value.split('\n').filter(Boolean))} /></div>
+        </div>
+      )} />
+    </div>
+  );
+
+  if (slug === 'price-lists') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="basePrices" title="Base Prices Table" template={{ category: '', from: 0, to: 0, moq: 1, note: '', leadTime: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          <div><label className={label}>Category</label><input className={inp} value={item.category || ''} onChange={e => updateItem('basePrices', i, 'category', e.target.value)} /></div>
+          <div><label className={label}>From (€)</label><input type="number" className={inp} value={item.from || 0} onChange={e => updateItem('basePrices', i, 'from', Number(e.target.value))} /></div>
+          <div><label className={label}>To (€)</label><input type="number" className={inp} value={item.to || 0} onChange={e => updateItem('basePrices', i, 'to', Number(e.target.value))} /></div>
+          <div><label className={label}>MOQ</label><input type="number" className={inp} value={item.moq || 1} onChange={e => updateItem('basePrices', i, 'moq', Number(e.target.value))} /></div>
+          <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('basePrices', i, 'leadTime', e.target.value)} /></div>
+          <div><label className={label}>Note</label><input className={inp} value={item.note || ''} onChange={e => updateItem('basePrices', i, 'note', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="volumeTiers" title="Volume Discount Tiers" template={{ range: '', discount: '', highlight: false }} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2 items-end">
+          <div><label className={label}>Range</label><input className={inp} value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
+          <div><label className={label}>Discount</label><input className={inp} value={item.discount || ''} onChange={e => updateItem('volumeTiers', i, 'discount', e.target.value)} /></div>
+          <div><label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase cursor-pointer mt-4"><input type="checkbox" checked={item.highlight || false} onChange={e => updateItem('volumeTiers', i, 'highlight', e.target.checked)} /> Highlight (Most Popular)</label></div>
+        </div>
+      )} />
+      <div className="mb-4">
+        <p className={secHead}>Express Production Section</p>
+        <div><label className={label}>Title</label><input className={inp} value={parsed.expressSection?.title || ''} onChange={e => update(['expressSection', 'title'], e.target.value)} /></div>
+        <div className="mt-2"><label className={label}>Body</label><textarea className={ta} rows={3} value={parsed.expressSection?.body || ''} onChange={e => update(['expressSection', 'body'], e.target.value)} /></div>
+      </div>
+    </div>
+  );
+
+  if (slug === 'custom-orders') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="processSteps" title="Process Steps" template={{ step: 1, title: '', desc: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-2">
+            <div><label className={label}>Step #</label><input type="number" className={inp} value={item.step || i+1} onChange={e => updateItem('processSteps', i, 'step', Number(e.target.value))} /></div>
+            <div className="col-span-3"><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('processSteps', i, 'title', e.target.value)} /></div>
+          </div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('processSteps', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="categories" title="Product Categories" template={{ slug: '', name: '', from: 0, leadTime: '', moq: 1 }} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          <div><label className={label}>Slug</label><input className={inp} value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
+          <div><label className={label}>Name</label><input className={inp} value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
+          <div><label className={label}>From (€)</label><input type="number" className={inp} value={item.from || 0} onChange={e => updateItem('categories', i, 'from', Number(e.target.value))} /></div>
+          <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
+          <div><label className={label}>MOQ</label><input type="number" className={inp} value={item.moq || 1} onChange={e => updateItem('categories', i, 'moq', Number(e.target.value))} /></div>
+        </div>
+      )} />
+      <RepeatableList field="capabilities" title="Capabilities" template={{ label: '', desc: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('capabilities', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Description</label><input className={inp} value={item.desc || ''} onChange={e => updateItem('capabilities', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+    </div>
+  );
+
+  if (slug === 'b2b') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="stats" title="Stats Bar" template={{ value: '', label: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Value</label><input className={inp} value={item.value || ''} onChange={e => updateItem('stats', i, 'value', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="features" title="Features / Benefits" template={{ title: '', desc: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('features', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('features', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="steps" title="How to Get Access Steps" template={{ step: '01', title: '', desc: '', link: '', linkText: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-2">
+            <div><label className={label}>Step label</label><input className={inp} value={item.step || ''} onChange={e => updateItem('steps', i, 'step', e.target.value)} /></div>
+            <div className="col-span-3"><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('steps', i, 'title', e.target.value)} /></div>
+          </div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('steps', i, 'desc', e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className={label}>Link URL (optional)</label><input className={inp} value={item.link || ''} onChange={e => updateItem('steps', i, 'link', e.target.value)} /></div>
+            <div><label className={label}>Link Text (optional)</label><input className={inp} value={item.linkText || ''} onChange={e => updateItem('steps', i, 'linkText', e.target.value)} /></div>
+          </div>
+        </div>
+      )} />
+      <RepeatableList field="volumeTiers" title="Volume Tiers" template={{ range: '', pct: '', note: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          <div><label className={label}>Range</label><input className={inp} value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
+          <div><label className={label}>Discount %</label><input className={inp} value={item.pct || ''} onChange={e => updateItem('volumeTiers', i, 'pct', e.target.value)} /></div>
+          <div><label className={label}>Badge (empty = no badge)</label><input className={inp} placeholder="e.g. Popular" value={item.note || ''} onChange={e => updateItem('volumeTiers', i, 'note', e.target.value)} /></div>
+        </div>
+      )} />
+      <div className="mb-4">
+        <p className={secHead}>CTA Block</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={label}>Title</label><input className={inp} value={parsed.cta?.title || ''} onChange={e => update(['cta', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Email</label><input className={inp} value={parsed.cta?.email || ''} onChange={e => update(['cta', 'email'], e.target.value)} /></div>
+          <div className="col-span-2"><label className={label}>Body</label><textarea className={ta} rows={2} value={parsed.cta?.body || ''} onChange={e => update(['cta', 'body'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (slug === 'contact') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="contactCards" title="Contact Cards" template={{ label: '', value: '', sub: '', link: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('contactCards', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Value (email / phone / location)</label><input className={inp} value={item.value || ''} onChange={e => updateItem('contactCards', i, 'value', e.target.value)} /></div>
+          <div><label className={label}>Sub-text</label><input className={inp} value={item.sub || ''} onChange={e => updateItem('contactCards', i, 'sub', e.target.value)} /></div>
+          <div><label className={label}>Link (mailto: / tel: / empty)</label><input className={inp} value={item.link || ''} onChange={e => updateItem('contactCards', i, 'link', e.target.value)} /></div>
+        </div>
+      )} />
+      <div className="mb-6">
+        <p className={secHead}>Form Section</p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div><label className={label}>Title</label><input className={inp} value={parsed.formSection?.title || ''} onChange={e => update(['formSection', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Body</label><input className={inp} value={parsed.formSection?.body || ''} onChange={e => update(['formSection', 'body'], e.target.value)} /></div>
+        </div>
+        <div><label className={label}>Topic Options (one per line)</label><textarea className={ta} rows={6} value={(parsed.formSection?.topics || []).join('\n')} onChange={e => update(['formSection', 'topics'], e.target.value.split('\n').filter(Boolean))} /></div>
+      </div>
+      <div className="mb-4">
+        <p className={secHead}>Response Times (one per line)</p>
+        <textarea className={ta} rows={4} value={(parsed.responseTimes || []).join('\n')} onChange={e => update(['responseTimes'], e.target.value.split('\n').filter(Boolean))} />
+      </div>
+    </div>
+  );
+
+  if (slug === 'design-your-own') return (
+    <div>
+      <HeroEditor />
+      <RepeatableList field="stats" title="Stats Bar" template={{ num: '', label: '' }} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Number/Value</label><input className={inp} value={item.num || ''} onChange={e => updateItem('stats', i, 'num', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="lifecycle" title="Lifecycle Steps" template={{ phase: 'You', step: 1, title: '', desc: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className={label}>Phase</label>
+              <select title="Phase" className={inp} value={item.phase || 'You'} onChange={e => updateItem('lifecycle', i, 'phase', e.target.value)}>
+                <option value="You">You</option><option value="Blikcart">Blikcart</option><option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <div><label className={label}>Step #</label><input type="number" className={inp} value={item.step || i+1} onChange={e => updateItem('lifecycle', i, 'step', Number(e.target.value))} /></div>
+            <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('lifecycle', i, 'title', e.target.value)} /></div>
+          </div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('lifecycle', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="categories" title="Product Categories" template={{ slug: '', name: '', description: '', leadTime: '', minOrder: 1, steps: 7 }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div><label className={label}>Slug</label><input className={inp} value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
+            <div><label className={label}>Name</label><input className={inp} value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
+            <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className={label}>Min Order</label><input type="number" className={inp} value={item.minOrder || 1} onChange={e => updateItem('categories', i, 'minOrder', Number(e.target.value))} /></div>
+            <div><label className={label}>Config Steps</label><input type="number" className={inp} value={item.steps || 7} onChange={e => updateItem('categories', i, 'steps', Number(e.target.value))} /></div>
+          </div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.description || ''} onChange={e => updateItem('categories', i, 'description', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="whyBlikcart" title="Why Blikcart" template={{ title: '', desc: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('whyBlikcart', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('whyBlikcart', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+      <RepeatableList field="faqs" title="FAQs" template={{ q: '', a: '' }} renderItem={(item, i) => (
+        <div className="space-y-2">
+          <div><label className={label}>Question</label><input className={inp} value={item.q || ''} onChange={e => updateItem('faqs', i, 'q', e.target.value)} /></div>
+          <div><label className={label}>Answer</label><textarea className={ta} rows={3} value={item.a || ''} onChange={e => updateItem('faqs', i, 'a', e.target.value)} /></div>
+        </div>
+      )} />
+      <div className="mb-4">
+        <p className={secHead}>Final CTA</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={label}>Title</label><input className={inp} value={parsed.finalCta?.title || ''} onChange={e => update(['finalCta', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Body</label><input className={inp} value={parsed.finalCta?.body || ''} onChange={e => update(['finalCta', 'body'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Unknown slug — should not reach here since we only show this component for known slugs
+  return <p className="text-sm text-gray-400">No structured editor for this page slug.</p>;
+}
+
 // ── Static Pages Tab ──────────────────────────────────────────────────────────
 
 const EMPTY_PAGE = { slug: '', title: '', content: '', metaTitle: '', metaDescription: '', isPublished: false };
@@ -609,13 +950,21 @@ function PagesTab() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Content</label>
-                  <textarea value={editForm.content ?? p.content}
-                    onChange={e => setEditForm((x: any) => ({ ...x, content: e.target.value }))}
-                    rows={10} title="Page content"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#1A3C5E] resize-y" />
-                </div>
+                {KNOWN_PAGE_SLUGS.includes(editForm.slug ?? p.slug) ? (
+                  <PageContentEditor
+                    slug={editForm.slug ?? p.slug}
+                    rawContent={editForm.content ?? p.content ?? '{}'}
+                    onChange={v => setEditForm((x: any) => ({ ...x, content: v }))}
+                  />
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Content</label>
+                    <textarea value={editForm.content ?? p.content}
+                      onChange={e => setEditForm((x: any) => ({ ...x, content: e.target.value }))}
+                      rows={10} title="Page content"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#1A3C5E] resize-y" />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                     <Toggle value={editForm.isPublished ?? p.isPublished} onChange={v => setEditForm((x: any) => ({ ...x, isPublished: v }))} />
@@ -639,6 +988,9 @@ function PagesTab() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.isPublished ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {p.isPublished ? 'Published' : 'Draft'}
                     </span>
+                    {KNOWN_PAGE_SLUGS.includes(p.slug) && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600">Structured</span>
+                    )}
                   </div>
                   <p className="font-semibold text-gray-900">{p.title}</p>
                   {p.metaDescription && <p className="text-xs text-gray-400 mt-0.5">{p.metaDescription}</p>}
@@ -674,7 +1026,7 @@ function PagesTab() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-const TABS = ['Banners & Hero Images', 'FAQ', 'Static Pages'] as const;
+const TABS = ['Banners & Hero Images', 'FAQ', 'Pages'] as const;
 type Tab = typeof TABS[number];
 
 export default function ContentPage() {
@@ -698,7 +1050,7 @@ export default function ContentPage() {
 
       {tab === 'Banners & Hero Images' && <BannersTab />}
       {tab === 'FAQ' && <FaqTab />}
-      {tab === 'Static Pages' && <PagesTab />}
+      {tab === 'Pages' && <PagesTab />}
     </div>
   );
 }
