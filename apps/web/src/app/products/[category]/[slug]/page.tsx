@@ -50,7 +50,18 @@ export default function ProductDetailPage() {
         const res = await fetch(`${API}/products/${slug}`);
         if (!res.ok) { setNotFound(true); return; }
         const data = await res.json();
-        const p = data.data ?? data;
+        const raw = data.data ?? data;
+        // Normalize variant attribute casing to Title Case so 'full'/'Full'/'FULL' all match
+        const titleCase = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+        if (raw.variants) {
+          raw.variants = raw.variants.map((v: any) => ({
+            ...v,
+            size: v.size ? titleCase(v.size) : v.size,
+            color: v.color ? titleCase(v.color) : v.color,
+            material: v.material ? titleCase(v.material) : v.material,
+          }));
+        }
+        const p = raw;
         setProduct(p);
         const primary = p.images?.findIndex((i: any) => i.isPrimary);
         if (primary > 0) setActiveImage(primary);
