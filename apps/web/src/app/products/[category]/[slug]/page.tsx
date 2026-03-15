@@ -33,6 +33,9 @@ export default function ProductDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [selSize, setSelSize] = useState<string | null>(null);
+  const [selColor, setSelColor] = useState<string | null>(null);
+  const [selMaterial, setSelMaterial] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
@@ -51,7 +54,13 @@ export default function ProductDetailPage() {
         setProduct(p);
         const primary = p.images?.findIndex((i: any) => i.isPrimary);
         if (primary > 0) setActiveImage(primary);
-        if (p.variants?.length > 0) setSelectedVariant(p.variants[0]);
+        if (p.variants?.length > 0) {
+          const first = p.variants[0];
+          setSelectedVariant(first);
+          setSelSize(first.size || null);
+          setSelColor(first.color || null);
+          setSelMaterial(first.material || null);
+        }
         setQuantity(p.moq || 1);
       } catch {
         setNotFound(true);
@@ -221,52 +230,90 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Variants */}
-            {product.variants?.length > 0 && (
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>Options</h2>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {product.variants.map((v: any) => {
-                    const isSelected = selectedVariant?.id === v.id;
-                    const label = [v.size, v.color, v.material].filter(Boolean).join(' · ') || v.sku;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => setSelectedVariant(v)}
-                        style={{
-                          padding: v.imageUrl ? '4px 12px 4px 4px' : '8px 16px',
-                          borderRadius: 10,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          border: '2px solid',
-                          borderColor: isSelected ? 'var(--gold)' : '#e5e7eb',
-                          background: isSelected ? '#fff8ee' : 'white',
-                          color: '#374151',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          boxShadow: isSelected ? '0 0 0 2px var(--gold)' : 'none',
-                        }}
-                      >
-                        {v.imageUrl && (
-                          <img src={v.imageUrl} alt={label} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }} />
-                        )}
-                        <span>
-                          {label}
-                          {v.priceModifier !== 0 && (
-                            <span style={{ marginLeft: 6, opacity: 0.7, fontSize: 12 }}>
-                              ({v.priceModifier > 0 ? '+' : ''}€{Number(v.priceModifier).toFixed(2)})
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
+            {/* Variants — attribute selectors */}
+            {product.variants?.length > 0 && (() => {
+              const variants: any[] = product.variants;
+              const sizes = [...new Set(variants.map((v: any) => v.size).filter(Boolean))] as string[];
+              const colors = [...new Set(variants.map((v: any) => v.color).filter(Boolean))] as string[];
+              const materials = [...new Set(variants.map((v: any) => v.material).filter(Boolean))] as string[];
+              // map color → first variant image with that color
+              const colorImgMap: Record<string, string> = {};
+              variants.forEach((v: any) => { if (v.color && v.imageUrl && !colorImgMap[v.color]) colorImgMap[v.color] = v.imageUrl; });
+              // resolve selected variant whenever an attribute changes
+              const resolveVariant = (size: string | null, color: string | null, material: string | null) => {
+                return variants.find((v: any) =>
+                  (sizes.length === 0 || v.size === size) &&
+                  (colors.length === 0 || v.color === color) &&
+                  (materials.length === 0 || v.material === material)
+                ) || null;
+              };
+              const pickAttr = (attr: 'size' | 'color' | 'material', val: string) => {
+                const ns = attr === 'size' ? val : selSize;
+                const nc = attr === 'color' ? val : selColor;
+                const nm = attr === 'material' ? val : selMaterial;
+                if (attr === 'size') setSelSize(val);
+                if (attr === 'color') setSelColor(val);
+                if (attr === 'material') setSelMaterial(val);
+                const v = resolveVariant(ns, nc, nm);
+                if (v) setSelectedVariant(v);
+              };
+              const btnStyle = (active: boolean): React.CSSProperties => ({
+                padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                border: `2px solid ${active ? 'var(--gold)' : '#e5e7eb'}`,
+                background: active ? '#fff8ee' : 'white', color: '#374151',
+                cursor: 'pointer', transition: 'border-color 0.15s',
+              });
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {sizes.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Size</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {sizes.map(s => (
+                          <button key={s} type="button" onClick={() => pickAttr('size', s)} style={btnStyle(selSize === s)}>{s}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {colors.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>
+                        Color{selColor ? <span style={{ fontWeight: 400, color: '#374151', marginLeft: 6 }}>{selColor}</span> : null}
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                        {colors.map(c => {
+                          const img = colorImgMap[c];
+                          const active = selColor === c;
+                          return img ? (
+                            <button key={c} type="button" title={c} onClick={() => pickAttr('color', c)}
+                              style={{ width: 52, height: 52, borderRadius: 10, padding: 2, border: `2px solid ${active ? 'var(--gold)' : '#e5e7eb'}`, background: 'white', cursor: 'pointer', boxShadow: active ? '0 0 0 2px var(--gold)' : 'none' }}>
+                              <img src={img} alt={c} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 7 }} />
+                            </button>
+                          ) : (
+                            <button key={c} type="button" onClick={() => pickAttr('color', c)} style={btnStyle(active)}>{c}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {materials.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Material</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {materials.map(m => (
+                          <button key={m} type="button" onClick={() => pickAttr('material', m)} style={btnStyle(selMaterial === m)}>{m}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedVariant && Number(selectedVariant.priceModifier) !== 0 && (
+                    <p style={{ fontSize: 13, color: 'var(--gold)', fontWeight: 600 }}>
+                      Option modifier: {Number(selectedVariant.priceModifier) > 0 ? '+' : ''}€{Number(selectedVariant.priceModifier).toFixed(2)}
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Quantity */}
             {!product.isCustomizable && (
