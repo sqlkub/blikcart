@@ -93,7 +93,8 @@ async function main() {
 
   console.log('✅ Categories created');
 
-  // Products
+  // Products (skip if already exists with conflicting sku)
+  try {
   const bridle1 = await prisma.product.upsert({
     where: { slug: 'classic-padded-bridle' },
     update: {},
@@ -319,6 +320,9 @@ async function main() {
   });
 
   console.log(`✅ Configurator schema v${schemaVersion.versionNumber} created`);
+  } catch (e: any) {
+    console.log(`⚠️  Products/schema skipped (already exist): ${e.message}`);
+  }
 
   // Static pages with CMS content
   const PAGE_CONTENTS: Record<string, object> = {
