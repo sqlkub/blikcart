@@ -786,15 +786,15 @@ function CategoriesTab() {
               <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400 text-sm">No categories yet</td></tr>
             ) : roots.map(cat => (
               <>
-                <CatRow key={cat.id} cat={cat} indent={0}
+                <CatRow key={cat.id} cat={cat} indent={0} allCats={cats}
                   editing={editingId === cat.id} editForm={editForm} setEditForm={setEditForm}
-                  onEdit={() => { setEditingId(cat.id); setEditForm({ name: cat.name, slug: cat.slug, sortOrder: cat.sortOrder }); }}
+                  onEdit={() => { setEditingId(cat.id); setEditForm({ name: cat.name, slug: cat.slug, sortOrder: cat.sortOrder, parentId: cat.parentId ?? '' }); }}
                   onSave={() => saveEdit(cat.id)} onCancel={() => setEditingId(null)}
                   onToggle={() => toggleCat(cat.id, cat.isActive)} />
                 {children(cat.id).map(child => (
-                  <CatRow key={child.id} cat={child} indent={1}
+                  <CatRow key={child.id} cat={child} indent={1} allCats={cats}
                     editing={editingId === child.id} editForm={editForm} setEditForm={setEditForm}
-                    onEdit={() => { setEditingId(child.id); setEditForm({ name: child.name, slug: child.slug, sortOrder: child.sortOrder }); }}
+                    onEdit={() => { setEditingId(child.id); setEditForm({ name: child.name, slug: child.slug, sortOrder: child.sortOrder, parentId: child.parentId ?? '' }); }}
                     onSave={() => saveEdit(child.id)} onCancel={() => setEditingId(null)}
                     onToggle={() => toggleCat(child.id, child.isActive)} />
                 ))}
@@ -807,7 +807,7 @@ function CategoriesTab() {
   );
 }
 
-function CatRow({ cat, indent, editing, editForm, setEditForm, onEdit, onSave, onCancel, onToggle }: any) {
+function CatRow({ cat, indent, editing, editForm, setEditForm, onEdit, onSave, onCancel, onToggle, allCats }: any) {
   const indentClass = indent > 0 ? 'pl-9 py-2' : 'px-5 py-2';
   const indentViewClass = indent > 0 ? 'pl-9 py-3' : 'px-5 py-3';
   return (
@@ -824,7 +824,16 @@ function CatRow({ cat, indent, editing, editForm, setEditForm, onEdit, onSave, o
               onChange={(e: any) => setEditForm((f: any) => ({ ...f, slug: e.target.value }))}
               className="border rounded px-2 py-1 text-sm w-32 font-mono" />
           </td>
-          <td className="px-5 py-2 text-sm text-gray-400">{cat.parent?.name || '—'}</td>
+          <td className="px-5 py-2">
+            <select title="Parent category" value={editForm.parentId ?? cat.parentId ?? ''}
+              onChange={(e: any) => setEditForm((f: any) => ({ ...f, parentId: e.target.value || null }))}
+              className="border rounded px-2 py-1 text-sm w-32 bg-white">
+              <option value="">None (top-level)</option>
+              {(allCats || []).filter((c: any) => c.id !== cat.id).map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </td>
           <td className="px-5 py-2 text-sm text-gray-500">{cat._count?.products || 0}</td>
           <td className="px-5 py-2">{cat.isCustomizable ? <Bdg label="yes" color="bg-blue-100 text-blue-700" /> : null}</td>
           <td className="px-5 py-2">
