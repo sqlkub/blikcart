@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink, ImagePlus } from 'lucide-react';
@@ -569,7 +569,8 @@ function ProductsTab() {
               <tr><td colSpan={9} className="px-5 py-10 text-center text-gray-400 text-sm">No products found</td></tr>
             ) : filtered.map(p => (
               editingId === p.id ? (
-                <tr key={p.id} className="border-b border-gray-100 bg-yellow-50">
+                <Fragment key={p.id}>
+                <tr className="border-b border-gray-100 bg-yellow-50">
                   <td className="px-4 py-2" />
                   <td className="px-4 py-2">
                     <input title="Name" defaultValue={p.name} onChange={e => setEditForm((f: any) => ({ ...f, name: e.target.value }))}
@@ -596,6 +597,16 @@ function ProductsTab() {
                     </div>
                   </td>
                 </tr>
+                <tr className="border-b border-gray-100 bg-yellow-50">
+                  <td />
+                  <td colSpan={8} className="px-4 pb-3">
+                    <label className="text-xs text-gray-500 block mb-1">Description</label>
+                    <textarea title="Description" defaultValue={p.description ?? ''}
+                      onChange={e => setEditForm((f: any) => ({ ...f, description: e.target.value }))}
+                      rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="Optional" />
+                  </td>
+                </tr>
+                </Fragment>
               ) : (
                 <tr key={p.id} className={`border-b border-gray-50 hover:bg-gray-50 ${selected.has(p.id) ? 'bg-blue-50' : ''}`}>
                   <td className="px-4 py-3">
@@ -648,7 +659,7 @@ function ProductsTab() {
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />
                       </button>
-                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({}); }}
+                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '' }); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
                         className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
