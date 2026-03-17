@@ -7,6 +7,13 @@ const DEFAULT = {
     title: 'Sizing Guide',
     subtitle: 'Correct fit is critical for comfort and performance. Use these charts alongside our configurator to select the right size for every product.',
   },
+  bridleSizesTitle: 'Bridles & Browbands',
+  bridleSizesSubtitle: 'Measure with a soft tape. Sizes listed are the adjustable range. When between sizes, choose the larger.',
+  rugSizesTitle: 'Horse Rugs',
+  rugSizesSubtitle: 'Rug size is measured from the centre of the chest to the tail (back length). Measure along the horse\'s back, not beneath the belly.',
+  bootSizesTitle: 'Leg Boots',
+  bootSizesSubtitle: 'Measure the circumference of the cannon bone at its widest point with a soft tape.',
+  howToMeasureTitle: 'How to Measure',
   bridleSizes: [
     { size: 'Pony',    headpiece: '50–54 cm', browband: '38–42 cm', noseband: '30–33 cm', cheekpieces: '28–34 cm' },
     { size: 'Cob',     headpiece: '54–58 cm', browband: '42–46 cm', noseband: '33–36 cm', cheekpieces: '34–40 cm' },
@@ -77,9 +84,9 @@ export default async function SizingGuidePage() {
 
         {/* Bridles */}
         <div id="bridles-browbands" style={{ marginBottom: 56 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>Bridles & Browbands</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.bridleSizesTitle || DEFAULT.bridleSizesTitle}</h2>
           <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.7 }}>
-            Measure with a soft tape. Sizes listed are the adjustable range. When between sizes, choose the larger.
+            {content.bridleSizesSubtitle || DEFAULT.bridleSizesSubtitle}
           </p>
           <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -104,9 +111,9 @@ export default async function SizingGuidePage() {
 
         {/* Rugs */}
         <div id="horse-rugs" style={{ marginBottom: 56 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>Horse Rugs</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.rugSizesTitle || DEFAULT.rugSizesTitle}</h2>
           <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.7 }}>
-            Rug size is measured from the centre of the chest to the tail (back length). Measure along the horse's back, not beneath the belly.
+            {content.rugSizesSubtitle || DEFAULT.rugSizesSubtitle}
           </p>
           <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -130,9 +137,9 @@ export default async function SizingGuidePage() {
 
         {/* Boots */}
         <div id="leg-boots" style={{ marginBottom: 56 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>Leg Boots</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.bootSizesTitle || DEFAULT.bootSizesTitle}</h2>
           <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.7 }}>
-            Measure the circumference of the cannon bone at its widest point with a soft tape.
+            {content.bootSizesSubtitle || DEFAULT.bootSizesSubtitle}
           </p>
           <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -154,7 +161,7 @@ export default async function SizingGuidePage() {
 
         {/* How to measure */}
         <div id="how-to-measure" style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 16, padding: 'clamp(24px, 3vw, 36px)', marginBottom: 32 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', marginBottom: 20 }}>How to Measure</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', marginBottom: 20 }}>{content.howToMeasureTitle || DEFAULT.howToMeasureTitle}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 }}>
             {content.howToMeasure.map((m: any) => (
               <div key={m.title}>
