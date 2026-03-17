@@ -577,7 +577,14 @@ function ProductsTab() {
                       className="border rounded px-2 py-1 text-sm w-40" />
                   </td>
                   <td className="px-4 py-2 text-xs font-mono text-gray-400">{p.sku}</td>
-                  <td className="px-4 py-2 text-sm text-gray-500">{p.category?.name}</td>
+                  <td className="px-4 py-2">
+                    <select title="Category" value={editForm.categoryId ?? p.categoryId ?? ''}
+                      onChange={e => setEditForm((f: any) => ({ ...f, categoryId: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm w-32 bg-white">
+                      <option value="">— select —</option>
+                      {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </td>
                   <td className="px-4 py-2">
                     <input type="number" step="0.01" title="Base price" defaultValue={p.basePrice}
                       onChange={e => setEditForm((f: any) => ({ ...f, basePrice: e.target.value }))}
@@ -659,7 +666,7 @@ function ProductsTab() {
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />
                       </button>
-                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '' }); }}
+                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '' }); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
                         className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
