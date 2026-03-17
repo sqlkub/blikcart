@@ -607,6 +607,13 @@ function ProductsTab() {
                 <tr className="border-b border-gray-100 bg-yellow-50">
                   <td />
                   <td colSpan={8} className="px-4 pb-3">
+                    <div className="flex items-center gap-6 mb-2">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" checked={editForm.isCustomizable ?? p.isCustomizable}
+                          onChange={e => setEditForm((f: any) => ({ ...f, isCustomizable: e.target.checked }))} />
+                        Customizable (shows "Configure &amp; Order" button)
+                      </label>
+                    </div>
                     <label className="text-xs text-gray-500 block mb-1">Description</label>
                     <textarea title="Description" defaultValue={p.description ?? ''}
                       onChange={e => setEditForm((f: any) => ({ ...f, description: e.target.value }))}
@@ -666,7 +673,7 @@ function ProductsTab() {
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />
                       </button>
-                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '' }); }}
+                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '', isCustomizable: p.isCustomizable }); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
                         className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
