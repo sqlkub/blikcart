@@ -23,7 +23,8 @@ interface StepOption {
   id: string;
   label: string;
   price_modifier: number;
-  image_url?: string;
+  image?: string;
+  color_hex?: string;
   layer_key?: string;
 }
 
@@ -275,8 +276,8 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                           : 'border-gray-200 hover:border-gray-300 bg-white'
                       }`}
                     >
-                      {opt.image_url && (
-                        <img src={opt.image_url} alt={opt.label} className="w-12 h-12 object-cover rounded" />
+                      {opt.image && (
+                        <img src={opt.image} alt={opt.label} className="w-12 h-12 object-cover rounded" />
                       )}
                       <span className="text-sm font-medium text-gray-800 text-center">{opt.label}</span>
                       {opt.price_modifier !== 0 && (
@@ -289,7 +290,7 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                 </div>
               )}
 
-              {/* swatch — colour circles */}
+              {/* swatch — thread images or colour circles */}
               {current.ui_type === 'swatch' && (
                 <div className="flex flex-wrap gap-3">
                   {current.options.map((opt) => (
@@ -302,10 +303,14 @@ function PreviewModal({ steps, basePrice, onClose }: PreviewModalProps) {
                         selections[current.id] === opt.id ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
                       }`}
                     >
-                      <div
-                        className="w-10 h-10 rounded-full border border-gray-200 shadow-sm"
-                        style={{ background: opt.layer_key || '#ccc' }}
-                      />
+                      {opt.image ? (
+                        <img src={opt.image} alt={opt.label} className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm" />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full border border-gray-200 shadow-sm"
+                          style={{ background: opt.color_hex || opt.layer_key || '#ccc' }}
+                        />
+                      )}
                       <span className="text-xs text-gray-600 max-w-[64px] text-center leading-tight">{opt.label}</span>
                     </button>
                   ))}
@@ -1327,11 +1332,16 @@ export default function SchemaEditorPage() {
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
                                   Label
                                 </th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-28">
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-24">
                                   Price Mod (€)
                                 </th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                                  Layer Key
+                                  Image URL
+                                  <span className="ml-1 text-gray-400 font-normal">(thread pic)</span>
+                                </th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 w-28">
+                                  Colour
+                                  <span className="ml-1 text-gray-400 font-normal">(fallback)</span>
                                 </th>
                                 <th className="w-10 px-2 py-2">
                                   <span className="sr-only">Delete</span>
@@ -1382,18 +1392,50 @@ export default function SchemaEditorPage() {
                                     />
                                   </td>
                                   <td className="px-3 py-1.5">
-                                    <input
-                                      type="text"
-                                      value={opt.layer_key || ''}
-                                      onChange={(e) =>
-                                        updateOption(selectedStep.id, opt.id, {
-                                          layer_key: e.target.value,
-                                        })
-                                      }
-                                      placeholder="e.g. color_red"
-                                      title="Layer key"
-                                      className="w-full border border-gray-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    />
+                                    <div className="flex items-center gap-1.5">
+                                      {opt.image && (
+                                        <img src={opt.image} alt="" className="w-7 h-7 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                                      )}
+                                      <input
+                                        type="text"
+                                        value={opt.image || ''}
+                                        onChange={(e) =>
+                                          updateOption(selectedStep.id, opt.id, {
+                                            image: e.target.value,
+                                          })
+                                        }
+                                        placeholder="https://…"
+                                        title="Image URL"
+                                        className="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <input
+                                        type="color"
+                                        value={opt.color_hex || '#cccccc'}
+                                        onChange={(e) =>
+                                          updateOption(selectedStep.id, opt.id, {
+                                            color_hex: e.target.value,
+                                          })
+                                        }
+                                        title="Colour picker"
+                                        className="w-7 h-7 rounded cursor-pointer border border-gray-200 p-0.5 flex-shrink-0"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={opt.color_hex || ''}
+                                        onChange={(e) =>
+                                          updateOption(selectedStep.id, opt.id, {
+                                            color_hex: e.target.value,
+                                          })
+                                        }
+                                        placeholder="#rrggbb"
+                                        title="Hex colour"
+                                        className="w-20 border border-gray-200 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      />
+                                    </div>
                                   </td>
                                   <td className="px-2 py-1.5 text-center">
                                     <button

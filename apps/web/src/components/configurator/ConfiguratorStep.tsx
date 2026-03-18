@@ -71,14 +71,34 @@ export default function ConfiguratorStep({ step }: Props) {
   if (step.ui_type === 'swatch') {
     return (
       <div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          {opts.map(opt => (
-            <button type="button" key={opt.id} onClick={() => selectOption(step.id, opt.id)} title={opt.label} style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: opt.color_hex || '#ccc', border: selected === opt.id ? '3px solid var(--gold)' : '3px solid #e5e7eb', boxShadow: selected === opt.id ? '0 0 0 2px var(--gold)' : 'none', transition: 'all 0.2s', transform: selected === opt.id ? 'scale(1.15)' : 'scale(1)' }} />
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          {opts.map(opt => {
+            const isSelected = selected === opt.id;
+            return (
+              <button type="button" key={opt.id} onClick={() => selectOption(step.id, opt.id)} title={opt.label}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                {opt.image ? (
+                  <img
+                    src={opt.image}
+                    alt={opt.label}
+                    style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: isSelected ? '3px solid var(--gold)' : '3px solid #e5e7eb', boxShadow: isSelected ? '0 0 0 2px var(--gold)' : 'none', transition: 'all 0.2s', transform: isSelected ? 'scale(1.12)' : 'scale(1)' }}
+                  />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', backgroundColor: opt.color_hex || '#ccc', border: isSelected ? '3px solid var(--gold)' : '3px solid #e5e7eb', boxShadow: isSelected ? '0 0 0 2px var(--gold)' : 'none', transition: 'all 0.2s', transform: isSelected ? 'scale(1.12)' : 'scale(1)' }} />
+                )}
+                <span style={{ fontSize: 11, color: isSelected ? 'var(--navy)' : '#9ca3af', fontWeight: isSelected ? 700 : 400, maxWidth: 64, textAlign: 'center', lineHeight: 1.3 }}>{opt.label}</span>
+              </button>
+            );
+          })}
         </div>
-        {selected && (<p style={{ marginTop: 16, fontSize: 14, color: '#6b7280' }}>Selected: <strong style={{ color: 'var(--navy)' }}>{opts.find(o => o.id === selected)?.label}</strong>{(opts.find(o => o.id === selected)?.price_modifier ?? 0) > 0 && (<span style={{ color: 'var(--gold)', marginLeft: 8 }}>+€{opts.find(o => o.id === selected)?.price_modifier?.toFixed(2)}</span>)}</p>)}
+        {selected && (
+          <p style={{ marginTop: 16, fontSize: 14, color: '#6b7280' }}>
+            Selected: <strong style={{ color: 'var(--navy)' }}>{opts.find(o => o.id === selected)?.label}</strong>
+            {(opts.find(o => o.id === selected)?.price_modifier ?? 0) > 0 && (
+              <span style={{ color: 'var(--gold)', marginLeft: 8 }}>+€{opts.find(o => o.id === selected)?.price_modifier?.toFixed(2)}</span>
+            )}
+          </p>
+        )}
       </div>
     );
   }
@@ -163,7 +183,7 @@ export default function ConfiguratorStep({ step }: Props) {
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Quantity (minimum {moq} units)</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button type="button" onClick={() => setQuantity(Math.max(moq, quantity - 1))} style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--navy)', color: 'var(--navy)', fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white' }}>−</button>
-            <input type="number" value={quantity} min={moq} onChange={e => setQuantity(Math.max(moq, parseInt(e.target.value) || moq))} style={{ width: 80, textAlign: 'center', border: '2px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 18, fontWeight: 700, color: 'var(--navy)' }} />
+            <input type="number" title="Quantity" value={quantity} min={moq} onChange={e => setQuantity(Math.max(moq, parseInt(e.target.value) || moq))} style={{ width: 80, textAlign: 'center', border: '2px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 18, fontWeight: 700, color: 'var(--navy)' }} />
             <button type="button" onClick={() => setQuantity(quantity + 1)} style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--navy)', color: 'var(--navy)', fontSize: 20, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white' }}>+</button>
             <span style={{ fontSize: 14, color: '#6b7280' }}>units</span>
           </div>
@@ -256,7 +276,7 @@ export default function ConfiguratorStep({ step }: Props) {
     return (
       <div
         role="switch"
-        aria-checked={isOn}
+        aria-checked={isOn ? 'true' : 'false'}
         tabIndex={0}
         onClick={() => selectOption(step.id, isOn ? '' : 'true')}
         onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); selectOption(step.id, isOn ? '' : 'true'); } }}
