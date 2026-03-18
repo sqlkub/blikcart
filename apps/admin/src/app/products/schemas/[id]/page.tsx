@@ -569,15 +569,12 @@ export default function SchemaEditorPage() {
 
   // ── Publish ──
   async function handlePublish() {
-    if (!releaseNotes.trim()) {
-      alert('Please enter release notes before publishing.');
-      return;
-    }
     setPublishing(true);
     try {
+      const autoNotes = releaseNotes.trim() || `Updated steps on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
       await axios.post(
         `${API_BASE}/configurator/admin/schemas/${id}/versions`,
-        { steps, notes: releaseNotes },
+        { steps, notes: autoNotes },
         { headers: authHeaders() }
       );
       setReleaseNotes('');
@@ -964,7 +961,8 @@ export default function SchemaEditorPage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-xs text-gray-400">Saves pricing &amp; timing only. To update steps/colours, use <strong>Save &amp; Publish</strong> at the bottom of the page.</p>
                   <button
                     type="button"
                     onClick={handleSaveSettings}
@@ -1437,7 +1435,7 @@ export default function SchemaEditorPage() {
             <div className="flex-1" />
             <input
               type="text"
-              placeholder="Release notes (required to publish)…"
+              placeholder="Release notes (optional)…"
               value={releaseNotes}
               onChange={(e) => setReleaseNotes(e.target.value)}
               className="flex-1 max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1445,11 +1443,11 @@ export default function SchemaEditorPage() {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={publishing || !releaseNotes.trim()}
+              disabled={publishing}
               className="flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
-              {publishing ? 'Publishing…' : `Publish as v${nextVersionNumber}`}
+              {publishing ? 'Publishing…' : `Save & Publish v${nextVersionNumber}`}
             </button>
           </div>
         </div>
