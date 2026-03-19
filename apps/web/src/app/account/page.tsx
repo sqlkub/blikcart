@@ -33,11 +33,27 @@ const SAMPLE_STATUS: Record<string, { label: string; color: string; icon: string
   revision_requested: { label: 'Revision Needed', color: '#f97316', icon: '🔄' },
 };
 
-// ── Dutch Excel column mapping ─────────────────────────────────────────────────
+// ── Column mapping (Dutch + English + common variants) ─────────────────────────
 const DUTCH_MAP: Record<string, string> = {
+  // Dutch
   wat: 'productType', naam: 'productName', kleur: 'color',
   'kleur gesp/buckle': 'buckleColor', 'kleur gesp': 'buckleColor', maat: 'size',
-  aantal: 'quantity', sku: 'sku', prijs: 'unitPrice', totaal: 'total',
+  aantal: 'quantity', prijs: 'unitPrice', totaal: 'total',
+  // English
+  product: 'productType', name: 'productName', colour: 'color', color: 'color',
+  stitching: 'stitching', stiching: 'stitching', stiksel: 'stitching',
+  buckle: 'buckleColor', 'buckle color': 'buckleColor', 'buckle colour': 'buckleColor',
+  size: 'size', qty: 'quantity', quantity: 'quantity', sku: 'sku',
+  price: 'unitPrice', 'unit price': 'unitPrice', total: 'total',
+  nameplates: 'nameplates', nameplate: 'nameplates',
+};
+
+// ── Preview table column config ────────────────────────────────────────────────
+const COL_ORDER = ['productType', 'productName', 'color', 'buckleColor', 'stitching', 'nameplates', 'size', 'sku', 'quantity', 'unitPrice', 'total'];
+const COL_LABELS: Record<string, string> = {
+  productType: 'Product', productName: 'Name', color: 'Color', buckleColor: 'Buckle',
+  stitching: 'Stitching', size: 'Size', quantity: 'Qty', sku: 'SKU',
+  unitPrice: 'Unit Price', total: 'Total', nameplates: 'Nameplates',
 };
 
 function parseNumeric(val: any): number {
@@ -55,7 +71,9 @@ function parseSheetRows(rows: any[][]): any[] {
   let headerIdx = 0;
   for (let i = 0; i < Math.min(6, rows.length); i++) {
     const lower = rows[i].map(c => String(c ?? '').toLowerCase()).join(' ');
-    if (lower.includes('sku') || lower.includes('aantal') || lower.includes('naam')) {
+    if (lower.includes('sku') || lower.includes('aantal') || lower.includes('naam') ||
+        lower.includes('qty') || lower.includes('quantity') || lower.includes('name') ||
+        lower.includes('product') || lower.includes('color') || lower.includes('colour')) {
       headerIdx = i;
       break;
     }
@@ -74,9 +92,7 @@ function parseSheetRows(rows: any[][]): any[] {
     const row: any = {};
     headers.forEach((h, idx) => { row[h] = cells[idx] ?? ''; });
 
-    if (!row.sku && !row.quantity) continue;
-
-    row.quantity  = parseInt(String(row.quantity))  || 0;
+    row.quantity  = parseInt(String(row.quantity ?? row.qty ?? 0)) || 0;
     row.unitPrice = parseNumeric(row.unitPrice);
     row.total     = parseNumeric(row.total);
 
@@ -685,46 +701,59 @@ export default function AccountPage() {
                   </button>
                 </div>
 
-                <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: 20 }}>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: 'var(--navy)', color: 'white' }}>
-                          {['Product', 'Color', 'Size', 'SKU', 'Qty', 'Unit Price', 'Total'].map(h => (
-                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bulkRows.map((row, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
-                            <td style={{ padding: '10px 14px', color: 'var(--navy)', fontWeight: 600 }}>{row.productName || row.productType || '—'}</td>
-                            <td style={{ padding: '10px 14px', color: '#6b7280' }}>{[row.color, row.buckleColor].filter(Boolean).join(' / ') || '—'}</td>
-                            <td style={{ padding: '10px 14px', color: '#6b7280' }}>{row.size || '—'}</td>
-                            <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>{row.sku || '—'}</td>
-                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>{row.quantity}</td>
-                            <td style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'right' }}>€{Number(row.unitPrice).toFixed(2)}</td>
-                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>
-                              €{(row.total || row.quantity * row.unitPrice).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ borderTop: '2px solid var(--navy)', background: '#f8fafc' }}>
-                          <td colSpan={4} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)' }}>Total</td>
-                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>
-                            {bulkRows.reduce((s, r) => s + r.quantity, 0)}
-                          </td>
-                          <td />
-                          <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--gold)', textAlign: 'right', fontSize: 15 }}>
-                            €{bulkRows.reduce((s, r) => s + (r.total || r.quantity * r.unitPrice), 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
+                {(() => {
+                  const allKeys = Array.from(new Set(bulkRows.flatMap(r => Object.keys(r))));
+                  const hasData = (k: string) => bulkRows.some(r => r[k] !== '' && r[k] != null && r[k] !== 0);
+                  const visibleCols = [
+                    ...COL_ORDER.filter(k => allKeys.includes(k) && hasData(k)),
+                    ...allKeys.filter(k => !COL_ORDER.includes(k) && hasData(k)),
+                  ];
+                  const totalQty = bulkRows.reduce((s, r) => s + r.quantity, 0);
+                  const totalAmt = bulkRows.reduce((s, r) => s + (r.total || r.quantity * r.unitPrice), 0);
+                  const qtyIdx = visibleCols.indexOf('quantity');
+                  const amtIdx = visibleCols.lastIndexOf('total') >= 0 ? visibleCols.lastIndexOf('total') : visibleCols.lastIndexOf('unitPrice');
+                  return (
+                    <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: 20 }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: 'var(--navy)', color: 'white' }}>
+                              {visibleCols.map(k => (
+                                <th key={k} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+                                  {COL_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1))}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bulkRows.map((row, i) => (
+                              <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                                {visibleCols.map(k => {
+                                  const val = row[k];
+                                  if (k === 'unitPrice') return <td key={k} style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'right' }}>€{Number(val).toFixed(2)}</td>;
+                                  if (k === 'total') return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>€{(val || row.quantity * row.unitPrice).toFixed(2)}</td>;
+                                  if (k === 'quantity') return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>{val}</td>;
+                                  if (k === 'sku') return <td key={k} style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>{val || '—'}</td>;
+                                  return <td key={k} style={{ padding: '10px 14px', color: '#6b7280' }}>{val || '—'}</td>;
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr style={{ borderTop: '2px solid var(--navy)', background: '#f8fafc' }}>
+                              {visibleCols.map((k, idx) => {
+                                if (idx === 0) return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)' }}>Total</td>;
+                                if (idx === qtyIdx) return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>{totalQty}</td>;
+                                if (idx === amtIdx) return <td key={k} style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--gold)', textAlign: 'right', fontSize: 15 }}>€{totalAmt.toFixed(2)}</td>;
+                                return <td key={k} />;
+                              })}
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {bulkError && (
                   <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10 }}>
