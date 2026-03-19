@@ -531,9 +531,9 @@ export default function AccountPage() {
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🧵</div>
                 <h3 style={{ color: 'var(--navy)', fontWeight: 700, marginBottom: 8 }}>No sample requests yet</h3>
                 <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 20 }}>Configure a product and request a physical sample before bulk ordering.</p>
-                <Link href="/products"
+                <Link href="/samples/new"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 24px', background: 'var(--gold)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-                  + Start Sampling
+                  + New Sample Request
                 </Link>
               </div>
             ) : (

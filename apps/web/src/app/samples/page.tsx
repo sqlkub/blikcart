@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function SamplesPage() {
-  redirect('/account/samples');
+  redirect('/samples/new');
 }

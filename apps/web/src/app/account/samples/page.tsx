@@ -58,10 +58,16 @@ export default function MySamplesPage() {
           </h1>
           <p style={{ fontSize: 14, color: '#6b7280', marginTop: 6 }}>Track your sample journey from request to approved design</p>
         </div>
-        <Link href="/samples/library"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'var(--navy)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-          <span>📚</span> Browse Library
-        </Link>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link href="/samples/new"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'var(--gold)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+            <span>+</span> New Request
+          </Link>
+          <Link href="/samples/library"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'var(--navy)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+            <span>📚</span> Browse Library
+          </Link>
+        </div>
       </div>
 
       {/* Process timeline */}
@@ -94,9 +100,9 @@ export default function MySamplesPage() {
           <div style={{ fontSize: 48, marginBottom: 16 }}>🧵</div>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--navy)', marginBottom: 8 }}>No sample requests yet</h3>
           <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>Start by configuring your product and submitting a sample request</p>
-          <Link href="/products"
+          <Link href="/samples/new"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', background: 'var(--gold)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-            <Plus style={{ width: 16, height: 16 }} /> Start Sampling
+            <Plus style={{ width: 16, height: 16 }} /> New Sample Request
           </Link>
         </div>
       ) : (
