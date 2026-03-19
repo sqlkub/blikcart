@@ -13,7 +13,7 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 
 function authH(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-  return { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` };
+  return { Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}` };
 }
 
 export default function ClientProductsPage() {

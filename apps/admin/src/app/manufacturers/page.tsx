@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 function authH(json = false) {
-  const tok = typeof window !== 'undefined' ? localStorage.getItem('accessToken') || '' : '';
+  const tok = typeof window !== 'undefined' ? localStorage.getItem('adminToken') || '' : '';
   return { Authorization: `Bearer ${tok}`, ...(json ? { 'Content-Type': 'application/json' } : {}) };
 }
 
