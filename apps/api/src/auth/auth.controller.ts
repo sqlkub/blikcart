@@ -116,6 +116,13 @@ export class AuthController {
     return this.auth.saveAdminNotes(id, notes);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('admin/users/:id')
+  async deleteUser(@Param('id') id: string) {
+    return this.auth.deleteUser(id);
+  }
+
   // ── Google OAuth ──────────────────────────────────────────────────────────
   @Get('google')
   @UseGuards(AuthGuard('google'))

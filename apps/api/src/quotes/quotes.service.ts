@@ -182,4 +182,21 @@ export class QuotesService {
     if (data.notes !== undefined) updateData.notes = data.notes;
     return this.prisma.customOrder.update({ where: { id }, data: updateData });
   }
+
+  async deleteAdminCustomOrder(id: string) {
+    const quote = await this.prisma.quote.findUnique({ where: { customOrderId: id } });
+    if (quote) {
+      await this.prisma.quoteRevision.deleteMany({ where: { quoteId: quote.id } });
+      await this.prisma.quote.delete({ where: { id: quote.id } });
+    }
+    await (this.prisma as any).customOrderMessage?.deleteMany({ where: { customOrderId: id } });
+    await this.prisma.customOrder.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async deleteAdminQuote(id: string) {
+    await this.prisma.quoteRevision.deleteMany({ where: { quoteId: id } });
+    await this.prisma.quote.delete({ where: { id } });
+    return { success: true };
+  }
 }

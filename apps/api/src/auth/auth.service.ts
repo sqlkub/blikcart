@@ -276,4 +276,11 @@ export class AuthService {
     const accessToken = this.jwt.sign(payload);
     return { accessToken, user };
   }
+
+  async deleteUser(id: string) {
+    await this.prisma.refreshToken.deleteMany({ where: { userId: id } });
+    await this.prisma.address.deleteMany({ where: { userId: id } });
+    await this.prisma.user.delete({ where: { id } });
+    return { success: true };
+  }
 }

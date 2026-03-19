@@ -192,4 +192,11 @@ export class OrdersController {
   updateManufacturerOrder(@Param('id') id: string, @Request() req: any, @Body() body: any) {
     return this.orders.updateManufacturerOrder(id, req.user.id, body);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('admin/orders/:id')
+  deleteAdminOrder(@Param('id') id: string) {
+    return this.orders.deleteAdminOrder(id);
+  }
 }

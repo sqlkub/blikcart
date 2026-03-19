@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -20,6 +21,7 @@ export default function ClientProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState({ status: '', search: '' });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = () => {
     const q = new URLSearchParams();
@@ -30,6 +32,15 @@ export default function ClientProductsPage() {
   };
 
   useEffect(() => { load(); }, [filter.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function deleteProduct(id: string, name: string) {
+    if (!window.confirm(`Delete product "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await axios.delete(`${API}/client-products/admin/${id}`, { headers: authH() });
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } finally { setDeletingId(null); }
+  }
 
   const filtered = products.filter(p =>
     !filter.search ||
@@ -127,10 +138,15 @@ export default function ClientProductsPage() {
                     <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a' }}>€{Number(p.unitPrice).toFixed(2)}</td>
                     <td style={{ padding: '14px 16px', color: '#475569' }}>{p.moq} pcs</td>
                     <td style={{ padding: '14px 16px', color: '#475569' }}>{p.reorderCount || 0}</td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                       <Link href={`/client-products/${p.id}`} style={{ color: '#1A3C5E', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                         Manage →
                       </Link>
+                      <button type="button" title="Delete product" disabled={deletingId === p.id}
+                        onClick={() => deleteProduct(p.id, p.name)}
+                        style={{ marginLeft: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: deletingId === p.id ? 0.4 : 1, color: '#f87171' }}>
+                        🗑
+                      </button>
                     </td>
                   </tr>
                 );

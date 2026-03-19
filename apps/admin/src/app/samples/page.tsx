@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import { FlaskConical, Search, Filter, ChevronRight, Clock, CheckCircle, XCircle, RefreshCw, Package, Eye } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
@@ -26,6 +27,7 @@ export default function SamplesQueuePage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -41,6 +43,16 @@ export default function SamplesQueuePage() {
   }
 
   useEffect(() => { load(); }, [status, page]);
+
+  async function deleteSample(id: string, name: string) {
+    if (!window.confirm(`Delete sample "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await axios.delete(`${API}/samples/admin/${id}`, { headers: authHeaders() });
+      setSamples(prev => prev.filter(s => s.id !== id));
+      setMeta(prev => ({ ...prev, total: prev.total - 1 }));
+    } finally { setDeletingId(null); }
+  }
 
   const filtered = search
     ? samples.filter(s =>
@@ -156,10 +168,17 @@ export default function SamplesQueuePage() {
                       ) : <span className="text-gray-300 text-xs">—</span>}
                     </td>
                     <td className="px-2 py-3">
-                      <Link href={`/samples/${s.id}`}
-                        className="p-1.5 rounded text-gray-400 hover:text-[#1A3C5E] hover:bg-blue-50 transition-colors flex items-center">
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
+                      <div className="flex items-center gap-1">
+                        <button type="button" title="Delete sample" disabled={deletingId === s.id}
+                          onClick={() => deleteSample(s.id, s.productName || s.id)}
+                          className="p-1.5 rounded text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors text-base leading-none">
+                          🗑
+                        </button>
+                        <Link href={`/samples/${s.id}`}
+                          className="p-1.5 rounded text-gray-400 hover:text-[#1A3C5E] hover:bg-blue-50 transition-colors flex items-center">
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -301,4 +301,9 @@ export class SamplesService {
     if (!product) throw new BadRequestException(`No customizable product found for category: ${categorySlug}`);
     return product.id;
   }
+
+  async adminDelete(id: string) {
+    await (this.prisma as any).sample.delete({ where: { id } });
+    return { success: true };
+  }
 }

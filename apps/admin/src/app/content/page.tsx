@@ -568,61 +568,120 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
   );
 
   if (slug === 'sizing-guide') return (
-    <div>
+    <div className="space-y-2">
       <HeroEditor />
-      <div className="mb-4">
-        <p className={secHead}>Bridles &amp; Browbands Section</p>
-        <div className="grid grid-cols-1 gap-2 mb-2">
-          <div><label className={label}>Section Heading</label><input className={inp} value={parsed.bridleSizesTitle || ''} onChange={e => update(['bridleSizesTitle'], e.target.value)} placeholder="Bridles & Browbands" /></div>
+
+      {/* Bridles & Browbands */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-center gap-2">
+          <span className="text-base">🐴</span>
+          <p className="text-sm font-bold text-amber-900">Bridles &amp; Browbands</p>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={label}>Section Heading</label><input className={inp} value={parsed.bridleSizesTitle || ''} onChange={e => update(['bridleSizesTitle'], e.target.value)} placeholder="Bridles & Browbands" /></div>
+            <div><label className={label}>Note below table</label><input className={inp} value={parsed.bridleNote || ''} onChange={e => update(['bridleNote'], e.target.value)} placeholder="* All measurements are total length..." /></div>
+          </div>
           <div><label className={label}>Section Subtitle</label><textarea className={ta} rows={2} value={parsed.bridleSizesSubtitle || ''} onChange={e => update(['bridleSizesSubtitle'], e.target.value)} placeholder="Measure with a soft tape..." /></div>
-          <div><label className={label}>Table Note (below table)</label><input className={inp} value={parsed.bridleNote || ''} onChange={e => update(['bridleNote'], e.target.value)} placeholder="* All measurements are total length..." /></div>
+          <RepeatableList field="bridleSizes" title="Size Rows" template={{ size: '', headpiece: '', browband: '', noseband: '', cheekpieces: '' }} renderItem={(item, i) => (
+            <div className="grid grid-cols-5 gap-2">
+              <div><label className={label}>Size label</label><input className={inp} value={item.size || ''} onChange={e => updateItem('bridleSizes', i, 'size', e.target.value)} placeholder="e.g. Full" /></div>
+              <div><label className={label}>Headpiece (cm)</label><input className={inp} value={item.headpiece || ''} onChange={e => updateItem('bridleSizes', i, 'headpiece', e.target.value)} placeholder="65–69 cm" /></div>
+              <div><label className={label}>Browband (cm)</label><input className={inp} value={item.browband || ''} onChange={e => updateItem('bridleSizes', i, 'browband', e.target.value)} placeholder="45–49 cm" /></div>
+              <div><label className={label}>Noseband (cm)</label><input className={inp} value={item.noseband || ''} onChange={e => updateItem('bridleSizes', i, 'noseband', e.target.value)} placeholder="45–49 cm" /></div>
+              <div><label className={label}>Cheekpieces (cm)</label><input className={inp} value={item.cheekpieces || ''} onChange={e => updateItem('bridleSizes', i, 'cheekpieces', e.target.value)} placeholder="45–49 cm" /></div>
+            </div>
+          )} />
         </div>
       </div>
-      <RepeatableList field="bridleSizes" title="Bridle Sizes Rows" template={{ size: '', headpiece: '', browband: '', noseband: '', cheekpieces: '' }} renderItem={(item, i) => (
-        <div className="grid grid-cols-5 gap-2">
-          {['size','headpiece','browband','noseband','cheekpieces'].map(f => (
-            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('bridleSizes', i, f, e.target.value)} /></div>
-          ))}
+
+      {/* Horse Rugs */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-blue-50 border-b border-blue-100 px-4 py-3 flex items-center gap-2">
+          <span className="text-base">🧥</span>
+          <p className="text-sm font-bold text-blue-900">Horse Rugs</p>
         </div>
-      )} />
-      <div className="mb-4">
-        <p className={secHead}>Horse Rugs Section</p>
-        <div className="grid grid-cols-1 gap-2 mb-2">
+        <div className="p-4 space-y-3">
           <div><label className={label}>Section Heading</label><input className={inp} value={parsed.rugSizesTitle || ''} onChange={e => update(['rugSizesTitle'], e.target.value)} placeholder="Horse Rugs" /></div>
           <div><label className={label}>Section Subtitle</label><textarea className={ta} rows={2} value={parsed.rugSizesSubtitle || ''} onChange={e => update(['rugSizesSubtitle'], e.target.value)} placeholder="Rug size is measured from..." /></div>
+          <RepeatableList field="rugSizes" title="Size Rows" template={{ size: '', cm: '', back: '', chest: '', breeds: '' }} renderItem={(item, i) => (
+            <div className="grid grid-cols-5 gap-2">
+              <div><label className={label}>Size (ft)</label><input className={inp} value={item.size || ''} onChange={e => updateItem('rugSizes', i, 'size', e.target.value)} placeholder={`4'6"`} /></div>
+              <div><label className={label}>Size (cm)</label><input className={inp} value={item.cm || ''} onChange={e => updateItem('rugSizes', i, 'cm', e.target.value)} placeholder="137 cm" /></div>
+              <div><label className={label}>Back length</label><input className={inp} value={item.back || ''} onChange={e => updateItem('rugSizes', i, 'back', e.target.value)} placeholder="120 cm" /></div>
+              <div><label className={label}>Chest width</label><input className={inp} value={item.chest || ''} onChange={e => updateItem('rugSizes', i, 'chest', e.target.value)} placeholder="128 cm" /></div>
+              <div><label className={label}>Typical breed</label><input className={inp} value={item.breeds || ''} onChange={e => updateItem('rugSizes', i, 'breeds', e.target.value)} placeholder="Medium pony" /></div>
+            </div>
+          )} />
         </div>
       </div>
-      <RepeatableList field="rugSizes" title="Rug Sizes Rows" template={{ size: '', cm: '', back: '', chest: '', breeds: '' }} renderItem={(item, i) => (
-        <div className="grid grid-cols-5 gap-2">
-          {['size','cm','back','chest','breeds'].map(f => (
-            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('rugSizes', i, f, e.target.value)} /></div>
-          ))}
+
+      {/* Head Collars */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-green-50 border-b border-green-100 px-4 py-3 flex items-center gap-2">
+          <span className="text-base">🔗</span>
+          <p className="text-sm font-bold text-green-900">Head Collars &amp; Halters</p>
         </div>
-      )} />
-      <div className="mb-4">
-        <p className={secHead}>Leg Boots Section</p>
-        <div className="grid grid-cols-1 gap-2 mb-2">
-          <div><label className={label}>Section Heading</label><input className={inp} value={parsed.bootSizesTitle || ''} onChange={e => update(['bootSizesTitle'], e.target.value)} placeholder="Leg Boots" /></div>
-          <div><label className={label}>Section Subtitle</label><textarea className={ta} rows={2} value={parsed.bootSizesSubtitle || ''} onChange={e => update(['bootSizesSubtitle'], e.target.value)} placeholder="Measure the circumference..." /></div>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={label}>Section Heading</label><input className={inp} value={parsed.headCollarSizesTitle || ''} onChange={e => update(['headCollarSizesTitle'], e.target.value)} placeholder="Head Collars & Halters" /></div>
+            <div><label className={label}>Note below table</label><input className={inp} value={parsed.headCollarNote || ''} onChange={e => update(['headCollarNote'], e.target.value)} placeholder="* All leather headcollars are adjustable..." /></div>
+          </div>
+          <div><label className={label}>Section Subtitle</label><textarea className={ta} rows={2} value={parsed.headCollarSizesSubtitle || ''} onChange={e => update(['headCollarSizesSubtitle'], e.target.value)} placeholder="Measure around the nose at the widest point..." /></div>
+          <RepeatableList field="headCollarSizes" title="Size Rows" template={{ size: '', noseband: '', headpiece: '', cheekpieces: '', crown: '', fits: '' }} renderItem={(item, i) => (
+            <div className="grid grid-cols-3 gap-2">
+              <div><label className={label}>Size label</label><input className={inp} value={item.size || ''} onChange={e => updateItem('headCollarSizes', i, 'size', e.target.value)} placeholder="e.g. Cob" /></div>
+              <div><label className={label}>Noseband (cm)</label><input className={inp} value={item.noseband || ''} onChange={e => updateItem('headCollarSizes', i, 'noseband', e.target.value)} placeholder="40–46 cm" /></div>
+              <div><label className={label}>Headpiece (cm)</label><input className={inp} value={item.headpiece || ''} onChange={e => updateItem('headCollarSizes', i, 'headpiece', e.target.value)} placeholder="55–60 cm" /></div>
+              <div><label className={label}>Cheekpieces (cm)</label><input className={inp} value={item.cheekpieces || ''} onChange={e => updateItem('headCollarSizes', i, 'cheekpieces', e.target.value)} placeholder="30–34 cm" /></div>
+              <div><label className={label}>Crown (cm)</label><input className={inp} value={item.crown || ''} onChange={e => updateItem('headCollarSizes', i, 'crown', e.target.value)} placeholder="34–38 cm" /></div>
+              <div><label className={label}>Typical fit</label><input className={inp} value={item.fits || ''} onChange={e => updateItem('headCollarSizes', i, 'fits', e.target.value)} placeholder="Large pony / cob" /></div>
+            </div>
+          )} />
         </div>
       </div>
-      <RepeatableList field="bootSizes" title="Boot Sizes Rows" template={{ size: '', canon: '', fits: '' }} renderItem={(item, i) => (
-        <div className="grid grid-cols-3 gap-2">
-          {['size','canon','fits'].map(f => (
-            <div key={f}><label className={label}>{f}</label><input className={inp} value={item[f] || ''} onChange={e => updateItem('bootSizes', i, f, e.target.value)} /></div>
-          ))}
+
+      {/* Saddle Pads */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-purple-50 border-b border-purple-100 px-4 py-3 flex items-center gap-2">
+          <span className="text-base">🏇</span>
+          <p className="text-sm font-bold text-purple-900">Saddle Pads &amp; Numnahs</p>
         </div>
-      )} />
-      <div className="mb-2">
-        <p className={secHead}>How to Measure Section</p>
-        <div className="mb-2"><label className={label}>Section Heading</label><input className={inp} value={parsed.howToMeasureTitle || ''} onChange={e => update(['howToMeasureTitle'], e.target.value)} placeholder="How to Measure" /></div>
+        <div className="p-4 space-y-3">
+          <div><label className={label}>Section Heading</label><input className={inp} value={parsed.saddlePadSizesTitle || ''} onChange={e => update(['saddlePadSizesTitle'], e.target.value)} placeholder="Saddle Pads & Numnahs" /></div>
+          <div><label className={label}>Section Subtitle</label><textarea className={ta} rows={2} value={parsed.saddlePadSizesSubtitle || ''} onChange={e => update(['saddlePadSizesSubtitle'], e.target.value)} placeholder="Saddle pad size should match your saddle seat size..." /></div>
+          <RepeatableList field="saddlePadSizes" title="Size Rows" template={{ size: '', saddleSize: '', spineLength: '', panelWidth: '', overallWidth: '', fits: '' }} renderItem={(item, i) => (
+            <div className="grid grid-cols-3 gap-2">
+              <div><label className={label}>Size label</label><input className={inp} value={item.size || ''} onChange={e => updateItem('saddlePadSizes', i, 'size', e.target.value)} placeholder="e.g. Full" /></div>
+              <div><label className={label}>Saddle seat size</label><input className={inp} value={item.saddleSize || ''} onChange={e => updateItem('saddlePadSizes', i, 'saddleSize', e.target.value)} placeholder='16″ – 17″' /></div>
+              <div><label className={label}>Spine length (cm)</label><input className={inp} value={item.spineLength || ''} onChange={e => updateItem('saddlePadSizes', i, 'spineLength', e.target.value)} placeholder="52 cm" /></div>
+              <div><label className={label}>Panel width (cm)</label><input className={inp} value={item.panelWidth || ''} onChange={e => updateItem('saddlePadSizes', i, 'panelWidth', e.target.value)} placeholder="60 cm" /></div>
+              <div><label className={label}>Overall width (cm)</label><input className={inp} value={item.overallWidth || ''} onChange={e => updateItem('saddlePadSizes', i, 'overallWidth', e.target.value)} placeholder="76 cm" /></div>
+              <div><label className={label}>Fits</label><input className={inp} value={item.fits || ''} onChange={e => updateItem('saddlePadSizes', i, 'fits', e.target.value)} placeholder="Standard horse saddles" /></div>
+            </div>
+          )} />
+        </div>
       </div>
-      <RepeatableList field="howToMeasure" title="How to Measure Cards" template={{ title: '', steps: [] }} renderItem={(item, i) => (
-        <div className="space-y-2">
-          <div><label className={label}>Card Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('howToMeasure', i, 'title', e.target.value)} /></div>
-          <div><label className={label}>Steps (one per line)</label><textarea className={ta} rows={4} value={(item.steps || []).join('\n')} onChange={e => updateItem('howToMeasure', i, 'steps', e.target.value.split('\n').filter(Boolean))} /></div>
+
+      {/* How to Measure */}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
+          <span className="text-base">📏</span>
+          <p className="text-sm font-bold text-gray-700">How to Measure</p>
         </div>
-      )} />
+        <div className="p-4 space-y-3">
+          <div><label className={label}>Section Heading</label><input className={inp} value={parsed.howToMeasureTitle || ''} onChange={e => update(['howToMeasureTitle'], e.target.value)} placeholder="How to Measure" /></div>
+          <RepeatableList field="howToMeasure" title="Measurement Guide Cards" template={{ title: '', steps: [] }} renderItem={(item, i) => (
+            <div className="space-y-2">
+              <div><label className={label}>Card Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('howToMeasure', i, 'title', e.target.value)} placeholder="e.g. Headpiece / Bridle" /></div>
+              <div>
+                <label className={label}>Steps — one per line</label>
+                <textarea className={ta} rows={4} value={(item.steps || []).join('\n')} onChange={e => updateItem('howToMeasure', i, 'steps', e.target.value.split('\n').filter(Boolean))} placeholder={'Use a soft tape measure\nMeasure over the poll\nAdd 4 cm for buckle adjustment'} />
+              </div>
+            </div>
+          )} />
+        </div>
+      </div>
     </div>
   );
 
@@ -631,25 +690,25 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       <HeroEditor />
       <RepeatableList field="basePrices" title="Base Prices Table" template={{ category: '', from: 0, to: 0, moq: 1, note: '', leadTime: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-3 gap-2">
-          <div><label className={label}>Category</label><input className={inp} value={item.category || ''} onChange={e => updateItem('basePrices', i, 'category', e.target.value)} /></div>
-          <div><label className={label}>From (€)</label><input type="number" className={inp} value={item.from || 0} onChange={e => updateItem('basePrices', i, 'from', Number(e.target.value))} /></div>
-          <div><label className={label}>To (€)</label><input type="number" className={inp} value={item.to || 0} onChange={e => updateItem('basePrices', i, 'to', Number(e.target.value))} /></div>
-          <div><label className={label}>MOQ</label><input type="number" className={inp} value={item.moq || 1} onChange={e => updateItem('basePrices', i, 'moq', Number(e.target.value))} /></div>
-          <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('basePrices', i, 'leadTime', e.target.value)} /></div>
-          <div><label className={label}>Note</label><input className={inp} value={item.note || ''} onChange={e => updateItem('basePrices', i, 'note', e.target.value)} /></div>
+          <div><label className={label}>Category</label><input className={inp} title="Category" placeholder="e.g. Bridles" value={item.category || ''} onChange={e => updateItem('basePrices', i, 'category', e.target.value)} /></div>
+          <div><label className={label}>From (€)</label><input type="number" className={inp} title="From price (€)" placeholder="0" value={item.from || 0} onChange={e => updateItem('basePrices', i, 'from', Number(e.target.value))} /></div>
+          <div><label className={label}>To (€)</label><input type="number" className={inp} title="To price (€)" placeholder="0" value={item.to || 0} onChange={e => updateItem('basePrices', i, 'to', Number(e.target.value))} /></div>
+          <div><label className={label}>MOQ</label><input type="number" className={inp} title="Minimum order quantity" placeholder="1" value={item.moq || 1} onChange={e => updateItem('basePrices', i, 'moq', Number(e.target.value))} /></div>
+          <div><label className={label}>Lead Time</label><input className={inp} title="Lead time" placeholder="e.g. 3–4 weeks" value={item.leadTime || ''} onChange={e => updateItem('basePrices', i, 'leadTime', e.target.value)} /></div>
+          <div><label className={label}>Note</label><input className={inp} title="Note" placeholder="e.g. Custom hardware" value={item.note || ''} onChange={e => updateItem('basePrices', i, 'note', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="volumeTiers" title="Volume Discount Tiers" template={{ range: '', discount: '', highlight: false }} renderItem={(item, i) => (
         <div className="grid grid-cols-3 gap-2 items-end">
-          <div><label className={label}>Range</label><input className={inp} value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
-          <div><label className={label}>Discount</label><input className={inp} value={item.discount || ''} onChange={e => updateItem('volumeTiers', i, 'discount', e.target.value)} /></div>
+          <div><label className={label}>Range</label><input className={inp} title="Quantity range" placeholder="e.g. 50–99" value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
+          <div><label className={label}>Discount</label><input className={inp} title="Discount" placeholder="e.g. 5%" value={item.discount || ''} onChange={e => updateItem('volumeTiers', i, 'discount', e.target.value)} /></div>
           <div><label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase cursor-pointer mt-4"><input type="checkbox" checked={item.highlight || false} onChange={e => updateItem('volumeTiers', i, 'highlight', e.target.checked)} /> Highlight (Most Popular)</label></div>
         </div>
       )} />
       <div className="mb-4">
         <p className={secHead}>Express Production Section</p>
-        <div><label className={label}>Title</label><input className={inp} value={parsed.expressSection?.title || ''} onChange={e => update(['expressSection', 'title'], e.target.value)} /></div>
-        <div className="mt-2"><label className={label}>Body</label><textarea className={ta} rows={3} value={parsed.expressSection?.body || ''} onChange={e => update(['expressSection', 'body'], e.target.value)} /></div>
+        <div><label className={label}>Title</label><input className={inp} title="Section title" placeholder="Express Production" value={parsed.expressSection?.title || ''} onChange={e => update(['expressSection', 'title'], e.target.value)} /></div>
+        <div className="mt-2"><label className={label}>Body</label><textarea className={ta} title="Section body" placeholder="Add a body description..." rows={3} value={parsed.expressSection?.body || ''} onChange={e => update(['expressSection', 'body'], e.target.value)} /></div>
       </div>
     </div>
   );
@@ -660,25 +719,25 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       <RepeatableList field="processSteps" title="Process Steps" template={{ step: 1, title: '', desc: '' }} renderItem={(item, i) => (
         <div className="space-y-2">
           <div className="grid grid-cols-4 gap-2">
-            <div><label className={label}>Step #</label><input type="number" className={inp} value={item.step || i+1} onChange={e => updateItem('processSteps', i, 'step', Number(e.target.value))} /></div>
-            <div className="col-span-3"><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('processSteps', i, 'title', e.target.value)} /></div>
+            <div><label className={label}>Step #</label><input type="number" className={inp} title="Step number" placeholder="1" value={item.step || i+1} onChange={e => updateItem('processSteps', i, 'step', Number(e.target.value))} /></div>
+            <div className="col-span-3"><label className={label}>Title</label><input className={inp} title="Step title" placeholder="e.g. Submit your brief" value={item.title || ''} onChange={e => updateItem('processSteps', i, 'title', e.target.value)} /></div>
           </div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('processSteps', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Step description" placeholder="Describe this step..." rows={2} value={item.desc || ''} onChange={e => updateItem('processSteps', i, 'desc', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="categories" title="Product Categories" template={{ slug: '', name: '', from: 0, leadTime: '', moq: 1 }} renderItem={(item, i) => (
         <div className="grid grid-cols-3 gap-2">
-          <div><label className={label}>Slug</label><input className={inp} value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
-          <div><label className={label}>Name</label><input className={inp} value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
-          <div><label className={label}>From (€)</label><input type="number" className={inp} value={item.from || 0} onChange={e => updateItem('categories', i, 'from', Number(e.target.value))} /></div>
-          <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
-          <div><label className={label}>MOQ</label><input type="number" className={inp} value={item.moq || 1} onChange={e => updateItem('categories', i, 'moq', Number(e.target.value))} /></div>
+          <div><label className={label}>Slug</label><input className={inp} title="URL slug" placeholder="e.g. bridles" value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
+          <div><label className={label}>Name</label><input className={inp} title="Category name" placeholder="e.g. Bridles" value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
+          <div><label className={label}>From (€)</label><input type="number" className={inp} title="Starting price (€)" placeholder="0" value={item.from || 0} onChange={e => updateItem('categories', i, 'from', Number(e.target.value))} /></div>
+          <div><label className={label}>Lead Time</label><input className={inp} title="Lead time" placeholder="e.g. 3–4 weeks" value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
+          <div><label className={label}>MOQ</label><input type="number" className={inp} title="Minimum order quantity" placeholder="1" value={item.moq || 1} onChange={e => updateItem('categories', i, 'moq', Number(e.target.value))} /></div>
         </div>
       )} />
       <RepeatableList field="capabilities" title="Capabilities" template={{ label: '', desc: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-2 gap-2">
-          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('capabilities', i, 'label', e.target.value)} /></div>
-          <div><label className={label}>Description</label><input className={inp} value={item.desc || ''} onChange={e => updateItem('capabilities', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} title="Capability label" placeholder="e.g. Personalisation" value={item.label || ''} onChange={e => updateItem('capabilities', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Description</label><input className={inp} title="Capability description" placeholder="Short description..." value={item.desc || ''} onChange={e => updateItem('capabilities', i, 'desc', e.target.value)} /></div>
         </div>
       )} />
     </div>
@@ -689,42 +748,42 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       <HeroEditor />
       <RepeatableList field="stats" title="Stats Bar" template={{ value: '', label: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-2 gap-2">
-          <div><label className={label}>Value</label><input className={inp} value={item.value || ''} onChange={e => updateItem('stats', i, 'value', e.target.value)} /></div>
-          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Value</label><input className={inp} title="Stat value" placeholder="e.g. 500+" value={item.value || ''} onChange={e => updateItem('stats', i, 'value', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} title="Stat label" placeholder="e.g. Brands served" value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="features" title="Features / Benefits" template={{ title: '', desc: '' }} renderItem={(item, i) => (
         <div className="space-y-2">
-          <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('features', i, 'title', e.target.value)} /></div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('features', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="Feature title" placeholder="e.g. Custom Branding" value={item.title || ''} onChange={e => updateItem('features', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Feature description" placeholder="Short description..." rows={2} value={item.desc || ''} onChange={e => updateItem('features', i, 'desc', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="steps" title="How to Get Access Steps" template={{ step: '01', title: '', desc: '', link: '', linkText: '' }} renderItem={(item, i) => (
         <div className="space-y-2">
           <div className="grid grid-cols-4 gap-2">
-            <div><label className={label}>Step label</label><input className={inp} value={item.step || ''} onChange={e => updateItem('steps', i, 'step', e.target.value)} /></div>
-            <div className="col-span-3"><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('steps', i, 'title', e.target.value)} /></div>
+            <div><label className={label}>Step label</label><input className={inp} title="Step label" placeholder="01" value={item.step || ''} onChange={e => updateItem('steps', i, 'step', e.target.value)} /></div>
+            <div className="col-span-3"><label className={label}>Title</label><input className={inp} title="Step title" placeholder="e.g. Apply for an account" value={item.title || ''} onChange={e => updateItem('steps', i, 'title', e.target.value)} /></div>
           </div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('steps', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Step description" placeholder="Describe this step..." rows={2} value={item.desc || ''} onChange={e => updateItem('steps', i, 'desc', e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div><label className={label}>Link URL (optional)</label><input className={inp} value={item.link || ''} onChange={e => updateItem('steps', i, 'link', e.target.value)} /></div>
-            <div><label className={label}>Link Text (optional)</label><input className={inp} value={item.linkText || ''} onChange={e => updateItem('steps', i, 'linkText', e.target.value)} /></div>
+            <div><label className={label}>Link URL (optional)</label><input className={inp} title="Link URL" placeholder="/wholesale" value={item.link || ''} onChange={e => updateItem('steps', i, 'link', e.target.value)} /></div>
+            <div><label className={label}>Link Text (optional)</label><input className={inp} title="Link text" placeholder="Apply now" value={item.linkText || ''} onChange={e => updateItem('steps', i, 'linkText', e.target.value)} /></div>
           </div>
         </div>
       )} />
       <RepeatableList field="volumeTiers" title="Volume Tiers" template={{ range: '', pct: '', note: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-3 gap-2">
-          <div><label className={label}>Range</label><input className={inp} value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
-          <div><label className={label}>Discount %</label><input className={inp} value={item.pct || ''} onChange={e => updateItem('volumeTiers', i, 'pct', e.target.value)} /></div>
-          <div><label className={label}>Badge (empty = no badge)</label><input className={inp} placeholder="e.g. Popular" value={item.note || ''} onChange={e => updateItem('volumeTiers', i, 'note', e.target.value)} /></div>
+          <div><label className={label}>Range</label><input className={inp} title="Quantity range" placeholder="e.g. 50–99 units" value={item.range || ''} onChange={e => updateItem('volumeTiers', i, 'range', e.target.value)} /></div>
+          <div><label className={label}>Discount %</label><input className={inp} title="Discount percentage" placeholder="e.g. 5%" value={item.pct || ''} onChange={e => updateItem('volumeTiers', i, 'pct', e.target.value)} /></div>
+          <div><label className={label}>Badge (empty = no badge)</label><input className={inp} title="Badge text" placeholder="e.g. Popular" value={item.note || ''} onChange={e => updateItem('volumeTiers', i, 'note', e.target.value)} /></div>
         </div>
       )} />
       <div className="mb-4">
         <p className={secHead}>CTA Block</p>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={label}>Title</label><input className={inp} value={parsed.cta?.title || ''} onChange={e => update(['cta', 'title'], e.target.value)} /></div>
-          <div><label className={label}>Email</label><input className={inp} value={parsed.cta?.email || ''} onChange={e => update(['cta', 'email'], e.target.value)} /></div>
-          <div className="col-span-2"><label className={label}>Body</label><textarea className={ta} rows={2} value={parsed.cta?.body || ''} onChange={e => update(['cta', 'body'], e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="CTA title" placeholder="Get in touch" value={parsed.cta?.title || ''} onChange={e => update(['cta', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Email</label><input className={inp} title="Contact email" placeholder="hello@blikcart.com" value={parsed.cta?.email || ''} onChange={e => update(['cta', 'email'], e.target.value)} /></div>
+          <div className="col-span-2"><label className={label}>Body</label><textarea className={ta} title="CTA body text" placeholder="Body text..." rows={2} value={parsed.cta?.body || ''} onChange={e => update(['cta', 'body'], e.target.value)} /></div>
         </div>
       </div>
     </div>
@@ -735,23 +794,23 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       <HeroEditor />
       <RepeatableList field="contactCards" title="Contact Cards" template={{ label: '', value: '', sub: '', link: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-2 gap-2">
-          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('contactCards', i, 'label', e.target.value)} /></div>
-          <div><label className={label}>Value (email / phone / location)</label><input className={inp} value={item.value || ''} onChange={e => updateItem('contactCards', i, 'value', e.target.value)} /></div>
-          <div><label className={label}>Sub-text</label><input className={inp} value={item.sub || ''} onChange={e => updateItem('contactCards', i, 'sub', e.target.value)} /></div>
-          <div><label className={label}>Link (mailto: / tel: / empty)</label><input className={inp} value={item.link || ''} onChange={e => updateItem('contactCards', i, 'link', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} title="Card label" placeholder="e.g. Email" value={item.label || ''} onChange={e => updateItem('contactCards', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Value (email / phone / location)</label><input className={inp} title="Contact value" placeholder="hello@blikcart.com" value={item.value || ''} onChange={e => updateItem('contactCards', i, 'value', e.target.value)} /></div>
+          <div><label className={label}>Sub-text</label><input className={inp} title="Sub-text" placeholder="e.g. Mon–Fri 9am–5pm" value={item.sub || ''} onChange={e => updateItem('contactCards', i, 'sub', e.target.value)} /></div>
+          <div><label className={label}>Link (mailto: / tel: / empty)</label><input className={inp} title="Link" placeholder="mailto:hello@blikcart.com" value={item.link || ''} onChange={e => updateItem('contactCards', i, 'link', e.target.value)} /></div>
         </div>
       )} />
       <div className="mb-6">
         <p className={secHead}>Form Section</p>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div><label className={label}>Title</label><input className={inp} value={parsed.formSection?.title || ''} onChange={e => update(['formSection', 'title'], e.target.value)} /></div>
-          <div><label className={label}>Body</label><input className={inp} value={parsed.formSection?.body || ''} onChange={e => update(['formSection', 'body'], e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="Form section title" placeholder="Send us a message" value={parsed.formSection?.title || ''} onChange={e => update(['formSection', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Body</label><input className={inp} title="Form section body" placeholder="We'll get back to you within..." value={parsed.formSection?.body || ''} onChange={e => update(['formSection', 'body'], e.target.value)} /></div>
         </div>
-        <div><label className={label}>Topic Options (one per line)</label><textarea className={ta} rows={6} value={(parsed.formSection?.topics || []).join('\n')} onChange={e => update(['formSection', 'topics'], e.target.value.split('\n').filter(Boolean))} /></div>
+        <div><label className={label}>Topic Options (one per line)</label><textarea className={ta} title="Topic options" placeholder={'Order enquiry\nSampling\nWholesale'} rows={6} value={(parsed.formSection?.topics || []).join('\n')} onChange={e => update(['formSection', 'topics'], e.target.value.split('\n').filter(Boolean))} /></div>
       </div>
       <div className="mb-4">
         <p className={secHead}>Response Times (one per line)</p>
-        <textarea className={ta} rows={4} value={(parsed.responseTimes || []).join('\n')} onChange={e => update(['responseTimes'], e.target.value.split('\n').filter(Boolean))} />
+        <textarea className={ta} title="Response times" placeholder={'Email: within 24 hours\nPhone: Mon–Fri 9am–5pm'} rows={4} value={(parsed.responseTimes || []).join('\n')} onChange={e => update(['responseTimes'], e.target.value.split('\n').filter(Boolean))} />
       </div>
     </div>
   );
@@ -761,8 +820,8 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       <HeroEditor />
       <RepeatableList field="stats" title="Stats Bar" template={{ num: '', label: '' }} renderItem={(item, i) => (
         <div className="grid grid-cols-2 gap-2">
-          <div><label className={label}>Number/Value</label><input className={inp} value={item.num || ''} onChange={e => updateItem('stats', i, 'num', e.target.value)} /></div>
-          <div><label className={label}>Label</label><input className={inp} value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
+          <div><label className={label}>Number/Value</label><input className={inp} title="Stat number or value" placeholder="e.g. 500+" value={item.num || ''} onChange={e => updateItem('stats', i, 'num', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} title="Stat label" placeholder="e.g. Products designed" value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="lifecycle" title="Lifecycle Steps" template={{ phase: 'You', step: 1, title: '', desc: '' }} renderItem={(item, i) => (
@@ -774,43 +833,43 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
                 <option value="You">You</option><option value="Blikcart">Blikcart</option><option value="Delivered">Delivered</option>
               </select>
             </div>
-            <div><label className={label}>Step #</label><input type="number" className={inp} value={item.step || i+1} onChange={e => updateItem('lifecycle', i, 'step', Number(e.target.value))} /></div>
-            <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('lifecycle', i, 'title', e.target.value)} /></div>
+            <div><label className={label}>Step #</label><input type="number" className={inp} title="Step number" placeholder="1" value={item.step || i+1} onChange={e => updateItem('lifecycle', i, 'step', Number(e.target.value))} /></div>
+            <div><label className={label}>Title</label><input className={inp} title="Step title" placeholder="e.g. Design your product" value={item.title || ''} onChange={e => updateItem('lifecycle', i, 'title', e.target.value)} /></div>
           </div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('lifecycle', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Step description" placeholder="Describe this step..." rows={2} value={item.desc || ''} onChange={e => updateItem('lifecycle', i, 'desc', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="categories" title="Product Categories" template={{ slug: '', name: '', description: '', leadTime: '', minOrder: 1, steps: 7 }} renderItem={(item, i) => (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-2">
-            <div><label className={label}>Slug</label><input className={inp} value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
-            <div><label className={label}>Name</label><input className={inp} value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
-            <div><label className={label}>Lead Time</label><input className={inp} value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
+            <div><label className={label}>Slug</label><input className={inp} title="URL slug" placeholder="e.g. bridles" value={item.slug || ''} onChange={e => updateItem('categories', i, 'slug', e.target.value)} /></div>
+            <div><label className={label}>Name</label><input className={inp} title="Category name" placeholder="e.g. Bridles" value={item.name || ''} onChange={e => updateItem('categories', i, 'name', e.target.value)} /></div>
+            <div><label className={label}>Lead Time</label><input className={inp} title="Lead time" placeholder="e.g. 3–4 weeks" value={item.leadTime || ''} onChange={e => updateItem('categories', i, 'leadTime', e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div><label className={label}>Min Order</label><input type="number" className={inp} value={item.minOrder || 1} onChange={e => updateItem('categories', i, 'minOrder', Number(e.target.value))} /></div>
-            <div><label className={label}>Config Steps</label><input type="number" className={inp} value={item.steps || 7} onChange={e => updateItem('categories', i, 'steps', Number(e.target.value))} /></div>
+            <div><label className={label}>Min Order</label><input type="number" className={inp} title="Minimum order quantity" placeholder="1" value={item.minOrder || 1} onChange={e => updateItem('categories', i, 'minOrder', Number(e.target.value))} /></div>
+            <div><label className={label}>Config Steps</label><input type="number" className={inp} title="Number of configurator steps" placeholder="7" value={item.steps || 7} onChange={e => updateItem('categories', i, 'steps', Number(e.target.value))} /></div>
           </div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.description || ''} onChange={e => updateItem('categories', i, 'description', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Category description" placeholder="Short description..." rows={2} value={item.description || ''} onChange={e => updateItem('categories', i, 'description', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="whyBlikcart" title="Why Blikcart" template={{ title: '', desc: '' }} renderItem={(item, i) => (
         <div className="space-y-2">
-          <div><label className={label}>Title</label><input className={inp} value={item.title || ''} onChange={e => updateItem('whyBlikcart', i, 'title', e.target.value)} /></div>
-          <div><label className={label}>Description</label><textarea className={ta} rows={2} value={item.desc || ''} onChange={e => updateItem('whyBlikcart', i, 'desc', e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="Reason title" placeholder="e.g. Expert craftsmanship" value={item.title || ''} onChange={e => updateItem('whyBlikcart', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Description</label><textarea className={ta} title="Reason description" placeholder="Short description..." rows={2} value={item.desc || ''} onChange={e => updateItem('whyBlikcart', i, 'desc', e.target.value)} /></div>
         </div>
       )} />
       <RepeatableList field="faqs" title="FAQs" template={{ q: '', a: '' }} renderItem={(item, i) => (
         <div className="space-y-2">
-          <div><label className={label}>Question</label><input className={inp} value={item.q || ''} onChange={e => updateItem('faqs', i, 'q', e.target.value)} /></div>
-          <div><label className={label}>Answer</label><textarea className={ta} rows={3} value={item.a || ''} onChange={e => updateItem('faqs', i, 'a', e.target.value)} /></div>
+          <div><label className={label}>Question</label><input className={inp} title="FAQ question" placeholder="e.g. What is the minimum order?" value={item.q || ''} onChange={e => updateItem('faqs', i, 'q', e.target.value)} /></div>
+          <div><label className={label}>Answer</label><textarea className={ta} title="FAQ answer" placeholder="Type the answer here..." rows={3} value={item.a || ''} onChange={e => updateItem('faqs', i, 'a', e.target.value)} /></div>
         </div>
       )} />
       <div className="mb-4">
         <p className={secHead}>Final CTA</p>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className={label}>Title</label><input className={inp} value={parsed.finalCta?.title || ''} onChange={e => update(['finalCta', 'title'], e.target.value)} /></div>
-          <div><label className={label}>Body</label><input className={inp} value={parsed.finalCta?.body || ''} onChange={e => update(['finalCta', 'body'], e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="CTA title" placeholder="Ready to design your own?" value={parsed.finalCta?.title || ''} onChange={e => update(['finalCta', 'title'], e.target.value)} /></div>
+          <div><label className={label}>Body</label><input className={inp} title="CTA body" placeholder="Short supporting text..." value={parsed.finalCta?.body || ''} onChange={e => update(['finalCta', 'body'], e.target.value)} /></div>
         </div>
       </div>
     </div>
@@ -902,17 +961,17 @@ function PagesTab() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Title *</label>
-              <input type="text" value={newForm.title} onChange={e => setNewForm(f => ({ ...f, title: e.target.value }))}
+              <input type="text" title="Page title" placeholder="About Us" value={newForm.title} onChange={e => setNewForm(f => ({ ...f, title: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Meta Title</label>
-              <input type="text" value={newForm.metaTitle} onChange={e => setNewForm(f => ({ ...f, metaTitle: e.target.value }))}
+              <input type="text" title="Meta title for SEO" placeholder="About Us — Blikcart" value={newForm.metaTitle} onChange={e => setNewForm(f => ({ ...f, metaTitle: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Meta Description</label>
-              <input type="text" value={newForm.metaDescription} onChange={e => setNewForm(f => ({ ...f, metaDescription: e.target.value }))}
+              <input type="text" title="Meta description for SEO" placeholder="Short description for search engines..." value={newForm.metaDescription} onChange={e => setNewForm(f => ({ ...f, metaDescription: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]" />
             </div>
           </div>

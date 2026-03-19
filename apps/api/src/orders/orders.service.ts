@@ -846,4 +846,10 @@ export class OrdersService {
     const subtotal = items.reduce((sum: number, i: any) => sum + i.total, 0);
     return { id: cart.id, items, subtotal: Math.round(subtotal * 100) / 100, itemCount: items.length };
   }
+
+  async deleteAdminOrder(id: string) {
+    await this.prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await (this.prisma.order as any).delete({ where: { id } });
+    return { success: true };
+  }
 }

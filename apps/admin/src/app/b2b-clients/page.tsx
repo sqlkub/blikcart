@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import { Building2, Search, ChevronRight, ShoppingBag, FlaskConical, TrendingUp, Clock } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
@@ -19,6 +20,7 @@ export default function B2BClientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'spend' | 'orders' | 'name'>('spend');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -51,6 +53,15 @@ export default function B2BClientsPage() {
     }
     load();
   }, []);
+
+  async function deleteClient(id: string, name: string) {
+    if (!window.confirm(`Delete client "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await axios.delete(`${API}/auth/admin/users/${id}`, { headers: authHeaders() });
+      setClients(prev => prev.filter(c => c.id !== id));
+    } finally { setDeletingId(null); }
+  }
 
   const filtered = clients
     .filter(c =>
@@ -169,10 +180,17 @@ export default function B2BClientsPage() {
                     {new Date(c.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-2 py-3">
-                    <Link href={`/b2b-clients/${c.id}`}
-                      className="p-1.5 rounded text-gray-400 hover:text-[#1A3C5E] hover:bg-blue-50 transition-colors flex items-center">
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <button type="button" title="Delete client" disabled={deletingId === c.id}
+                        onClick={() => deleteClient(c.id, c.companyName || c.fullName || c.email)}
+                        className="p-1.5 rounded text-red-400 hover:text-red-600 disabled:opacity-40 transition-colors text-base leading-none">
+                        🗑
+                      </button>
+                      <Link href={`/b2b-clients/${c.id}`}
+                        className="p-1.5 rounded text-gray-400 hover:text-[#1A3C5E] hover:bg-blue-50 transition-colors flex items-center">
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

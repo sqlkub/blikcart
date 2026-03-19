@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ClientProductsService } from './client-products.service';
@@ -47,5 +47,10 @@ export class ClientProductsController {
   @Post('admin/:id/new-version')
   adminNewVersion(@Param('id') id: string, @Body() body: any) {
     return this.svc.adminNewVersion(id, body);
+  }
+
+  @Delete('admin/:id')
+  adminDelete(@Param('id') id: string) {
+    return this.svc.adminDelete(id);
   }
 }

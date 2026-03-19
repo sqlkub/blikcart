@@ -33,6 +33,7 @@ export default function CustomersPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -74,6 +75,17 @@ export default function CustomersPage() {
     const a = document.createElement('a');
     a.href = url; a.download = 'customers.csv'; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function deleteCustomer(id: string, name: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete customer "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await axios.delete(`${API}/auth/admin/users/${id}`, { headers: authHeaders() });
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      setTotal(prev => prev - 1);
+    } finally { setDeletingId(null); }
   }
 
   const totalPages = Math.ceil(total / LIMIT);
@@ -133,7 +145,7 @@ export default function CustomersPage() {
           <table className="w-full">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                {['Name', 'Email', 'Type / Tier', 'VAT', 'Orders', 'Total Spend', 'Registered'].map(h => (
+                {['Name', 'Email', 'Type / Tier', 'VAT', 'Orders', 'Total Spend', 'Registered', ''].map(h => (
                   <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -176,6 +188,13 @@ export default function CustomersPage() {
                         {c.totalSpend > 0 ? `€${c.totalSpend.toFixed(2)}` : '—'}
                       </td>
                       <td className="px-5 py-4 text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                      <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
+                        <button type="button" title="Delete customer" disabled={deletingId === c.id}
+                          onClick={e => deleteCustomer(c.id, c.fullName || c.email, e)}
+                          className="text-red-400 hover:text-red-600 disabled:opacity-40 text-base leading-none">
+                          🗑
+                        </button>
+                      </td>
                     </tr>
                   ))
                   : (

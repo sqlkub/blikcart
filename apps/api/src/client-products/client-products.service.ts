@@ -224,4 +224,10 @@ export class ClientProductsService {
       reorderCount: p._count?.reorders ?? 0,
     };
   }
+
+  async adminDelete(id: string) {
+    await (this.prisma as any).clientProductReorder.deleteMany({ where: { clientProductId: id } });
+    await (this.prisma as any).clientProduct.delete({ where: { id } });
+    return { success: true };
+  }
 }

@@ -58,6 +58,7 @@ function AllOrdersTab() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,6 +83,16 @@ function AllOrdersTab() {
       });
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } finally { setUpdatingId(null); }
+  }
+
+  async function deleteOrder(orderId: string, orderNumber: string) {
+    if (!window.confirm(`Delete order #${orderNumber}? This cannot be undone.`)) return;
+    setDeletingId(orderId);
+    const token = localStorage.getItem('adminToken');
+    try {
+      await axios.delete(`${API}/orders/admin/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    } finally { setDeletingId(null); }
   }
 
   const filtered = orders.filter(o => {
@@ -140,8 +151,8 @@ function AllOrdersTab() {
         <table className="w-full">
           <thead>
             <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-              {['Order #', 'Customer', 'Type', 'Items', 'Total', 'Status', 'Date', 'Update', ''].map(h => (
-                <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
+              {['Order #', 'Customer', 'Type', 'Items', 'Total', 'Status', 'Date', 'Update', '', ''].map((h, i) => (
+                <th key={i} className="text-left px-5 py-3 font-semibold">{h}</th>
               ))}
             </tr>
           </thead>
@@ -187,6 +198,13 @@ function AllOrdersTab() {
                   <Link href={`/orders/${o.id}`} className="text-xs font-semibold text-[#1A3C5E] hover:underline whitespace-nowrap">
                     View →
                   </Link>
+                </td>
+                <td className="px-3 py-4">
+                  <button type="button" title="Delete order" disabled={deletingId === o.id}
+                    onClick={() => deleteOrder(o.id, o.orderNumber || o.id.slice(0, 8).toUpperCase())}
+                    className="text-red-400 hover:text-red-600 disabled:opacity-40 text-base leading-none">
+                    🗑
+                  </button>
                 </td>
               </tr>
             )) : (
@@ -265,6 +283,7 @@ function CustomOrdersTab() {
 
   // Individual
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -331,6 +350,16 @@ function CustomOrdersTab() {
   }
   function toggleRow(id: string) {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async function deleteCustomOrder(orderId: string) {
+    if (!window.confirm('Delete this custom order? This cannot be undone.')) return;
+    setDeletingId(orderId);
+    const token = localStorage.getItem('adminToken');
+    try {
+      await axios.delete(`${API}/quotes/admin/custom-orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    } finally { setDeletingId(null); }
   }
 
   async function updateStatus(orderId: string, newStatus: string) {
@@ -648,6 +677,13 @@ function CustomOrdersTab() {
                       {o.status === 'submitted' ? 'Quote →' : 'View →'}
                     </Link>
                   </td>
+                  <td className="px-3 py-4">
+                    <button type="button" title="Delete" disabled={deletingId === o.id}
+                      onClick={() => deleteCustomOrder(o.id)}
+                      className="text-red-400 hover:text-red-600 disabled:opacity-40 text-base leading-none">
+                      🗑
+                    </button>
+                  </td>
                 </tr>
               );
             }) : (
@@ -670,6 +706,7 @@ function QuotesTab() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -685,6 +722,16 @@ function QuotesTab() {
   }, [statusFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function deleteQuote(quoteId: string) {
+    if (!window.confirm('Delete this quote? This cannot be undone.')) return;
+    setDeletingId(quoteId);
+    const token = localStorage.getItem('adminToken');
+    try {
+      await axios.delete(`${API}/quotes/admin/quotes/${quoteId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setQuotes(prev => prev.filter(q => q.id !== quoteId));
+    } finally { setDeletingId(null); }
+  }
 
   const accepted = quotes.filter(q => q.status === 'accepted').length;
   const declined = quotes.filter(q => q.status === 'declined').length;
@@ -763,6 +810,13 @@ function QuotesTab() {
                       className="text-xs font-semibold text-[#1A3C5E] hover:underline whitespace-nowrap">
                       {q.status === 'sent' || q.status === 'revised' ? 'Revise →' : 'View →'}
                     </Link>
+                  </td>
+                  <td className="px-3 py-4">
+                    <button type="button" title="Delete quote" disabled={deletingId === q.id}
+                      onClick={() => deleteQuote(q.id)}
+                      className="text-red-400 hover:text-red-600 disabled:opacity-40 text-base leading-none">
+                      🗑
+                    </button>
                   </td>
                 </tr>
               );

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SamplesService } from './samples.service';
@@ -72,5 +72,10 @@ export class SamplesController {
   @Patch('admin/library/:templateId/visibility')
   adminToggleVisibility(@Param('templateId') id: string, @Body('isPublic') isPublic: boolean) {
     return this.samples.toggleTemplateVisibility(id, isPublic);
+  }
+
+  @Delete('admin/:id')
+  adminDelete(@Param('id') id: string) {
+    return this.samples.adminDelete(id);
   }
 }

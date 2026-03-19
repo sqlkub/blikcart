@@ -11,14 +11,16 @@ const DEFAULT = {
   bridleSizesSubtitle: 'Measure with a soft tape. Sizes listed are the adjustable range. When between sizes, choose the larger.',
   rugSizesTitle: 'Horse Rugs',
   rugSizesSubtitle: 'Rug size is measured from the centre of the chest to the tail (back length). Measure along the horse\'s back, not beneath the belly.',
-  bootSizesTitle: 'Leg Boots',
-  bootSizesSubtitle: 'Measure the circumference of the cannon bone at its widest point with a soft tape.',
+  headCollarSizesTitle: 'Head Collars & Halters',
+  headCollarSizesSubtitle: 'Measure around the nose at the widest point (noseband), and over the poll from ring to ring (headpiece). All sizes are adjustable within the stated range.',
+  saddlePadSizesTitle: 'Saddle Pads & Numnahs',
+  saddlePadSizesSubtitle: 'Saddle pad size should match your saddle seat size. Measure spine length from front of pad to back edge along the centre channel. When between sizes, size up.',
   howToMeasureTitle: 'How to Measure',
   bridleSizes: [
-    { size: 'Pony',    headpiece: '50–55 cm', browband: '35-40 cm', noseband: '35-40 cm', cheekpieces: '35–40 cm' },
-    { size: 'Cob',     headpiece: '55–59 cm', browband: '40-44 cm', noseband: '40-44 cm', cheekpieces: '40–44 cm' },
-    { size: 'Full',    headpiece: '65–69 cm', browband: '45-49 cm', noseband: '45-49 cm', cheekpieces: '45–49 cm' },
-    { size: 'Full XL', headpiece: '75–79 cm', browband: '50-54 cm', noseband: '50-54 cm', cheekpieces: '50–54 cm' },
+    { size: 'Pony',    headpiece: '50–55 cm', browband: '35–40 cm', noseband: '35–40 cm', cheekpieces: '35–40 cm' },
+    { size: 'Cob',     headpiece: '55–59 cm', browband: '40–44 cm', noseband: '40–44 cm', cheekpieces: '40–44 cm' },
+    { size: 'Full',    headpiece: '65–69 cm', browband: '45–49 cm', noseband: '45–49 cm', cheekpieces: '45–49 cm' },
+    { size: 'Full XL', headpiece: '75–79 cm', browband: '50–54 cm', noseband: '50–54 cm', cheekpieces: '50–54 cm' },
   ],
   bridleNote: '* All measurements are total length of leather on the buckle holes.',
   rugSizes: [
@@ -32,17 +34,25 @@ const DEFAULT = {
     { size: "6'0\"", cm: '183 cm', back: '161 cm', chest: '174 cm', breeds: 'XL WB / Draught' },
     { size: "6'3\"", cm: '191 cm', back: '168 cm', chest: '182 cm', breeds: 'XXL / Draught' },
   ],
-  bootSizes: [
-    { size: 'XS', canon: '< 19 cm',  fits: 'Small pony, fine-boned' },
-    { size: 'S',  canon: '19–21 cm', fits: 'Pony / small cob' },
-    { size: 'M',  canon: '21–23 cm', fits: 'Cob / average horse' },
-    { size: 'L',  canon: '23–25 cm', fits: 'Warmblood / TB' },
-    { size: 'XL', canon: '25–28 cm', fits: 'Large WB / Draught cross' },
+  headCollarSizes: [
+    { size: 'Mini / Foal', noseband: '28–32 cm', headpiece: '40–46 cm', cheekpieces: '20–24 cm', crown: '26–30 cm', fits: 'Miniature / newborn foal' },
+    { size: 'Pony',        noseband: '34–40 cm', headpiece: '50–55 cm', cheekpieces: '26–30 cm', crown: '30–34 cm', fits: 'Small to medium pony' },
+    { size: 'Cob',         noseband: '40–46 cm', headpiece: '55–60 cm', cheekpieces: '30–34 cm', crown: '34–38 cm', fits: 'Large pony / cob' },
+    { size: 'Full',        noseband: '46–52 cm', headpiece: '62–68 cm', cheekpieces: '34–38 cm', crown: '38–42 cm', fits: 'Average horse / TB' },
+    { size: 'Full XL',     noseband: '52–58 cm', headpiece: '68–74 cm', cheekpieces: '38–42 cm', crown: '42–46 cm', fits: 'Warmblood / large draught' },
+  ],
+  headCollarNote: '* All leather headcollars are adjustable at the noseband and headpiece. Measurements are total strap length.',
+  saddlePadSizes: [
+    { size: 'Pony',       saddleSize: '12″ – 14″',   spineLength: '45 cm', panelWidth: '50 cm', overallWidth: '64 cm', fits: 'Pony saddles' },
+    { size: 'Cob / Sml',  saddleSize: '14.5″ – 15.5″', spineLength: '48 cm', panelWidth: '55 cm', overallWidth: '70 cm', fits: 'Cob & small horse saddles' },
+    { size: 'Full',       saddleSize: '16″ – 17″',   spineLength: '52 cm', panelWidth: '60 cm', overallWidth: '76 cm', fits: 'Standard horse saddles' },
+    { size: 'Oversized',  saddleSize: '17.5″ – 18.5″', spineLength: '57 cm', panelWidth: '65 cm', overallWidth: '82 cm', fits: 'Large WB / draught saddles' },
   ],
   howToMeasure: [
     { title: 'Headpiece / Bridle', steps: ['Use a soft tape measure', 'Measure over the poll from cheek ring to cheek ring', 'Add 4 cm for buckle adjustment range'] },
     { title: 'Rug Back Length', steps: ['Start from the centre of the chest', 'Measure along the back following the spine', 'End at the base of the tail', 'Do not measure under the belly'] },
-    { title: 'Halter', steps: ['Have the horse standing square', 'Use a soft tape around the cannon', 'Measure at the widest point (middle third)', 'Front and hind cannons may differ'] },
+    { title: 'Head Collar / Halter', steps: ['Measure noseband circumference at the widest point of the nose', 'Measure headpiece from ring to ring over the poll', 'All our head collars are fully adjustable — when between sizes, choose the larger'] },
+    { title: 'Saddle Pad', steps: ['Measure the saddle seat size (pommel to cantle)', 'Select the matching pad size from the table above', 'Our pads have a generous spine channel — if in doubt, size up for clearance'] },
   ],
   cta: {
     title: 'Not sure what size to order?',
@@ -71,7 +81,7 @@ export default async function SizingGuidePage() {
       {/* Jump links */}
       <section style={{ background: '#fff', borderBottom: '1px solid #e8e4de' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '14px 24px', display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {['Bridles & Browbands', 'Horse Rugs', 'Leg Boots', 'How to Measure'].map(s => (
+          {['Bridles & Browbands', 'Horse Rugs', 'Head Collars & Halters', 'Saddle Pads & Numnahs', 'How to Measure'].map(s => (
             <a key={s} href={`#${s.replace(/\s+&\s+|\s+/g, '-').toLowerCase()}`}
               style={{ fontSize: 13, fontWeight: 600, color: '#555', padding: '5px 14px', borderRadius: 20, background: '#f5f5f5', textDecoration: 'none', border: '1px solid #e8e4de' }}>
               {s}
@@ -135,22 +145,55 @@ export default async function SizingGuidePage() {
           </div>
         </div>
 
-        {/* Boots */}
-        <div id="leg-boots" style={{ marginBottom: 56 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.bootSizesTitle || DEFAULT.bootSizesTitle}</h2>
+        {/* Head Collars */}
+        <div id="head-collars-halters" style={{ marginBottom: 56 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.headCollarSizesTitle || DEFAULT.headCollarSizesTitle}</h2>
           <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.7 }}>
-            {content.bootSizesSubtitle || DEFAULT.bootSizesSubtitle}
+            {content.headCollarSizesSubtitle || DEFAULT.headCollarSizesSubtitle}
           </p>
           <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>{['Size', 'Cannon circumference', 'Typical fit'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                <tr>{['Size', 'Noseband', 'Headpiece', 'Cheekpieces', 'Crown', 'Typical fit'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
               </thead>
               <tbody>
-                {content.bootSizes.map((r: any, i: number) => (
+                {(content.headCollarSizes || DEFAULT.headCollarSizes).map((r: any, i: number) => (
                   <tr key={r.size} style={{ background: i % 2 === 1 ? '#faf9f7' : '#fff' }}>
                     <td style={{ ...tdStyle, fontWeight: 700, color: '#C8860A' }}>{r.size}</td>
-                    <td style={tdStyle}>{r.canon}</td>
+                    <td style={tdStyle}>{r.noseband}</td>
+                    <td style={tdStyle}>{r.headpiece}</td>
+                    <td style={tdStyle}>{r.cheekpieces}</td>
+                    <td style={tdStyle}>{r.crown}</td>
+                    <td style={tdStyle}>{r.fits}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {(content.headCollarNote || DEFAULT.headCollarNote) && (
+            <p style={{ fontSize: 12, color: '#999', marginTop: 10 }}>{content.headCollarNote || DEFAULT.headCollarNote}</p>
+          )}
+        </div>
+
+        {/* Saddle Pads & Numnahs */}
+        <div id="saddle-pads-numnahs" style={{ marginBottom: 56 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a', marginBottom: 6 }}>{content.saddlePadSizesTitle || DEFAULT.saddlePadSizesTitle}</h2>
+          <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.7 }}>
+            {content.saddlePadSizesSubtitle || DEFAULT.saddlePadSizesSubtitle}
+          </p>
+          <div style={{ background: '#fff', border: '1.5px solid #e8e4de', borderRadius: 14, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>{['Size', 'Saddle size', 'Spine length', 'Panel width', 'Overall width', 'Fits'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {(content.saddlePadSizes || DEFAULT.saddlePadSizes).map((r: any, i: number) => (
+                  <tr key={r.size} style={{ background: i % 2 === 1 ? '#faf9f7' : '#fff' }}>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: '#C8860A' }}>{r.size}</td>
+                    <td style={tdStyle}>{r.saddleSize}</td>
+                    <td style={tdStyle}>{r.spineLength}</td>
+                    <td style={tdStyle}>{r.panelWidth}</td>
+                    <td style={tdStyle}>{r.overallWidth}</td>
                     <td style={tdStyle}>{r.fits}</td>
                   </tr>
                 ))}
