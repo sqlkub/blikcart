@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck, FlaskConical, Building2 } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -13,6 +13,8 @@ const navItems = [
   { label: 'Products',            href: '/products',            icon: Package },
   { label: 'Customers',           href: '/customers',           icon: Users },
   { label: 'Wholesale Approvals', href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
+  { label: 'B2B Clients',         href: '/b2b-clients',         icon: Building2 },
+  { label: 'Sample Requests',     href: '/samples',             icon: FlaskConical, countKey: 'samples' },
   { label: 'Payments',            href: '/payments',            icon: CreditCard },
   { label: 'Shipping',            href: '/shipping',            icon: Truck },
   { label: 'Content',             href: '/content',             icon: FileText },
@@ -26,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [ready, setReady] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [wholesaleCount, setWholesaleCount] = useState<number | null>(null);
+  const [samplesCount, setSamplesCount] = useState<number | null>(null);
 
   // Global 401 interceptor — catches expired tokens anywhere in the app
   useEffect(() => {
@@ -63,6 +66,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const wc = (r.data?.data || []).filter((u: any) => u.accountType === 'wholesale' && !u.isApproved).length;
         setWholesaleCount(wc || null);
       }).catch(() => {});
+      // Fetch pending sample requests count
+      axios.get(`${API}/samples/admin/all?status=requested&limit=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => {
+        setSamplesCount(r.data?.meta?.total || null);
+      }).catch(() => {});
     }).catch(err => {
       if (err.response?.status === 401) {
         localStorage.removeItem('adminToken');
@@ -94,6 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const isActive = path.startsWith(item.href);
             const badge = (item.countKey === 'customOrders' && pendingCount) ? pendingCount
                          : (item.countKey === 'wholesale' && wholesaleCount) ? wholesaleCount
+                         : (item.countKey === 'samples' && samplesCount) ? samplesCount
                          : null;
             return (
               <Link key={item.href} href={item.href}
@@ -108,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="p-3 border-t border-white/10">
-          <button onClick={signOut} className="flex items-center gap-2 text-white/60 hover:text-white text-sm px-3 py-2 w-full rounded-lg hover:bg-white/10 transition-colors">
+          <button type="button" onClick={signOut} className="flex items-center gap-2 text-white/60 hover:text-white text-sm px-3 py-2 w-full rounded-lg hover:bg-white/10 transition-colors">
             <LogOut size={14} /> Sign Out
           </button>
         </div>

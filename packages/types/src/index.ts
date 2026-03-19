@@ -111,6 +111,54 @@ export interface ConfiguratorSchemaDto {
   steps: ConfiguratorStep[];
 }
 
+// ─── B2B Sampling ────────────────────────────────────────────────────────────
+
+export type SampleStatus =
+  | 'requested'
+  | 'in_review'
+  | 'sample_sent'
+  | 'approved'
+  | 'rejected'
+  | 'revision_requested';
+
+export interface SampleDto {
+  id: string;
+  userId: string;
+  categorySlug: string;
+  productName: string;
+  description?: string;
+  status: SampleStatus;
+  version: number;
+  parentSampleId?: string;
+  configSnapshot: Record<string, unknown>;
+  schemaVersionId?: string;
+  quantity: number;
+  samplingFee?: number;
+  samplingFeeRecovered: boolean;
+  adminNotes?: string;
+  clientNotes?: string;
+  referenceFiles: string[];
+  approvedAt?: string;
+  requestedAt: string;
+  updatedAt: string;
+  user?: { id: string; fullName: string; companyName?: string; email: string; wholesaleTier?: string };
+  revisions?: SampleDto[];
+  template?: SampleTemplateDto;
+}
+
+export interface SampleTemplateDto {
+  id: string;
+  sampleId: string;
+  name: string;
+  description?: string;
+  categorySlug: string;
+  isPublic: boolean;
+  configSnapshot: Record<string, unknown>;
+  usageCount: number;
+  createdAt: string;
+  sample?: Partial<SampleDto>;
+}
+
 export interface ConfiguratorAssetDto {
   id: string;
   layerKey: string;

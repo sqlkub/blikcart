@@ -96,6 +96,15 @@ enum ConfiguratorAssetType {
   overlay
 }
 
+enum SampleStatus {
+  requested
+  in_review
+  sample_sent
+  approved
+  rejected
+  revision_requested
+}
+
 model User {
   id               String         @id @default(uuid())
   email            String         @unique
@@ -123,6 +132,7 @@ model User {
   refreshTokens    RefreshToken[]
   schemaVersions   SchemaVersion[]   @relation("SchemaCreator")
   quoteRevisions   QuoteRevision[]   @relation("QuoteRevisionCreator")
+  samples          Sample[]
 
   @@map("users")
 }
@@ -545,4 +555,55 @@ model StaticPage {
   updatedAt       DateTime @updatedAt
 
   @@map("static_pages")
+}
+
+// ─── B2B Sampling ────────────────────────────────────────────────────────────
+
+model Sample {
+  id                   String       @id @default(uuid())
+  userId               String
+  categorySlug         String
+  productName          String
+  description          String?
+  status               SampleStatus @default(requested)
+  version              Int          @default(1)
+  parentSampleId       String?      // null for V1; points to root sample for V2+
+  configSnapshot       Json         // saved configurator selections
+  schemaVersionId      String?
+  quantity             Int          @default(1)
+  samplingFee          Decimal?     @db.Decimal(10, 2)
+  samplingFeeRecovered Boolean      @default(false)
+  adminNotes           String?
+  clientNotes          String?
+  referenceFiles       String[]
+  approvedAt           DateTime?
+  requestedAt          DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id])
+  parent    Sample?         @relation("SampleRevisions", fields: [parentSampleId], references: [id])
+  revisions Sample[]        @relation("SampleRevisions")
+  template  SampleTemplate?
+
+  @@index([userId, status])
+  @@index([status, requestedAt(sort: Desc)])
+  @@map("samples")
+}
+
+model SampleTemplate {
+  id             String   @id @default(uuid())
+  sampleId       String   @unique
+  name           String
+  description    String?
+  categorySlug   String
+  isPublic       Boolean  @default(false)
+  configSnapshot Json
+  usageCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sample Sample @relation(fields: [sampleId], references: [id])
+
+  @@index([categorySlug, isPublic])
+  @@map("sample_templates")
 }
