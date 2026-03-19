@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -23,7 +24,7 @@ export class SamplesService {
         categorySlug: dto.categorySlug,
         productName: dto.productName,
         description: dto.description,
-        configSnapshot: dto.configSnapshot,
+        configSnapshot: dto.configSnapshot as Prisma.InputJsonValue,
         schemaVersionId: dto.schemaVersionId,
         quantity: dto.quantity ?? 1,
         clientNotes: dto.clientNotes,
