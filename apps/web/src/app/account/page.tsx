@@ -39,11 +39,36 @@ const DUTCH_MAP: Record<string, string> = {
   aantal: 'quantity', sku: 'sku', prijs: 'unitPrice', totaal: 'total',
 };
 
+function detectDelimiter(line: string): string {
+  const semicolons = (line.match(/;/g) || []).length;
+  const commas = (line.match(/,/g) || []).length;
+  return semicolons >= commas ? ';' : ',';
+}
+
+function splitCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 function parseCSV(text: string): any[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
 
-  // Find header row (first non-bold/group row that has column keywords)
+  // Find header row (first row that has column keywords)
   let headerIdx = 0;
   for (let i = 0; i < Math.min(5, lines.length); i++) {
     const lower = lines[i].toLowerCase();
@@ -53,14 +78,17 @@ function parseCSV(text: string): any[] {
     }
   }
 
-  const rawHeaders = lines[headerIdx].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+  // Auto-detect delimiter from header row (Dutch Excel uses ; by default)
+  const delimiter = detectDelimiter(lines[headerIdx]);
+
+  const rawHeaders = splitCSVLine(lines[headerIdx], delimiter).map(h => h.replace(/^"|"$/g, '').toLowerCase());
   const headers = rawHeaders.map(h => DUTCH_MAP[h] || h);
 
   const rows: any[] = [];
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    const cells = splitCSVLine(line, delimiter).map(c => c.replace(/^"|"$/g, ''));
     if (cells.every(c => !c)) continue;
 
     const row: any = {};
@@ -69,10 +97,10 @@ function parseCSV(text: string): any[] {
     // Skip group header rows (no SKU, no quantity)
     if (!row.sku && !row.quantity) continue;
 
-    // Parse numeric fields
+    // Parse numeric fields — handle both . and , as decimal separator
     row.quantity = parseInt(row.quantity) || 0;
-    row.unitPrice = parseFloat((row.unitPrice || '0').replace('€', '').replace(',', '.')) || 0;
-    row.total = parseFloat((row.total || '0').replace('€', '').replace(',', '.')) || 0;
+    row.unitPrice = parseFloat((row.unitPrice || '0').replace('€', '').replace(/\./g, '').replace(',', '.')) || 0;
+    row.total = parseFloat((row.total || '0').replace('€', '').replace(/\./g, '').replace(',', '.')) || 0;
 
     if (row.quantity > 0) rows.push(row);
   }
