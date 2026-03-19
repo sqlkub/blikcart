@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
@@ -23,68 +23,200 @@ const ORDER_STATUS: Record<string, { label: string; color: string }> = {
   cancelled:  { label: 'Cancelled',  color: '#ef4444' },
 };
 
+const SAMPLE_STATUS: Record<string, { label: string; color: string; icon: string }> = {
+  requested:          { label: 'Requested',      color: '#3b82f6', icon: '📬' },
+  in_review:          { label: 'In Review',       color: '#f59e0b', icon: '🔍' },
+  sample_sent:        { label: 'Sample Sent',     color: '#8b5cf6', icon: '📦' },
+  approved:           { label: 'Approved',        color: '#22c55e', icon: '✅' },
+  rejected:           { label: 'Rejected',        color: '#ef4444', icon: '❌' },
+  revision_requested: { label: 'Revision Needed', color: '#f97316', icon: '🔄' },
+};
+
+// ── Dutch Excel column mapping ─────────────────────────────────────────────────
+const DUTCH_MAP: Record<string, string> = {
+  wat: 'productType', naam: 'productName', kleur: 'color',
+  'kleur gesp/buckle': 'buckleColor', 'kleur gesp': 'buckleColor', maat: 'size',
+  aantal: 'quantity', sku: 'sku', prijs: 'unitPrice', totaal: 'total',
+};
+
+function parseCSV(text: string): any[] {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  // Find header row (first non-bold/group row that has column keywords)
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const lower = lines[i].toLowerCase();
+    if (lower.includes('sku') || lower.includes('aantal') || lower.includes('naam')) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  const rawHeaders = lines[headerIdx].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+  const headers = rawHeaders.map(h => DUTCH_MAP[h] || h);
+
+  const rows: any[] = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+    if (cells.every(c => !c)) continue;
+
+    const row: any = {};
+    headers.forEach((h, idx) => { row[h] = cells[idx] || ''; });
+
+    // Skip group header rows (no SKU, no quantity)
+    if (!row.sku && !row.quantity) continue;
+
+    // Parse numeric fields
+    row.quantity = parseInt(row.quantity) || 0;
+    row.unitPrice = parseFloat((row.unitPrice || '0').replace('€', '').replace(',', '.')) || 0;
+    row.total = parseFloat((row.total || '0').replace('€', '').replace(',', '.')) || 0;
+
+    if (row.quantity > 0) rows.push(row);
+  }
+  return rows;
+}
+
+// ── Tab types ─────────────────────────────────────────────────────────────────
+type Tab = 'orders' | 'quotes' | 'samples' | 'bulk';
+
 export default function AccountPage() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
-  const [tab, setTab] = useState<'orders' | 'quotes'>('orders');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const isB2B = user?.accountType === 'wholesale';
+
+  const [tab, setTab] = useState<Tab>('orders');
+  const [orders, setOrders]   = useState<any[]>([]);
+  const [quotes, setQuotes]   = useState<any[]>([]);
+  const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Bulk import state
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [bulkRows, setBulkRows]       = useState<any[]>([]);
+  const [bulkFile, setBulkFile]       = useState('');
+  const [bulkError, setBulkError]     = useState('');
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkResult, setBulkResult]   = useState<any>(null);
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token) { router.push('/login'); return; }
 
-    Promise.all([
-      fetch(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : { data: [] })
-        .then(d => setOrders(d.data || [])),
-      fetch(`${API}/quotes/custom-orders`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : [])
-        .then(d => setQuotes(Array.isArray(d) ? d : [])),
-    ])
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [router]);
+    const h = { Authorization: `Bearer ${token}` };
+    const fetches: Promise<any>[] = [
+      fetch(`${API}/orders`, { headers: h }).then(r => r.ok ? r.json() : { data: [] }).then(d => setOrders(d.data || [])),
+      fetch(`${API}/quotes/custom-orders`, { headers: h }).then(r => r.ok ? r.json() : []).then(d => setQuotes(Array.isArray(d) ? d : [])),
+    ];
+    if (isB2B) {
+      fetches.push(
+        fetch(`${API}/samples`, { headers: h }).then(r => r.ok ? r.json() : []).then(d => setSamples(Array.isArray(d) ? d : [])),
+      );
+    }
+    Promise.all(fetches).catch(() => {}).finally(() => setLoading(false));
+  }, [router, isB2B]);
 
   async function handleLogout() {
     await logout();
     router.push('/');
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkError('');
+    setBulkResult(null);
+    setBulkFile(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const text = ev.target?.result as string;
+        const rows = parseCSV(text);
+        if (!rows.length) { setBulkError('No valid rows found. Make sure your file has headers: SKU, Naam, Kleur, Maat, Aantal, Prijs'); return; }
+        setBulkRows(rows);
+      } catch {
+        setBulkError('Could not parse file. Please export as CSV from Excel.');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function handleBulkSubmit() {
+    const token = localStorage.getItem('accessToken');
+    if (!token || !bulkRows.length) return;
+    setBulkSubmitting(true);
+    setBulkError('');
+    try {
+      const res = await fetch(`${API}/orders/bulk-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lines: bulkRows }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Submission failed');
+      setBulkResult(data);
+      setBulkRows([]);
+      setBulkFile('');
+      // Refresh orders
+      const fresh = await fetch(`${API}/orders`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+      setOrders(fresh.data || []);
+    } catch (e: any) {
+      setBulkError(e.message || 'Something went wrong');
+    } finally {
+      setBulkSubmitting(false);
+    }
+  }
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: 'orders', label: `Orders (${orders.length})` },
+    { key: 'quotes', label: `Quote Requests (${quotes.length})` },
+    ...(isB2B ? [
+      { key: 'samples' as Tab, label: `Samples (${samples.length})` },
+      { key: 'bulk' as Tab, label: '📦 Bulk Import' },
+    ] : []),
+  ];
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
+      {/* Header */}
       <div style={{ background: 'var(--navy)', color: 'white', padding: '40px 24px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>My Account</p>
+            <p style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+              {isB2B ? 'B2B Account' : 'My Account'}
+            </p>
             <h1 style={{ fontSize: 26, fontWeight: 800 }}>{user?.fullName || 'Welcome back'}</h1>
             <p style={{ color: '#9ca3af', fontSize: 14, marginTop: 4 }}>{user?.email}</p>
+            {isB2B && (
+              <span style={{ display: 'inline-block', marginTop: 8, background: 'rgba(200,134,10,0.2)', color: 'var(--gold)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(200,134,10,0.4)' }}>
+                B2B Partner
+              </span>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{ padding: '10px 22px', border: '2px solid rgba(255,255,255,0.3)', borderRadius: 8, background: 'transparent', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-          >
+          <button type="button" onClick={handleLogout}
+            style={{ padding: '10px 22px', border: '2px solid rgba(255,255,255,0.3)', borderRadius: 8, background: 'transparent', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Sign Out
           </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px' }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid #e5e7eb' }}>
-          {(['orders', 'quotes'] as const).map(t => (
-            <button key={t} type="button" onClick={() => setTab(t)}
-              style={{ padding: '10px 20px', background: 'none', border: 'none', fontWeight: 700, fontSize: 15, cursor: 'pointer', color: tab === t ? 'var(--navy)' : '#9ca3af', borderBottom: tab === t ? '3px solid var(--navy)' : '3px solid transparent', marginBottom: -2 }}>
-              {t === 'orders' ? `My Orders (${orders.length})` : `Quote Requests (${quotes.length})`}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: '2px solid #e5e7eb', overflowX: 'auto' }}>
+          {tabs.map(t => (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              style={{ padding: '10px 20px', background: 'none', border: 'none', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', color: tab === t.key ? 'var(--navy)' : '#9ca3af', borderBottom: tab === t.key ? '3px solid var(--navy)' : '3px solid transparent', marginBottom: -2 }}>
+              {t.label}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ background: 'white', borderRadius: 12, padding: 40, textAlign: 'center', color: '#9ca3af' }}>Loading...</div>
+          <div style={{ background: 'white', borderRadius: 12, padding: 40, textAlign: 'center', color: '#9ca3af' }}>Loading…</div>
         ) : tab === 'orders' ? (
+          // ── Orders ────────────────────────────────────────────────────────────
           orders.length === 0 ? (
             <div style={{ background: 'white', borderRadius: 12, padding: 48, textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🛒</div>
@@ -102,8 +234,8 @@ export default function AccountPage() {
                   <div key={order.id} style={{ background: 'white', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <div>
-                        <p style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15, margin: 0 }}>{order.orderNumber}</p>
-                        <p style={{ fontSize: 12, color: '#9ca3af', margin: '2px 0 0' }}>
+                        <p style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15 }}>{order.orderNumber}</p>
+                        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                           {new Date(order.placedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           {' · '}{order.items?.length} item{order.items?.length !== 1 ? 's' : ''}
                         </p>
@@ -116,7 +248,7 @@ export default function AccountPage() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {order.items?.map((item: any) => (
                         <div key={item.id} style={{ fontSize: 13, color: '#6b7280', background: '#f9fafb', padding: '4px 10px', borderRadius: 6 }}>
-                          {item.product?.name || 'Item'} × {item.quantity}
+                          {item.productName || item.product?.name || 'Item'} × {item.quantity}
                         </div>
                       ))}
                     </div>
@@ -125,12 +257,13 @@ export default function AccountPage() {
               })}
             </div>
           )
-        ) : (
+        ) : tab === 'quotes' ? (
+          // ── Quote Requests ────────────────────────────────────────────────────
           quotes.length === 0 ? (
             <div style={{ background: 'white', borderRadius: 12, padding: 48, textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🎨</div>
               <h3 style={{ color: 'var(--navy)', fontWeight: 700, marginBottom: 8 }}>No quote requests yet</h3>
-              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Customise a product and submit a quote request to get started.</p>
+              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Customise a product and submit a quote to get started.</p>
               <Link href="/" style={{ background: 'var(--gold)', color: 'white', padding: '10px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 14 }}>
                 Browse Products
               </Link>
@@ -153,9 +286,7 @@ export default function AccountPage() {
                             Qty {order.quantity} · {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
-                        <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: `${st.color}18`, color: st.color }}>
-                          {st.label}
-                        </span>
+                        <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: `${st.color}18`, color: st.color }}>{st.label}</span>
                       </div>
                       {order.quote && (
                         <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--cream)', borderRadius: 8, display: 'flex', gap: 24 }}>
@@ -167,16 +298,7 @@ export default function AccountPage() {
                             <p style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</p>
                             <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>€{Number(order.quote.totalPrice).toFixed(2)}</p>
                           </div>
-                          <div>
-                            <p style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quote status</p>
-                            <p style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>{order.quote.status}</p>
-                          </div>
                         </div>
-                      )}
-                      {order.estimatedPriceMin && !order.quote && (
-                        <p style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>
-                          Est. €{order.estimatedPriceMin.toFixed(2)} – €{order.estimatedPriceMax?.toFixed(2)} per unit · {order.quantity} units
-                        </p>
                       )}
                     </div>
                   </div>
@@ -184,6 +306,212 @@ export default function AccountPage() {
               })}
             </div>
           )
+        ) : tab === 'samples' ? (
+          // ── Samples (B2B only) ────────────────────────────────────────────────
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Sample Requests</h2>
+                <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Track your samples from request to approved design</p>
+              </div>
+              <Link href="/samples/library"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'var(--navy)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                📚 Browse Library
+              </Link>
+            </div>
+            {samples.length === 0 ? (
+              <div style={{ background: 'white', borderRadius: 14, padding: '48px 24px', textAlign: 'center', border: '2px dashed #e5e7eb' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🧵</div>
+                <h3 style={{ color: 'var(--navy)', fontWeight: 700, marginBottom: 8 }}>No sample requests yet</h3>
+                <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 20 }}>Configure a product and request a physical sample before bulk ordering.</p>
+                <Link href="/products"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 24px', background: 'var(--gold)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                  + Start Sampling
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {samples.map((s: any) => {
+                  const st = SAMPLE_STATUS[s.status] || { label: s.status, color: '#6b7280', icon: '•' };
+                  return (
+                    <div key={s.id} style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', padding: '20px 24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                            <span style={{ fontSize: 18 }}>{st.icon}</span>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{s.productName}</h3>
+                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#e5e7eb', color: '#374151' }}>V{s.version}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, fontWeight: 600, background: `${st.color}18`, color: st.color }}>{st.label}</span>
+                            <span style={{ fontSize: 13, color: '#6b7280' }}>{s.quantity} units</span>
+                            {s.samplingFee && <span style={{ fontSize: 12, color: '#6b7280' }}>Fee: €{Number(s.samplingFee).toFixed(2)}</span>}
+                          </div>
+                          {s.adminNotes && (
+                            <div style={{ marginTop: 10, padding: '10px 14px', background: '#f9fafb', borderRadius: 8 }}>
+                              <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>Note from our team:</p>
+                              <p style={{ fontSize: 13, color: '#374151' }}>{s.adminNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                        {s.status === 'approved' && (
+                          <Link href={`/customize/${s.categorySlug || 'products'}?revise=${s.id}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', background: 'var(--gold)', color: 'white', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            🔄 Reorder
+                          </Link>
+                        )}
+                        {(s.status === 'revision_requested' || s.status === 'rejected') && (
+                          <Link href={`/customize/${s.categorySlug}?revise=${s.id}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', background: '#f59e0b', color: 'white', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            Submit Revision
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          // ── Bulk Order Import (B2B only) ───────────────────────────────────────
+          <div>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)', margin: '0 0 6px' }}>Bulk Order Import</h2>
+              <p style={{ fontSize: 14, color: '#6b7280' }}>Upload your Excel order sheet (exported as CSV). Supports Dutch column headers: Wat, Naam, Kleur, Maat, Aantal, SKU, Prijs.</p>
+            </div>
+
+            {bulkResult ? (
+              // ── Success ────────────────────────────────────────────────────────
+              <div style={{ background: 'white', borderRadius: 14, padding: 40, textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
+                <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)', marginBottom: 8 }}>Order Submitted!</h3>
+                <p style={{ color: '#6b7280', marginBottom: 8 }}>Order <strong>{bulkResult.order?.orderNumber}</strong> has been created with {bulkResult.order?.items?.length} line item(s).</p>
+                {bulkResult.unresolvedSkus?.length > 0 && (
+                  <p style={{ color: '#f59e0b', fontSize: 13, marginBottom: 16 }}>
+                    ⚠️ These SKUs were not found and need manual review: {bulkResult.unresolvedSkus.join(', ')}
+                  </p>
+                )}
+                <button type="button" onClick={() => setBulkResult(null)}
+                  style={{ marginTop: 8, padding: '10px 24px', background: 'var(--navy)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                  Import Another File
+                </button>
+              </div>
+            ) : bulkRows.length === 0 ? (
+              // ── Upload area ────────────────────────────────────────────────────
+              <div>
+                <input ref={fileRef} type="file" accept=".csv,.txt" title="Upload order CSV file" aria-label="Upload order CSV file" style={{ display: 'none' }} onChange={handleFileChange} />
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--gold)'; }}
+                  onDragLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      const fakeEvent = { target: { files: [file] } } as any;
+                      handleFileChange(fakeEvent);
+                    }
+                  }}
+                  style={{ border: '2px dashed #d1d5db', borderRadius: 14, padding: '56px 24px', textAlign: 'center', cursor: 'pointer', background: 'white', transition: 'border-color 0.2s' }}>
+                  <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
+                  <p style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 16, marginBottom: 6 }}>Drop your Excel/CSV file here</p>
+                  <p style={{ color: '#9ca3af', fontSize: 14 }}>or click to browse · CSV format · max 5 MB</p>
+                </div>
+
+                {bulkError && (
+                  <div style={{ marginTop: 16, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10 }}>
+                    <p style={{ color: '#dc2626', fontSize: 13 }}>{bulkError}</p>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                <div style={{ marginTop: 24, background: 'white', borderRadius: 14, padding: 24, border: '1px solid #e5e7eb' }}>
+                  <p style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 12, fontSize: 14 }}>How to prepare your file:</p>
+                  <ol style={{ margin: 0, paddingLeft: 20, color: '#6b7280', fontSize: 13, lineHeight: 1.8 }}>
+                    <li>Open your Excel order sheet</li>
+                    <li>Go to <strong>File → Save As → CSV (Comma delimited)</strong></li>
+                    <li>Make sure your columns include: <strong>SKU, Naam, Kleur, Maat, Aantal, Prijs</strong></li>
+                    <li>Upload the saved .csv file here</li>
+                  </ol>
+                  <div style={{ marginTop: 16, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', fontSize: 12, color: '#475569' }}>
+                    Wat,Naam,Kleur,Kleur gesp/buckle,Maat,Aantal,SKU,Prijs,Totaal<br />
+                    Halter,Bunga,Zwart,zilver,Mini,5,HBUN-ZWZ-M,15.75,78.75
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // ── Preview ────────────────────────────────────────────────────────
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div>
+                    <p style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>Preview — {bulkFile}</p>
+                    <p style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{bulkRows.length} line item{bulkRows.length !== 1 ? 's' : ''} ready to import</p>
+                  </div>
+                  <button type="button" onClick={() => { setBulkRows([]); setBulkFile(''); setBulkError(''); }}
+                    style={{ padding: '8px 16px', border: '2px solid #e5e7eb', borderRadius: 8, background: 'white', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    ← Change File
+                  </button>
+                </div>
+
+                <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: 20 }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: 'var(--navy)', color: 'white' }}>
+                          {['Product', 'Color', 'Size', 'SKU', 'Qty', 'Unit Price', 'Total'].map(h => (
+                            <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkRows.map((row, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                            <td style={{ padding: '10px 14px', color: 'var(--navy)', fontWeight: 600 }}>{row.productName || row.productType || '—'}</td>
+                            <td style={{ padding: '10px 14px', color: '#6b7280' }}>{[row.color, row.buckleColor].filter(Boolean).join(' / ') || '—'}</td>
+                            <td style={{ padding: '10px 14px', color: '#6b7280' }}>{row.size || '—'}</td>
+                            <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>{row.sku || '—'}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>{row.quantity}</td>
+                            <td style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'right' }}>€{Number(row.unitPrice).toFixed(2)}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>
+                              €{(row.total || row.quantity * row.unitPrice).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ borderTop: '2px solid var(--navy)', background: '#f8fafc' }}>
+                          <td colSpan={4} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)' }}>Total</td>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>
+                            {bulkRows.reduce((s, r) => s + r.quantity, 0)}
+                          </td>
+                          <td />
+                          <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--gold)', textAlign: 'right', fontSize: 15 }}>
+                            €{bulkRows.reduce((s, r) => s + (r.total || r.quantity * r.unitPrice), 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {bulkError && (
+                  <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10 }}>
+                    <p style={{ color: '#dc2626', fontSize: 13 }}>{bulkError}</p>
+                  </div>
+                )}
+
+                <button type="button" onClick={handleBulkSubmit} disabled={bulkSubmitting}
+                  style={{ width: '100%', padding: '14px', background: bulkSubmitting ? '#9ca3af' : 'var(--navy)', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: bulkSubmitting ? 'not-allowed' : 'pointer' }}>
+                  {bulkSubmitting ? 'Submitting…' : `Submit Bulk Order (${bulkRows.length} lines) →`}
+                </button>
+                <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 10 }}>
+                  Our team will review and confirm pricing within 1 business day.
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

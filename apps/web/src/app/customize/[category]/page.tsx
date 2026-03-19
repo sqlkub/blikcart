@@ -105,7 +105,8 @@ export default function ConfiguratorPage() {
   const totalSteps = steps.length;
   const completedSteps = steps.filter(s => selections[s.id]).length;
   const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-  const canNext = step && (!step.required || selections[step.id]);
+  // quantity_delivery steps are always "complete" — quantity is always set, delivery is optional
+  const canNext = step && (!step.required || selections[step.id] || step.ui_type === 'quantity_delivery');
   const isLast = currentStep === totalSteps - 1;
 
   const categoryLabel = category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

@@ -538,6 +538,68 @@ export class OrdersService {
     return updated;
   }
 
+  async bulkImport(userId: string, lines: { sku: string; productName: string; color?: string; size?: string; quantity: number; unitPrice: number }[]) {
+    if (!lines?.length) throw new BadRequestException('No line items provided');
+
+    // Look up products by SKU
+    const skus = lines.map(l => l.sku).filter(Boolean);
+    const products = await this.prisma.product.findMany({ where: { sku: { in: skus } } });
+    const productBySku = Object.fromEntries(products.map(p => [p.sku!, p]));
+
+    const resolvedItems: any[] = [];
+    const unresolvedSkus: string[] = [];
+
+    for (const line of lines) {
+      const product = productBySku[line.sku];
+      if (product) {
+        resolvedItems.push({ product, line });
+      } else {
+        unresolvedSkus.push(line.sku);
+      }
+    }
+
+    if (!resolvedItems.length) {
+      throw new BadRequestException(`No products found for SKUs: ${unresolvedSkus.join(', ')}. Check your SKU column.`);
+    }
+
+    const subtotal = lines.reduce((sum, l) => sum + (l.unitPrice * l.quantity), 0);
+    const shippingCost = subtotal > 150 ? 0 : 9.95;
+    const taxAmount = Math.round(subtotal * 0.21 * 100) / 100;
+    const total = subtotal + shippingCost + taxAmount;
+    const orderNumber = `B2B-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+    const notes = [
+      'B2B Bulk Import',
+      unresolvedSkus.length ? `Unresolved SKUs (manual review needed): ${unresolvedSkus.join(', ')}` : '',
+    ].filter(Boolean).join(' | ');
+
+    const order = await this.prisma.order.create({
+      data: {
+        userId,
+        orderNumber,
+        orderType: 'standard',
+        subtotal: Math.round(subtotal * 100) / 100,
+        shippingCost,
+        taxAmount,
+        total: Math.round(total * 100) / 100,
+        status: 'pending',
+        notes,
+        items: {
+          create: resolvedItems.map(({ product, line }) => ({
+            productId: product.id,
+            productName: line.productName || product.name,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            total: Math.round(line.unitPrice * line.quantity * 100) / 100,
+          })),
+        },
+      },
+      include: { items: { include: { product: { select: { name: true, sku: true } } } } },
+    });
+
+    return { order, unresolvedSkus };
+  }
+
   private formatCart(cart: any) {
     const items = cart.items.map((item: any) => ({
       ...item,

@@ -44,6 +44,13 @@ export class OrdersController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @Post('bulk-import')
+  bulkImport(@Request() req, @Body('lines') lines: any[]) {
+    return this.orders.bulkImport(req.user.id, lines);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Get('admin/orders')
   getAdminOrders(@Query() query: any) {
     return this.orders.getAdminOrders(query.page, query.limit, query.status);
