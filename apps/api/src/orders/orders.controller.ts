@@ -58,6 +58,20 @@ export class OrdersController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @Get('admin/orders/:id')
+  getAdminOrder(@Param('id') id: string) {
+    return this.orders.getAdminOrder(id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/orders/:id')
+  updateAdminOrder(@Param('id') id: string, @Body() body: any) {
+    return this.orders.updateAdminOrder(id, body);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Patch('admin/orders/:id/status')
   updateOrderStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.orders.updateOrderStatus(id, status);
@@ -131,5 +145,21 @@ export class OrdersController {
   @Patch('admin/shipments/:id')
   updateShipment(@Param('id') id: string, @Body() body: any) {
     return this.orders.updateShipment(id, body);
+  }
+
+  // ── Manufacturer Portal ──────────────────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('manufacturer/my-orders')
+  getManufacturerOrders(@Request() req: any) {
+    return this.orders.getManufacturerOrders(req.user.id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('manufacturer/orders/:id')
+  updateManufacturerOrder(@Param('id') id: string, @Request() req: any, @Body() body: any) {
+    return this.orders.updateManufacturerOrder(id, req.user.id, body);
   }
 }

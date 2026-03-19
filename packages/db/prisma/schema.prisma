@@ -359,6 +359,7 @@ model Order {
   currency          String      @default("EUR")
   shippingAddressId String?
   billingAddressId  String?
+  manufacturerId    String?
   notes             String?
   placedAt          DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
@@ -366,6 +367,7 @@ model Order {
   user            User          @relation(fields: [userId], references: [id])
   shippingAddress Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
   billingAddress  Address?      @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  manufacturer    Manufacturer? @relation(fields: [manufacturerId], references: [id])
   items           OrderItem[]
   customOrders    CustomOrder[]
   payments        Payment[]
@@ -642,6 +644,7 @@ model Manufacturer {
 
   primaryProducts ClientProduct[] @relation("PrimaryManufacturer")
   backupProducts  ClientProduct[] @relation("BackupManufacturer")
+  orders          Order[]
 
   @@map("manufacturers")
 }

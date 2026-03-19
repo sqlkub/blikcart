@@ -156,6 +156,133 @@ export class OrdersService {
     };
   }
 
+  async getAdminOrder(id: string) {
+    const order: any = await (this.prisma.order as any).findUnique({
+      where: { id },
+      include: {
+        user: { select: { fullName: true, email: true, companyName: true } },
+        manufacturer: { select: { id: true, name: true, country: true, contactName: true, contactEmail: true } },
+        items: { include: { product: { select: { name: true, sku: true } } } },
+        shipments: true,
+        payments: true,
+      },
+    });
+    if (!order) throw new Error('Order not found');
+    return {
+      ...order,
+      subtotal: Number(order.subtotal),
+      shippingCost: Number(order.shippingCost),
+      taxAmount: Number(order.taxAmount),
+      total: Number(order.total),
+      items: (order.items || []).map((i: any) => ({
+        ...i,
+        unitPrice: Number(i.unitPrice),
+        total: Number(i.total),
+      })),
+    };
+  }
+
+  async updateAdminOrder(id: string, data: { manufacturerId?: string; notes?: string; status?: string }) {
+    const update: any = {};
+    if (data.manufacturerId !== undefined) update.manufacturerId = data.manufacturerId || null;
+    if (data.notes !== undefined) update.notes = data.notes;
+    if (data.status) update.status = data.status;
+    return (this.prisma.order as any).update({ where: { id }, data: update });
+  }
+
+  async getManufacturerOrders(userId: string) {
+    // Find the manufacturer record linked to this user by email
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) throw new NotFoundException('User not found');
+    const manufacturer = await (this.prisma as any).manufacturer.findFirst({
+      where: { contactEmail: user.email },
+    });
+    if (!manufacturer) return { manufacturer: null, orders: [] };
+
+    const orders: any[] = await (this.prisma.order as any).findMany({
+      where: { manufacturerId: manufacturer.id },
+      include: {
+        user: { select: { fullName: true, email: true, companyName: true } },
+        items: true,
+        shipments: true,
+      },
+      orderBy: { placedAt: 'desc' },
+    });
+
+    return {
+      manufacturer,
+      orders: orders.map((o: any) => ({
+        ...o,
+        subtotal: Number(o.subtotal),
+        shippingCost: Number(o.shippingCost),
+        taxAmount: Number(o.taxAmount),
+        total: Number(o.total),
+        items: (o.items || []).map((i: any) => ({
+          ...i,
+          unitPrice: Number(i.unitPrice),
+          total: Number(i.total),
+        })),
+      })),
+    };
+  }
+
+  async updateManufacturerOrder(orderId: string, userId: string, data: {
+    status?: string;
+    productionNotes?: string;
+    estimatedLeadDays?: number;
+    trackingNumber?: string;
+    carrier?: string;
+  }) {
+    // Verify the order is assigned to a manufacturer linked to this user
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) throw new NotFoundException('User not found');
+    const manufacturer = await (this.prisma as any).manufacturer.findFirst({ where: { contactEmail: user.email } });
+    if (!manufacturer) throw new NotFoundException('Manufacturer record not found for this user');
+
+    const order: any = await (this.prisma.order as any).findUnique({ where: { id: orderId } });
+    if (!order || order.manufacturerId !== manufacturer.id) throw new NotFoundException('Order not found');
+
+    const update: any = {};
+    if (data.status) update.status = data.status;
+
+    // Store production notes and lead time in order notes field
+    if (data.productionNotes !== undefined || data.estimatedLeadDays !== undefined) {
+      const lines: string[] = [];
+      if (data.productionNotes) lines.push(`Production note: ${data.productionNotes}`);
+      if (data.estimatedLeadDays) lines.push(`Estimated lead time: ${data.estimatedLeadDays} days`);
+      const existingNotes = order.notes || '';
+      // Append new notes (avoid duplicating B2B import notes)
+      update.notes = [existingNotes, ...lines].filter(Boolean).join('\n');
+    }
+
+    const updated = await (this.prisma.order as any).update({ where: { id: orderId }, data: update });
+
+    // Handle shipment creation/update
+    if (data.trackingNumber || data.carrier) {
+      const existingShipment = await this.prisma.shipment.findFirst({ where: { orderId } });
+      if (existingShipment) {
+        await this.prisma.shipment.update({
+          where: { id: existingShipment.id },
+          data: {
+            trackingNumber: data.trackingNumber || existingShipment.trackingNumber,
+            carrier: data.carrier || existingShipment.carrier,
+          },
+        });
+      } else {
+        await this.prisma.shipment.create({
+          data: {
+            orderId,
+            trackingNumber: data.trackingNumber || '',
+            carrier: data.carrier || '',
+            status: 'in_transit' as any,
+          },
+        });
+      }
+    }
+
+    return updated;
+  }
+
   async getAdminOrders(page: any = 1, limit: any = 20, status?: string) {
     const p = Math.max(1, parseInt(page) || 1);
     const l = Math.min(200, parseInt(limit) || 20);

@@ -20,7 +20,10 @@ export default function LoginPage() {
       const res = await axios.post(`${API}/auth/login`, { email, password });
       const token = res.data.accessToken;
       localStorage.setItem('adminToken', token);
-      router.push('/dashboard');
+      // Decode role from JWT payload to route correctly
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = payload.role || payload.accountType || '';
+      router.push(role === 'manufacturer' ? '/manufacturer' : '/dashboard');
     } catch (e: any) {
       setError(e.response?.data?.message || 'Invalid credentials');
     } finally { setLoading(false); }

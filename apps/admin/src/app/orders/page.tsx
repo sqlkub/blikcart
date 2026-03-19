@@ -140,7 +140,7 @@ function AllOrdersTab() {
         <table className="w-full">
           <thead>
             <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-              {['Order #', 'Customer', 'Type', 'Items', 'Total', 'Status', 'Date', 'Update'].map(h => (
+              {['Order #', 'Customer', 'Type', 'Items', 'Total', 'Status', 'Date', 'Update', ''].map(h => (
                 <th key={h} className="text-left px-5 py-3 font-semibold">{h}</th>
               ))}
             </tr>
@@ -182,6 +182,11 @@ function AllOrdersTab() {
                   >
                     {ORDER_STATUSES.map(s => <option key={s} value={s}>{fmtStatus(s)}</option>)}
                   </select>
+                </td>
+                <td className="px-5 py-4">
+                  <Link href={`/orders/${o.id}`} className="text-xs font-semibold text-[#1A3C5E] hover:underline whitespace-nowrap">
+                    View →
+                  </Link>
                 </td>
               </tr>
             )) : (
