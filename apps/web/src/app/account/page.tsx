@@ -123,6 +123,12 @@ export default function AccountPage() {
   const [reorderDone, setReorderDone]     = useState<string | null>(null);
   const [reorderError, setReorderError]   = useState('');
 
+  // Change request state
+  const [crModal, setCrModal] = useState<{ orderId: string; orderNumber: string } | null>(null);
+  const [crMessage, setCrMessage] = useState('');
+  const [crSubmitting, setCrSubmitting] = useState(false);
+  const [crDone, setCrDone] = useState<string | null>(null);
+
   // Bulk import state
   const fileRef = useRef<HTMLInputElement>(null);
   const [bulkRows, setBulkRows]       = useState<any[]>([]);
@@ -223,6 +229,28 @@ export default function AccountPage() {
     }
   }
 
+  async function submitChangeRequest() {
+    if (!crModal || !crMessage.trim()) return;
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    setCrSubmitting(true);
+    try {
+      const res = await fetch(`${API}/orders/${crModal.orderId}/change-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: crMessage.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+      setCrDone(crModal.orderId);
+      setCrModal(null);
+      setCrMessage('');
+    } catch {
+      // keep modal open, user can retry
+    } finally {
+      setCrSubmitting(false);
+    }
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'orders', label: `Orders (${orders.length})` },
     { key: 'quotes', label: `Quote Requests (${quotes.length})` },
@@ -307,6 +335,17 @@ export default function AccountPage() {
                           {item.productName || item.product?.name || 'Item'} × {item.quantity}
                         </div>
                       ))}
+                    </div>
+                    <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                      {crDone === order.id ? (
+                        <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 600 }}>✓ Change request sent</span>
+                      ) : (
+                        <button type="button"
+                          onClick={() => { setCrModal({ orderId: order.id, orderNumber: order.orderNumber }); setCrMessage(''); }}
+                          style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', background: 'transparent', border: '1.5px solid var(--navy)', borderRadius: 7, padding: '6px 14px', cursor: 'pointer' }}>
+                          Request a Change
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -705,6 +744,33 @@ export default function AccountPage() {
           </div>
         )}
       </div>
+
+      {/* Change Request Modal */}
+      {crModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 32, width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', margin: '0 0 6px' }}>Request a Change</h3>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 20px' }}>Order {crModal.orderNumber}</p>
+            <textarea
+              value={crMessage}
+              onChange={e => setCrMessage(e.target.value)}
+              placeholder="Describe the change you need…"
+              rows={5}
+              style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: 10, padding: '12px 14px', fontSize: 14, color: '#111', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setCrModal(null)}
+                style={{ padding: '10px 20px', border: '1.5px solid #d1d5db', borderRadius: 8, background: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={submitChangeRequest} disabled={crSubmitting || !crMessage.trim()}
+                style={{ padding: '10px 24px', border: 'none', borderRadius: 8, background: crSubmitting || !crMessage.trim() ? '#9ca3af' : 'var(--navy)', color: 'white', fontSize: 14, fontWeight: 700, cursor: crSubmitting || !crMessage.trim() ? 'not-allowed' : 'pointer' }}>
+                {crSubmitting ? 'Sending…' : 'Send Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

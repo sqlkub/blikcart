@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async getOrAddToCart(userId: string | null, guestToken?: string) {
     const where = userId ? { userId } : { guestToken };
@@ -280,7 +284,82 @@ export class OrdersService {
       }
     }
 
+    // Auto-log notification to admin
+    const parts: string[] = [];
+    if (data.status) parts.push(`Status → ${data.status.replace(/_/g, ' ')}`);
+    if (data.trackingNumber) parts.push(`Tracking: ${data.trackingNumber}`);
+    if (data.estimatedLeadDays) parts.push(`Lead time: ${data.estimatedLeadDays} days`);
+    if (data.productionNotes) parts.push(data.productionNotes);
+    await this.notifications.create({
+      type: 'status_update',
+      channels: ['in_app'],
+      orderId,
+      fromUserId: userId,
+      subject: `[${manufacturer.name}] Order #${order.orderNumber} updated`,
+      body: parts.join(' · ') || 'Order updated by manufacturer',
+      metadata: { orderNumber: order.orderNumber, manufacturerName: manufacturer.name, ...data },
+    });
+
     return updated;
+  }
+
+  // ── Change Requests ──────────────────────────────────────────────────────────
+
+  async submitChangeRequest(orderId: string, userId: string, message: string) {
+    const order: any = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      include: { user: { select: { fullName: true, email: true, phone: true, companyName: true } } },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const req = await (this.prisma as any).changeRequest.create({
+      data: { orderId, userId, message, status: 'pending' },
+    });
+
+    // Log notification for admin
+    await this.notifications.create({
+      type: 'change_request',
+      channels: ['email', 'whatsapp', 'in_app'],
+      orderId,
+      fromUserId: userId,
+      subject: `Change Request: Order #${order.orderNumber}`,
+      body: message,
+      metadata: {
+        orderNumber: order.orderNumber,
+        clientName: order.user?.companyName || order.user?.fullName,
+        clientEmail: order.user?.email,
+        clientPhone: order.user?.phone,
+        changeRequestId: req.id,
+      },
+    });
+
+    return req;
+  }
+
+  async getChangeRequests(orderId: string) {
+    return (this.prisma as any).changeRequest.findMany({
+      where: { orderId },
+      include: { user: { select: { fullName: true, email: true, companyName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getAllPendingChangeRequests() {
+    return (this.prisma as any).changeRequest.findMany({
+      where: { status: 'pending' },
+      include: {
+        order: { select: { orderNumber: true, status: true } },
+        user: { select: { fullName: true, email: true, companyName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async resolveChangeRequest(id: string, status: 'approved' | 'rejected', adminNote?: string) {
+    return (this.prisma as any).changeRequest.update({
+      where: { id },
+      data: { status, adminNote: adminNote || null, updatedAt: new Date() },
+    });
   }
 
   async getAdminOrders(page: any = 1, limit: any = 20, status?: string) {

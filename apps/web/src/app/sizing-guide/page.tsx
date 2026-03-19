@@ -15,10 +15,10 @@ const DEFAULT = {
   bootSizesSubtitle: 'Measure the circumference of the cannon bone at its widest point with a soft tape.',
   howToMeasureTitle: 'How to Measure',
   bridleSizes: [
-    { size: 'Pony',    headpiece: '50–54 cm', browband: '38–42 cm', noseband: '30–33 cm', cheekpieces: '28–34 cm' },
-    { size: 'Cob',     headpiece: '54–58 cm', browband: '42–46 cm', noseband: '33–36 cm', cheekpieces: '34–40 cm' },
-    { size: 'Full',    headpiece: '58–63 cm', browband: '46–52 cm', noseband: '36–40 cm', cheekpieces: '40–46 cm' },
-    { size: 'Full XL', headpiece: '63–68 cm', browband: '52–56 cm', noseband: '40–44 cm', cheekpieces: '46–52 cm' },
+    { size: 'Pony',    headpiece: '50–55 cm', browband: '35-40 cm', noseband: '35-40 cm', cheekpieces: '35–40 cm' },
+    { size: 'Cob',     headpiece: '55–59 cm', browband: '40-44 cm', noseband: '40-44 cm', cheekpieces: '40–44 cm' },
+    { size: 'Full',    headpiece: '65–69 cm', browband: '45-49 cm', noseband: '45-49 cm', cheekpieces: '45–49 cm' },
+    { size: 'Full XL', headpiece: '75–79 cm', browband: '50-54 cm', noseband: '50-54 cm', cheekpieces: '50–54 cm' },
   ],
   bridleNote: '* All measurements are total length of leather on the buckle holes.',
   rugSizes: [
@@ -32,7 +32,7 @@ const DEFAULT = {
     { size: "6'0\"", cm: '183 cm', back: '161 cm', chest: '174 cm', breeds: 'XL WB / Draught' },
     { size: "6'3\"", cm: '191 cm', back: '168 cm', chest: '182 cm', breeds: 'XXL / Draught' },
   ],
-  bootSizes: [
+  halterSizes: [
     { size: 'XS', canon: '< 19 cm',  fits: 'Small pony, fine-boned' },
     { size: 'S',  canon: '19–21 cm', fits: 'Pony / small cob' },
     { size: 'M',  canon: '21–23 cm', fits: 'Cob / average horse' },
@@ -42,7 +42,7 @@ const DEFAULT = {
   howToMeasure: [
     { title: 'Headpiece / Bridle', steps: ['Use a soft tape measure', 'Measure over the poll from cheek ring to cheek ring', 'Add 4 cm for buckle adjustment range'] },
     { title: 'Rug Back Length', steps: ['Start from the centre of the chest', 'Measure along the back following the spine', 'End at the base of the tail', 'Do not measure under the belly'] },
-    { title: 'Cannon Bone', steps: ['Have the horse standing square', 'Use a soft tape around the cannon', 'Measure at the widest point (middle third)', 'Front and hind cannons may differ'] },
+    { title: 'Halter', steps: ['Have the horse standing square', 'Use a soft tape around the cannon', 'Measure at the widest point (middle third)', 'Front and hind cannons may differ'] },
   ],
   cta: {
     title: 'Not sure what size to order?',

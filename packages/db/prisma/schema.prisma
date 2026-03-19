@@ -136,6 +136,8 @@ model User {
   clientProducts   ClientProduct[]
   reorders         ClientProductReorder[]
   proformaInvoices ProformaInvoice[]
+  sentNotifications Notification[]  @relation("SentNotifications")
+  changeRequests   ChangeRequest[]
 
   @@map("users")
 }
@@ -372,6 +374,8 @@ model Order {
   customOrders    CustomOrder[]
   payments        Payment[]
   shipments       Shipment[]
+  notifications   Notification[]
+  changeRequests  ChangeRequest[]
 
   @@index([userId])
   @@index([status])
@@ -727,4 +731,41 @@ model ProformaInvoice {
 
   @@index([clientId, status])
   @@map("proforma_invoices")
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  type       String   // change_request | status_update | manual_email | manual_whatsapp
+  channels   String   // comma-separated: email,whatsapp,in_app
+  orderId    String?
+  fromUserId String?
+  subject    String?
+  body       String
+  metadata   String?  // JSON string
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  order    Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  fromUser User?  @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([orderId])
+  @@map("notifications")
+}
+
+model ChangeRequest {
+  id        String   @id @default(uuid())
+  orderId   String
+  userId    String
+  message   String
+  status    String   @default("pending") // pending | approved | rejected
+  adminNote String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([orderId])
+  @@map("change_requests")
 }

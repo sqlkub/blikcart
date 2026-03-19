@@ -30,25 +30,52 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<any>(null);
   const [manufacturers, setManufacturers] = useState<any[]>([]);
+  const [changeRequests, setChangeRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const [selectedManufacturer, setSelectedManufacturer] = useState('');
   const [notes, setNotes] = useState('');
+
+  function waUrl(phone: string, text: string) {
+    return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
+  }
+  function gmailUrl(to: string, subject: string, body: string) {
+    return `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+  async function logComm(type: string, channel: string, subject: string, body: string, to: string) {
+    await fetch(`${API}/notifications`, {
+      method: 'POST', headers: authH(true),
+      body: JSON.stringify({ type, channels: [channel], orderId: id, subject, body, metadata: { to } }),
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     Promise.all([
       fetch(`${API}/orders/admin/orders/${id}`, { headers: authH() }).then(r => r.json()),
       fetch(`${API}/manufacturers`, { headers: authH() }).then(r => r.json()),
-    ]).then(([ord, mfrs]) => {
+      fetch(`${API}/orders/${id}/change-requests`, { headers: authH() }).then(r => r.json()).catch(() => []),
+    ]).then(([ord, mfrs, crs]) => {
       setOrder(ord);
       setSelectedManufacturer(ord.manufacturerId || '');
       setNotes(ord.notes || '');
       setManufacturers(Array.isArray(mfrs) ? mfrs : []);
+      setChangeRequests(Array.isArray(crs) ? crs : []);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  async function resolveRequest(crId: string, status: 'approved' | 'rejected') {
+    setResolvingId(crId);
+    await fetch(`${API}/orders/admin/change-requests/${crId}`, {
+      method: 'PATCH', headers: authH(true),
+      body: JSON.stringify({ status }),
+    });
+    setChangeRequests(prev => prev.map(r => r.id === crId ? { ...r, status } : r));
+    setResolvingId(null);
+  }
 
   async function handleSave() {
     setSaving(true); setSaved(false);
@@ -111,6 +138,29 @@ export default function OrderDetailPage() {
               {new Date(order.placedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
           </div>
+        </div>
+
+        {/* Gmail + WhatsApp action buttons */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {order.user?.email && (
+            <a href={gmailUrl(order.user.email,
+                `Order #${order.orderNumber} – Update`,
+                `Hi ${order.user.companyName || order.user.fullName},\n\nYour order #${order.orderNumber} (€${Number(order.total).toFixed(2)}) is currently ${fmtStatus(order.status)}.\n\nBest regards,\nBlikcart Team`)}
+              target="_blank" rel="noreferrer"
+              onClick={() => logComm('manual_email', 'email', `Order #${order.orderNumber} – Update`, `Email opened to ${order.user.email}`, order.user.email)}
+              style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, background: '#dbeafe', color: '#1e40af', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              📧 Gmail
+            </a>
+          )}
+          {order.user?.phone && (
+            <a href={waUrl(order.user.phone,
+                `Hi ${order.user.companyName || order.user.fullName}, your order #${order.orderNumber} is currently *${fmtStatus(order.status)}*. Total: €${Number(order.total).toFixed(2)}. – Blikcart`)}
+              target="_blank" rel="noreferrer"
+              onClick={() => logComm('manual_whatsapp', 'whatsapp', `WhatsApp: Order #${order.orderNumber}`, `WhatsApp opened to ${order.user.phone}`, order.user.phone)}
+              style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 8, background: '#dcfce7', color: '#166534', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              💬 WhatsApp
+            </a>
+          )}
         </div>
 
         {/* Status control */}
@@ -219,6 +269,50 @@ export default function OrderDetailPage() {
 
         {/* Right: Manufacturer + Notes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Change Requests */}
+          {changeRequests.length > 0 && (
+            <div style={{ background: 'white', borderRadius: 12, border: '1.5px solid #fcd34d', padding: 20 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 14 }}>
+                ✏️ Change Requests ({changeRequests.length})
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {changeRequests.map(cr => (
+                  <div key={cr.id} style={{ background: '#fffbeb', borderRadius: 8, padding: '12px 14px', border: '1px solid #fef3c7' }}>
+                    <p style={{ fontSize: 13, color: '#374151', margin: '0 0 8px' }}>"{cr.message}"</p>
+                    <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 8px' }}>
+                      {cr.user?.companyName || cr.user?.fullName} · {new Date(cr.createdAt).toLocaleDateString('en-GB')}
+                    </p>
+                    {cr.status === 'pending' ? (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button type="button" disabled={resolvingId === cr.id}
+                          onClick={() => resolveRequest(cr.id, 'approved')}
+                          style={{ padding: '5px 12px', border: 'none', borderRadius: 7, background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                          ✓ Approve
+                        </button>
+                        <button type="button" disabled={resolvingId === cr.id}
+                          onClick={() => resolveRequest(cr.id, 'rejected')}
+                          style={{ padding: '5px 12px', border: 'none', borderRadius: 7, background: '#fee2e2', color: '#991b1b', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                          ✕ Reject
+                        </button>
+                        {cr.user?.email && (
+                          <a href={gmailUrl(cr.user.email, `Re: Change Request – Order #${order.orderNumber}`, `Hi ${cr.user?.fullName},\n\nRegarding your change request on order #${order.orderNumber}:\n"${cr.message}"\n\n`)}
+                            target="_blank" rel="noreferrer"
+                            style={{ padding: '5px 12px', borderRadius: 7, background: '#dbeafe', color: '#1e40af', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>
+                            📧
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: cr.status === 'approved' ? '#dcfce7' : '#fee2e2', color: cr.status === 'approved' ? '#166534' : '#991b1b' }}>
+                        {cr.status === 'approved' ? '✓ Approved' : '✕ Rejected'}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Manufacturer assignment */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 20 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>Manufacturer</h2>
@@ -237,6 +331,16 @@ export default function OrderDetailPage() {
               <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#475569', marginBottom: 10 }}>
                 {assignedMfr.contactName && <p style={{ margin: '0 0 2px' }}>👤 {assignedMfr.contactName}</p>}
                 {assignedMfr.contactEmail && <p style={{ margin: 0 }}>✉️ {assignedMfr.contactEmail}</p>}
+                {assignedMfr.contactEmail && (
+                  <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                    <a href={gmailUrl(assignedMfr.contactEmail, `Order #${order.orderNumber} – Production`, `Hi ${assignedMfr.contactName || assignedMfr.name},\n\nPlease find the production details for order #${order.orderNumber} (${order.items?.length} lines, €${Number(order.total).toFixed(2)}).\n\n`)}
+                      target="_blank" rel="noreferrer"
+                      onClick={() => logComm('manual_email', 'email', `Order #${order.orderNumber} – Production`, `Email to manufacturer ${assignedMfr.name}`, assignedMfr.contactEmail)}
+                      style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6, background: '#dbeafe', color: '#1e40af', textDecoration: 'none' }}>
+                      📧 Gmail
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>

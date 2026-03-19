@@ -12,6 +12,7 @@ import { SamplesModule } from './samples/samples.module';
 import { ClientProductsModule } from './client-products/client-products.module';
 import { ProformaModule } from './proforma/proforma.module';
 import { ManufacturersModule } from './manufacturers/manufacturers.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ClientProductsModule,
     ProformaModule,
     ManufacturersModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

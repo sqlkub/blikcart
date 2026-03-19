@@ -147,6 +147,36 @@ export class OrdersController {
     return this.orders.updateShipment(id, body);
   }
 
+  // ── Change Requests ──────────────────────────────────────────────────────────
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/change-request')
+  submitChangeRequest(@Param('id') id: string, @Request() req: any, @Body('message') message: string) {
+    return this.orders.submitChangeRequest(id, req.user.id, message);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':id/change-requests')
+  getChangeRequests(@Param('id') id: string) {
+    return this.orders.getChangeRequests(id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/change-requests')
+  getAllPendingChangeRequests() {
+    return this.orders.getAllPendingChangeRequests();
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/change-requests/:id')
+  resolveChangeRequest(@Param('id') id: string, @Body() body: { status: 'approved' | 'rejected'; adminNote?: string }) {
+    return this.orders.resolveChangeRequest(id, body.status, body.adminNote);
+  }
+
   // ── Manufacturer Portal ──────────────────────────────────────────────────────
 
   @ApiBearerAuth()

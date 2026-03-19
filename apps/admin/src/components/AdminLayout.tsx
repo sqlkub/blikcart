@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck, FlaskConical, Building2, Layers, Factory, Receipt } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck, FlaskConical, Building2, Layers, Factory, Receipt, Bell } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 const navItems = [
   { label: 'Dashboard',           href: '/dashboard',           icon: LayoutDashboard },
   { label: 'Orders',              href: '/orders',              icon: ShoppingBag, countKey: 'customOrders' },
+  { label: 'Notifications',       href: '/notifications',       icon: Bell, countKey: 'notifications' },
   { label: 'Products',            href: '/products',            icon: Package },
   { label: 'Customers',           href: '/customers',           icon: Users },
   { label: 'B2B Approvals',       href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
@@ -32,6 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const [wholesaleCount, setWholesaleCount] = useState<number | null>(null);
   const [samplesCount, setSamplesCount] = useState<number | null>(null);
+  const [notifCount, setNotifCount] = useState<number | null>(null);
 
   // Global 401 interceptor — catches expired tokens anywhere in the app
   useEffect(() => {
@@ -75,6 +77,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }).then(r => {
         setSamplesCount(r.data?.meta?.total || null);
       }).catch(() => {});
+      // Fetch unread notifications count
+      axios.get(`${API}/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => {
+        setNotifCount(r.data || null);
+      }).catch(() => {});
     }).catch(err => {
       if (err.response?.status === 401) {
         localStorage.removeItem('adminToken');
@@ -107,6 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const badge = (item.countKey === 'customOrders' && pendingCount) ? pendingCount
                          : (item.countKey === 'wholesale' && wholesaleCount) ? wholesaleCount
                          : (item.countKey === 'samples' && samplesCount) ? samplesCount
+                         : (item.countKey === 'notifications' && notifCount) ? notifCount
                          : null;
             return (
               <Link key={item.href} href={item.href}
