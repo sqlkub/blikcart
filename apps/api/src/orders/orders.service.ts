@@ -186,12 +186,44 @@ export class OrdersService {
     };
   }
 
-  async updateAdminOrder(id: string, data: { manufacturerId?: string; notes?: string; status?: string }) {
+  async updateAdminOrder(id: string, data: {
+    manufacturerId?: string; notes?: string; status?: string;
+    items?: Array<{ id: string; quantity?: number; unitPrice?: number; productName?: string; sku?: string }>;
+  }) {
     const update: any = {};
     if (data.manufacturerId !== undefined) update.manufacturerId = data.manufacturerId || null;
     if (data.notes !== undefined) update.notes = data.notes;
     if (data.status) update.status = data.status;
-    return (this.prisma.order as any).update({ where: { id }, data: update });
+    await (this.prisma.order as any).update({ where: { id }, data: update });
+
+    if (data.items?.length) {
+      for (const item of data.items) {
+        const itemUpdate: any = {};
+        if (item.quantity !== undefined) itemUpdate.quantity = item.quantity;
+        if (item.unitPrice !== undefined) itemUpdate.unitPrice = item.unitPrice;
+        if (item.productName !== undefined) itemUpdate.productName = item.productName;
+        if (item.sku !== undefined) itemUpdate.sku = item.sku;
+        if (item.quantity !== undefined || item.unitPrice !== undefined) {
+          const existing = await this.prisma.orderItem.findUnique({ where: { id: item.id } });
+          const qty = item.quantity ?? Number((existing as any)?.quantity ?? 0);
+          const price = item.unitPrice ?? Number((existing as any)?.unitPrice ?? 0);
+          itemUpdate.total = qty * price;
+        }
+        await this.prisma.orderItem.update({ where: { id: item.id }, data: itemUpdate });
+      }
+      // Recalculate order totals
+      const freshItems = await this.prisma.orderItem.findMany({ where: { orderId: id } });
+      const subtotal = freshItems.reduce((s: number, i: any) => s + Number(i.total), 0);
+      const order = await (this.prisma.order as any).findUnique({ where: { id } });
+      const taxAmount = subtotal * 0.21;
+      const total = subtotal + Number(order.shippingCost || 0) + taxAmount;
+      await (this.prisma.order as any).update({ where: { id }, data: { subtotal, taxAmount, total } });
+    }
+
+    return (this.prisma.order as any).findUnique({
+      where: { id },
+      include: { items: { include: { product: { select: { name: true } } } }, user: { select: { fullName: true, email: true, phone: true, companyName: true } }, manufacturer: true },
+    });
   }
 
   async getManufacturerOrders(userId: string) {

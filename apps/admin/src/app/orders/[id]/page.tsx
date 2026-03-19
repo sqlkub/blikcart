@@ -39,6 +39,10 @@ export default function OrderDetailPage() {
 
   const [selectedManufacturer, setSelectedManufacturer] = useState('');
   const [notes, setNotes] = useState('');
+  const [editingItems, setEditingItems] = useState(false);
+  const [itemEdits, setItemEdits] = useState<Record<string, any>>({});
+  const [itemsSaving, setItemsSaving] = useState(false);
+  const [confirmingSaving, setConfirmingSaving] = useState(false);
 
   function waUrl(phone: string, text: string) {
     return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
@@ -75,6 +79,49 @@ export default function OrderDetailPage() {
     });
     setChangeRequests(prev => prev.map(r => r.id === crId ? { ...r, status } : r));
     setResolvingId(null);
+  }
+
+  function startEdit() {
+    const edits: Record<string, any> = {};
+    (order.items || []).forEach((item: any) => {
+      edits[item.id] = { quantity: item.quantity, unitPrice: Number(item.unitPrice), productName: item.productName, sku: item.sku || '' };
+    });
+    setItemEdits(edits);
+    setEditingItems(true);
+  }
+
+  async function saveItems() {
+    setItemsSaving(true);
+    try {
+      const items = Object.entries(itemEdits).map(([id, v]: [string, any]) => ({
+        id,
+        quantity: parseInt(String(v.quantity)) || 0,
+        unitPrice: parseFloat(String(v.unitPrice)) || 0,
+        productName: v.productName,
+        sku: v.sku,
+      }));
+      const res = await fetch(`${API}/orders/admin/orders/${id}`, {
+        method: 'PATCH', headers: authH(true),
+        body: JSON.stringify({ items }),
+      });
+      const updated = await res.json();
+      setOrder(updated);
+      setEditingItems(false);
+    } finally { setItemsSaving(false); }
+  }
+
+  async function confirmOrder() {
+    setConfirmingSaving(true);
+    try {
+      const res = await fetch(`${API}/orders/admin/orders/${id}`, {
+        method: 'PATCH', headers: authH(true),
+        body: JSON.stringify({ manufacturerId: selectedManufacturer || null, notes, status: 'confirmed' }),
+      });
+      const updated = await res.json();
+      setOrder(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } finally { setConfirmingSaving(false); }
   }
 
   async function handleSave() {
@@ -198,10 +245,27 @@ export default function OrderDetailPage() {
         {/* Left: Line Items */}
         <div>
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0 }}>
                 Line Items ({order.items?.length || 0})
               </h2>
+              {!editingItems ? (
+                <button type="button" onClick={startEdit}
+                  style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', border: '1.5px solid #e2e8f0', borderRadius: 7, background: 'white', cursor: 'pointer', color: '#374151' }}>
+                  ✏️ Edit Items
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={() => setEditingItems(false)}
+                    style={{ fontSize: 12, fontWeight: 600, padding: '5px 12px', border: '1.5px solid #e2e8f0', borderRadius: 7, background: 'white', cursor: 'pointer', color: '#64748b' }}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={saveItems} disabled={itemsSaving}
+                    style={{ fontSize: 12, fontWeight: 700, padding: '5px 14px', border: 'none', borderRadius: 7, background: '#1A3C5E', color: 'white', cursor: 'pointer' }}>
+                    {itemsSaving ? 'Saving…' : 'Save Items'}
+                  </button>
+                </div>
+              )}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -214,29 +278,53 @@ export default function OrderDetailPage() {
               <tbody>
                 {(order.items || []).map((item: any) => {
                   const isUnresolved = !item.productId;
+                  const edit = itemEdits[item.id];
+                  const rowQty = edit ? edit.quantity : item.quantity;
+                  const rowPrice = edit ? edit.unitPrice : Number(item.unitPrice);
                   return (
                     <tr key={item.id} style={{ borderTop: '1px solid #f1f5f9', background: isUnresolved ? '#fffbeb' : 'white' }}>
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#475569', fontSize: 12 }}>
-                        {item.sku || '—'}
+                      <td style={{ padding: '10px 16px', fontFamily: 'monospace', color: '#475569', fontSize: 12 }}>
+                        {editingItems ? (
+                          <input title="SKU" placeholder="SKU" value={edit?.sku ?? ''} onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], sku: e.target.value } }))}
+                            style={{ width: 90, padding: '4px 7px', border: '1.5px solid #cbd5e1', borderRadius: 6, fontSize: 12, fontFamily: 'monospace' }} />
+                        ) : item.sku || '—'}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.productName}</span>
-                        {item.product?.name && item.product.name !== item.productName && (
-                          <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>({item.product.name})</span>
+                      <td style={{ padding: '10px 16px' }}>
+                        {editingItems ? (
+                          <input title="Product name" placeholder="Product name" value={edit?.productName ?? ''}
+                            onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], productName: e.target.value } }))}
+                            style={{ width: '100%', padding: '4px 7px', border: '1.5px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                        ) : (
+                          <>
+                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.productName}</span>
+                            {item.product?.name && item.product.name !== item.productName && (
+                              <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>({item.product.name})</span>
+                            )}
+                          </>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#475569' }}>{item.quantity}</td>
-                      <td style={{ padding: '12px 16px', color: '#475569' }}>€{Number(item.unitPrice).toFixed(2)}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>€{Number(item.total).toFixed(2)}</td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td style={{ padding: '10px 16px', color: '#475569' }}>
+                        {editingItems ? (
+                          <input type="number" min={1} title="Quantity" placeholder="Qty" value={edit?.quantity ?? 0}
+                            onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], quantity: parseInt(e.target.value) || 0 } }))}
+                            style={{ width: 60, padding: '4px 7px', border: '1.5px solid #cbd5e1', borderRadius: 6, fontSize: 13, textAlign: 'right' }} />
+                        ) : item.quantity}
+                      </td>
+                      <td style={{ padding: '10px 16px', color: '#475569' }}>
+                        {editingItems ? (
+                          <input type="number" min={0} step={0.01} title="Unit price" placeholder="0.00" value={edit?.unitPrice ?? 0}
+                            onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...p[item.id], unitPrice: parseFloat(e.target.value) || 0 } }))}
+                            style={{ width: 80, padding: '4px 7px', border: '1.5px solid #cbd5e1', borderRadius: 6, fontSize: 13, textAlign: 'right' }} />
+                        ) : `€${Number(item.unitPrice).toFixed(2)}`}
+                      </td>
+                      <td style={{ padding: '10px 16px', fontWeight: 700, color: '#0f172a' }}>
+                        €{editingItems ? (rowQty * rowPrice).toFixed(2) : Number(item.total).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '10px 16px' }}>
                         {isUnresolved ? (
-                          <span style={{ fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10 }}>
-                            ⚠ Needs Review
-                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 10 }}>⚠ Needs Review</span>
                         ) : (
-                          <span style={{ fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: 10 }}>
-                            ✓ Matched
-                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: 10 }}>✓ Matched</span>
                         )}
                       </td>
                     </tr>
@@ -366,6 +454,18 @@ export default function OrderDetailPage() {
           >
             {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
           </button>
+
+          {/* Confirm & Submit */}
+          {order.status === 'pending' && (
+            <button
+              type="button"
+              onClick={confirmOrder}
+              disabled={confirmingSaving}
+              style={{ padding: '13px', border: 'none', borderRadius: 10, background: confirmingSaving ? '#9ca3af' : '#C8860A', color: 'white', fontWeight: 800, fontSize: 14, cursor: confirmingSaving ? 'not-allowed' : 'pointer' }}
+            >
+              {confirmingSaving ? 'Confirming…' : '✓ Confirm & Submit Order'}
+            </button>
+          )}
 
           {/* Order meta */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', padding: 20 }}>

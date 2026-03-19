@@ -723,6 +723,7 @@ export default function AccountPage() {
                                   {COL_LABELS[k] || (k.charAt(0).toUpperCase() + k.slice(1))}
                                 </th>
                               ))}
+                              <th style={{ padding: '10px 8px', width: 32 }}>Del</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -730,12 +731,17 @@ export default function AccountPage() {
                               <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
                                 {visibleCols.map(k => {
                                   const val = row[k];
-                                  if (k === 'unitPrice') return <td key={k} style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'right' }}>€{Number(val).toFixed(2)}</td>;
-                                  if (k === 'total') return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>€{(val || row.quantity * row.unitPrice).toFixed(2)}</td>;
-                                  if (k === 'quantity') return <td key={k} style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right' }}>{val}</td>;
-                                  if (k === 'sku') return <td key={k} style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#374151' }}>{val || '—'}</td>;
-                                  return <td key={k} style={{ padding: '10px 14px', color: '#6b7280' }}>{val || '—'}</td>;
+                                  const upd = (v: any) => setBulkRows(prev => prev.map((r, ri) => ri === i ? { ...r, [k]: v, total: k === 'quantity' ? v * r.unitPrice : k === 'unitPrice' ? r.quantity * v : r.total } : r));
+                                  if (k === 'total') return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--navy)', textAlign: 'right', whiteSpace: 'nowrap' }}>€{(row.quantity * row.unitPrice).toFixed(2)}</td>;
+                                  if (k === 'quantity') return <td key={k} style={{ padding: '6px 10px' }}><input type="number" min={1} title="Quantity" value={val} onChange={e => upd(parseInt(e.target.value) || 0)} style={{ width: 60, padding: '4px 6px', border: '1.5px solid #d1d5db', borderRadius: 6, fontSize: 13, textAlign: 'right' }} /></td>;
+                                  if (k === 'unitPrice') return <td key={k} style={{ padding: '6px 10px' }}><input type="number" min={0} step={0.01} title="Unit price" value={val} onChange={e => upd(parseFloat(e.target.value) || 0)} style={{ width: 75, padding: '4px 6px', border: '1.5px solid #d1d5db', borderRadius: 6, fontSize: 13, textAlign: 'right' }} /></td>;
+                                  if (k === 'sku') return <td key={k} style={{ padding: '6px 10px' }}><input title="SKU" value={val || ''} onChange={e => upd(e.target.value)} style={{ width: 90, padding: '4px 6px', border: '1.5px solid #d1d5db', borderRadius: 6, fontSize: 12, fontFamily: 'monospace' }} /></td>;
+                                  return <td key={k} style={{ padding: '6px 10px' }}><input title={COL_LABELS[k] || k} value={val || ''} onChange={e => upd(e.target.value)} style={{ width: '100%', minWidth: 80, padding: '4px 6px', border: '1.5px solid #d1d5db', borderRadius: 6, fontSize: 13 }} /></td>;
                                 })}
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                  <button type="button" title="Remove row" onClick={() => setBulkRows(prev => prev.filter((_, ri) => ri !== i))}
+                                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '2px 4px' }}>×</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
