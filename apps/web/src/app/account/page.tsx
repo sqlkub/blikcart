@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/store/auth.store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
@@ -39,72 +40,57 @@ const DUTCH_MAP: Record<string, string> = {
   aantal: 'quantity', sku: 'sku', prijs: 'unitPrice', totaal: 'total',
 };
 
-function detectDelimiter(line: string): string {
-  const semicolons = (line.match(/;/g) || []).length;
-  const commas = (line.match(/,/g) || []).length;
-  return semicolons >= commas ? ';' : ',';
+function parseNumeric(val: any): number {
+  if (typeof val === 'number') return val;
+  const s = String(val || '0').replace('€', '').trim();
+  // Handle European format: 1.234,56 → 1234.56
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  return parseFloat(s.replace(',', '.')) || 0;
 }
 
-function splitCSVLine(line: string, delimiter: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === delimiter && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
+function parseSheetRows(rows: any[][]): any[] {
+  if (rows.length < 2) return [];
 
-function parseCSV(text: string): any[] {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-
-  // Find header row (first row that has column keywords)
+  // Find header row containing known keywords
   let headerIdx = 0;
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const lower = lines[i].toLowerCase();
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    const lower = rows[i].map(c => String(c ?? '').toLowerCase()).join(' ');
     if (lower.includes('sku') || lower.includes('aantal') || lower.includes('naam')) {
       headerIdx = i;
       break;
     }
   }
 
-  // Auto-detect delimiter from header row (Dutch Excel uses ; by default)
-  const delimiter = detectDelimiter(lines[headerIdx]);
+  const headers = rows[headerIdx].map(h => {
+    const key = String(h ?? '').toLowerCase().trim();
+    return DUTCH_MAP[key] || key;
+  });
 
-  const rawHeaders = splitCSVLine(lines[headerIdx], delimiter).map(h => h.replace(/^"|"$/g, '').toLowerCase());
-  const headers = rawHeaders.map(h => DUTCH_MAP[h] || h);
-
-  const rows: any[] = [];
-  for (let i = headerIdx + 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const cells = splitCSVLine(line, delimiter).map(c => c.replace(/^"|"$/g, ''));
-    if (cells.every(c => !c)) continue;
+  const result: any[] = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const cells = rows[i];
+    if (!cells || cells.every(c => c == null || c === '')) continue;
 
     const row: any = {};
-    headers.forEach((h, idx) => { row[h] = cells[idx] || ''; });
+    headers.forEach((h, idx) => { row[h] = cells[idx] ?? ''; });
 
-    // Skip group header rows (no SKU, no quantity)
     if (!row.sku && !row.quantity) continue;
 
-    // Parse numeric fields — handle both . and , as decimal separator
-    row.quantity = parseInt(row.quantity) || 0;
-    row.unitPrice = parseFloat((row.unitPrice || '0').replace('€', '').replace(/\./g, '').replace(',', '.')) || 0;
-    row.total = parseFloat((row.total || '0').replace('€', '').replace(/\./g, '').replace(',', '.')) || 0;
+    row.quantity  = parseInt(String(row.quantity))  || 0;
+    row.unitPrice = parseNumeric(row.unitPrice);
+    row.total     = parseNumeric(row.total);
 
-    if (row.quantity > 0) rows.push(row);
+    if (row.quantity > 0) result.push(row);
   }
-  return rows;
+  return result;
+}
+
+function parseFile(buffer: ArrayBuffer): any[] {
+  const wb = XLSX.read(buffer, { type: 'array', cellText: true, cellNF: false });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  // Use header:1 to get raw 2D array — handles .xlsx, .xls, .csv, .ods, .txt
+  const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+  return parseSheetRows(data);
 }
 
 const PROFORMA_STATUS: Record<string, { label: string; color: string }> = {
@@ -191,7 +177,7 @@ export default function AccountPage() {
     router.push('/');
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setBulkError('');
@@ -200,15 +186,15 @@ export default function AccountPage() {
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const text = ev.target?.result as string;
-        const rows = parseCSV(text);
-        if (!rows.length) { setBulkError('No valid rows found. Make sure your file has headers: SKU, Naam, Kleur, Maat, Aantal, Prijs'); return; }
+        const buffer = ev.target?.result as ArrayBuffer;
+        const rows = parseFile(buffer);
+        if (!rows.length) { setBulkError('No valid rows found. Make sure your file has column headers: SKU, Naam, Kleur, Maat, Aantal, Prijs'); return; }
         setBulkRows(rows);
       } catch {
-        setBulkError('Could not parse file. Please export as CSV from Excel.');
+        setBulkError('Could not read file. Please try again or contact support.');
       }
     };
-    reader.readAsText(file, 'utf-8');
+    reader.readAsArrayBuffer(file);
   }
 
   async function handleBulkSubmit() {
@@ -607,7 +593,7 @@ export default function AccountPage() {
             ) : bulkRows.length === 0 ? (
               // ── Upload area ────────────────────────────────────────────────────
               <div>
-                <input ref={fileRef} type="file" accept=".csv,.txt" title="Upload order CSV file" aria-label="Upload order CSV file" style={{ display: 'none' }} onChange={handleFileChange} />
+                <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.ods,.txt" title="Upload order file" aria-label="Upload order file" style={{ position: 'absolute', opacity: 0, width: 0, height: 0, overflow: 'hidden' }} onChange={handleFileChange} />
                 <div
                   onClick={() => fileRef.current?.click()}
                   onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--gold)'; }}
@@ -617,14 +603,13 @@ export default function AccountPage() {
                     e.currentTarget.style.borderColor = '#d1d5db';
                     const file = e.dataTransfer.files?.[0];
                     if (file) {
-                      const fakeEvent = { target: { files: [file] } } as any;
-                      handleFileChange(fakeEvent);
+                      handleFileChange({ target: { files: [file] } });
                     }
                   }}
                   style={{ border: '2px dashed #d1d5db', borderRadius: 14, padding: '56px 24px', textAlign: 'center', cursor: 'pointer', background: 'white', transition: 'border-color 0.2s' }}>
                   <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-                  <p style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 16, marginBottom: 6 }}>Drop your Excel/CSV file here</p>
-                  <p style={{ color: '#9ca3af', fontSize: 14 }}>or click to browse · CSV format · max 5 MB</p>
+                  <p style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 16, marginBottom: 6 }}>Drop your order file here</p>
+                  <p style={{ color: '#9ca3af', fontSize: 14 }}>or click to browse · Excel, CSV, ODS, TXT · any format</p>
                 </div>
 
                 {bulkError && (
@@ -635,16 +620,15 @@ export default function AccountPage() {
 
                 {/* Instructions */}
                 <div style={{ marginTop: 24, background: 'white', borderRadius: 14, padding: 24, border: '1px solid #e5e7eb' }}>
-                  <p style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 12, fontSize: 14 }}>How to prepare your file:</p>
+                  <p style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 12, fontSize: 14 }}>How to upload your order:</p>
                   <ol style={{ margin: 0, paddingLeft: 20, color: '#6b7280', fontSize: 13, lineHeight: 1.8 }}>
-                    <li>Open your Excel order sheet</li>
-                    <li>Go to <strong>File → Save As → CSV (Comma delimited)</strong></li>
-                    <li>Make sure your columns include: <strong>SKU, Naam, Kleur, Maat, Aantal, Prijs</strong></li>
-                    <li>Upload the saved .csv file here</li>
+                    <li>Upload your Excel file <strong>directly</strong> — no need to convert to CSV</li>
+                    <li>Make sure your sheet has column headers: <strong>SKU, Naam, Kleur, Maat, Aantal, Prijs</strong></li>
+                    <li>Supported formats: <strong>.xlsx, .xls, .csv, .ods, .txt</strong></li>
                   </ol>
                   <div style={{ marginTop: 16, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontFamily: 'monospace', fontSize: 12, color: '#475569' }}>
-                    Wat,Naam,Kleur,Kleur gesp/buckle,Maat,Aantal,SKU,Prijs,Totaal<br />
-                    Halter,Bunga,Zwart,zilver,Mini,5,HBUN-ZWZ-M,15.75,78.75
+                    Wat | Naam | Kleur | Kleur gesp/buckle | Maat | Aantal | SKU | Prijs | Totaal<br />
+                    Halter | Bunga | Zwart | zilver | Mini | 5 | HBUN-ZWZ-M | 15.75 | 78.75
                   </div>
                 </div>
               </div>
