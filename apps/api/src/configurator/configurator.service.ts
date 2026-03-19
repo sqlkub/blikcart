@@ -206,10 +206,12 @@ export class ConfiguratorService {
 
     if (!draft) throw new NotFoundException('Draft not found');
 
-    // Validate required steps
+    // Validate required steps (skip quantity_delivery — stored as draft.quantity, not in selections)
     const steps = draft.schemaVersion?.steps as any[] || [];
     const selections = draft.configSnapshot as Record<string, string>;
-    const missing = steps.filter(s => s.required && !selections[s.id]).map(s => s.title);
+    const missing = steps
+      .filter(s => s.required && s.ui_type !== 'quantity_delivery' && !selections[s.id])
+      .map(s => s.title);
 
     if (missing.length > 0) {
       throw new BadRequestException(`Please complete required steps: ${missing.join(', ')}`);
@@ -268,7 +270,7 @@ export class ConfiguratorService {
   }
 
   private calcCompletion(steps: any[], selections: Record<string, string>): number {
-    const required = steps.filter(s => s.required);
+    const required = steps.filter(s => s.required && s.ui_type !== 'quantity_delivery');
     if (!required.length) return 100;
     const done = required.filter(s => selections[s.id]).length;
     return Math.round((done / required.length) * 100);

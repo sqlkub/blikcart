@@ -79,8 +79,15 @@ function parseCSV(text: string): any[] {
   return rows;
 }
 
+const PROFORMA_STATUS: Record<string, { label: string; color: string }> = {
+  draft:    { label: 'Draft',    color: '#9ca3af' },
+  sent:     { label: 'Sent',     color: '#d97706' },
+  approved: { label: 'Approved', color: '#16a34a' },
+  rejected: { label: 'Rejected', color: '#dc2626' },
+};
+
 // ── Tab types ─────────────────────────────────────────────────────────────────
-type Tab = 'orders' | 'quotes' | 'samples' | 'bulk';
+type Tab = 'orders' | 'quotes' | 'samples' | 'bulk' | 'products' | 'invoices';
 
 export default function AccountPage() {
   const { user, logout } = useAuthStore();
@@ -88,10 +95,19 @@ export default function AccountPage() {
   const isB2B = user?.accountType === 'wholesale';
 
   const [tab, setTab] = useState<Tab>('orders');
-  const [orders, setOrders]   = useState<any[]>([]);
-  const [quotes, setQuotes]   = useState<any[]>([]);
-  const [samples, setSamples] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders]           = useState<any[]>([]);
+  const [quotes, setQuotes]           = useState<any[]>([]);
+  const [samples, setSamples]         = useState<any[]>([]);
+  const [myProducts, setMyProducts]   = useState<any[]>([]);
+  const [invoices, setInvoices]       = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+
+  // Reorder state
+  const [reorderQty, setReorderQty]       = useState<Record<string, string>>({});
+  const [reorderNotes, setReorderNotes]   = useState<Record<string, string>>({});
+  const [reordering, setReordering]       = useState<string | null>(null);
+  const [reorderDone, setReorderDone]     = useState<string | null>(null);
+  const [reorderError, setReorderError]   = useState('');
 
   // Bulk import state
   const fileRef = useRef<HTMLInputElement>(null);
@@ -113,10 +129,34 @@ export default function AccountPage() {
     if (isB2B) {
       fetches.push(
         fetch(`${API}/samples`, { headers: h }).then(r => r.ok ? r.json() : []).then(d => setSamples(Array.isArray(d) ? d : [])),
+        fetch(`${API}/client-products/mine`, { headers: h }).then(r => r.ok ? r.json() : []).then(d => setMyProducts(Array.isArray(d) ? d : [])),
+        fetch(`${API}/proforma/mine`, { headers: h }).then(r => r.ok ? r.json() : []).then(d => setInvoices(Array.isArray(d) ? d : [])),
       );
     }
     Promise.all(fetches).catch(() => {}).finally(() => setLoading(false));
   }, [router, isB2B]);
+
+  async function handleReorder(productId: string) {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+    const qty = parseInt(reorderQty[productId] || '0');
+    if (!qty || qty < 1) { setReorderError('Please enter a valid quantity.'); return; }
+    setReordering(productId); setReorderError('');
+    try {
+      const res = await fetch(`${API}/client-products/${productId}/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ quantity: qty, notes: reorderNotes[productId] || undefined }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message || 'Reorder failed');
+      setReorderDone(productId);
+      // Refresh invoices
+      const fresh = await fetch(`${API}/proforma/mine`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+      setInvoices(Array.isArray(fresh) ? fresh : []);
+    } catch (e: any) {
+      setReorderError(e.message || 'Something went wrong');
+    } finally { setReordering(null); }
+  }
 
   async function handleLogout() {
     await logout();
@@ -169,10 +209,12 @@ export default function AccountPage() {
     }
   }
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
+  const tabs: { key: Tab; label: string }[] = [
     { key: 'orders', label: `Orders (${orders.length})` },
     { key: 'quotes', label: `Quote Requests (${quotes.length})` },
     ...(isB2B ? [
+      { key: 'products' as Tab, label: `My Products (${myProducts.length})` },
+      { key: 'invoices' as Tab, label: `Invoices (${invoices.length})` },
       { key: 'samples' as Tab, label: `Samples (${samples.length})` },
       { key: 'bulk' as Tab, label: '📦 Bulk Import' },
     ] : []),
@@ -306,6 +348,143 @@ export default function AccountPage() {
               })}
             </div>
           )
+        ) : tab === 'products' ? (
+          // ── My Products (B2B only) ────────────────────────────────────────────
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)', margin: '0 0 6px' }}>My Product Lines</h2>
+              <p style={{ fontSize: 14, color: '#6b7280' }}>Your approved custom products. Place a reorder in seconds — no re-specification needed.</p>
+            </div>
+            {myProducts.length === 0 ? (
+              <div style={{ background: 'white', borderRadius: 12, padding: 48, textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
+                <h3 style={{ color: 'var(--navy)', fontWeight: 700, marginBottom: 8 }}>No product lines yet</h3>
+                <p style={{ color: '#6b7280', fontSize: 14 }}>Your account manager will set up your custom product lines. Contact us to get started.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {reorderError && (
+                  <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10 }}>
+                    <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{reorderError}</p>
+                  </div>
+                )}
+                {myProducts.map((p: any) => (
+                  <div key={p.id} style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', margin: 0 }}>{p.name}</h3>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: '#e8f0f7', color: 'var(--navy)' }}>V{p.version}</span>
+                        </div>
+                        <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 10px' }}>{p.category} · MOQ: {p.moq} pcs · Lead time: {p.leadTimeDays} days</p>
+                        <div style={{ display: 'flex', gap: 20 }}>
+                          <div>
+                            <p style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.06em', margin: '0 0 2px' }}>Unit Price</p>
+                            <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', margin: 0 }}>€{Number(p.unitPrice).toFixed(2)}</p>
+                          </div>
+                          {p.reorderCount > 0 && (
+                            <div>
+                              <p style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.06em', margin: '0 0 2px' }}>Reorders</p>
+                              <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', margin: 0 }}>{p.reorderCount}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {reorderDone === p.id ? (
+                        <div style={{ textAlign: 'center', padding: '12px 20px', background: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0' }}>
+                          <p style={{ fontSize: 18, margin: '0 0 4px' }}>✅</p>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', margin: 0 }}>Reorder submitted!</p>
+                          <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>Check your Invoices tab</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                              type="number" min={p.moq || 1} placeholder={`Min ${p.moq || 1}`}
+                              value={reorderQty[p.id] || ''}
+                              onChange={e => setReorderQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                              style={{ flex: 1, padding: '9px 12px', border: '2px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', width: 80 }}
+                            />
+                            <button type="button"
+                              disabled={reordering === p.id}
+                              onClick={() => handleReorder(p.id)}
+                              style={{ padding: '9px 18px', background: reordering === p.id ? '#9ca3af' : 'var(--navy)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                              {reordering === p.id ? '…' : 'Reorder →'}
+                            </button>
+                          </div>
+                          <input
+                            type="text" placeholder="Notes (optional)"
+                            value={reorderNotes[p.id] || ''}
+                            onChange={e => setReorderNotes(prev => ({ ...prev, [p.id]: e.target.value }))}
+                            style={{ padding: '7px 12px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, outline: 'none' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        ) : tab === 'invoices' ? (
+          // ── Proforma Invoices (B2B only) ──────────────────────────────────────
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--navy)', margin: '0 0 6px' }}>Proforma Invoices</h2>
+              <p style={{ fontSize: 14, color: '#6b7280' }}>Auto-generated invoices for your reorders, including 21% VAT.</p>
+            </div>
+            {invoices.length === 0 ? (
+              <div style={{ background: 'white', borderRadius: 12, padding: 48, textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🧾</div>
+                <h3 style={{ color: 'var(--navy)', fontWeight: 700, marginBottom: 8 }}>No invoices yet</h3>
+                <p style={{ color: '#6b7280', fontSize: 14 }}>Invoices are automatically created when you place a reorder.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {invoices.map((inv: any) => {
+                  const st = PROFORMA_STATUS[inv.status] || { label: inv.status, color: '#9ca3af' };
+                  return (
+                    <div key={inv.id} style={{ background: 'white', borderRadius: 14, border: '1px solid #e5e7eb', padding: '20px 24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                        <div>
+                          <p style={{ fontWeight: 800, color: 'var(--navy)', margin: '0 0 4px', fontFamily: 'monospace', fontSize: 15 }}>{inv.invoiceNumber}</p>
+                          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+                            {new Date(inv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {inv.estimatedDelivery && ` · Est. delivery: ${new Date(inv.estimatedDelivery).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                          <div style={{ textAlign: 'right' as const }}>
+                            <p style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.06em', margin: '0 0 2px' }}>Total incl. VAT</p>
+                            <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', margin: 0 }}>€{Number(inv.total).toFixed(2)}</p>
+                          </div>
+                          <span style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: `${st.color}18`, color: st.color }}>{st.label}</span>
+                        </div>
+                      </div>
+                      {Array.isArray(inv.lines) && inv.lines.length > 0 && (
+                        <div style={{ marginTop: 14, borderTop: '1px solid #f3f4f6', paddingTop: 14 }}>
+                          {inv.lines.map((line: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#374151', padding: '3px 0' }}>
+                              <span>{line.productName} × {line.quantity}</span>
+                              <span style={{ fontWeight: 600 }}>€{Number(line.totalPrice).toFixed(2)}</span>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#9ca3af', marginTop: 6, paddingTop: 6, borderTop: '1px dashed #e5e7eb' }}>
+                            <span>Subtotal</span><span>€{Number(inv.subtotal).toFixed(2)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#9ca3af' }}>
+                            <span>VAT (21%)</span><span>€{Number(inv.taxAmount).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         ) : tab === 'samples' ? (
           // ── Samples (B2B only) ────────────────────────────────────────────────
           <div>
