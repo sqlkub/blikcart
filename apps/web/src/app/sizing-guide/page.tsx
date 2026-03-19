@@ -32,7 +32,7 @@ const DEFAULT = {
     { size: "6'0\"", cm: '183 cm', back: '161 cm', chest: '174 cm', breeds: 'XL WB / Draught' },
     { size: "6'3\"", cm: '191 cm', back: '168 cm', chest: '182 cm', breeds: 'XXL / Draught' },
   ],
-  halterSizes: [
+  bootSizes: [
     { size: 'XS', canon: '< 19 cm',  fits: 'Small pony, fine-boned' },
     { size: 'S',  canon: '19–21 cm', fits: 'Pony / small cob' },
     { size: 'M',  canon: '21–23 cm', fits: 'Cob / average horse' },

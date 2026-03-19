@@ -191,9 +191,9 @@ export default function ProductDetailPage() {
   // ── Derived values ─────────────────────────────────────────────────────────
 
   const variants: any[]   = product.variants || [];
-  const sizes              = [...new Set(variants.map((v: any) => v.size).filter(Boolean))] as string[];
-  const colors             = [...new Set(variants.map((v: any) => v.color).filter(Boolean))] as string[];
-  const materials          = [...new Set(variants.map((v: any) => v.material).filter(Boolean))] as string[];
+  const sizes              = Array.from(new Set(variants.map((v: any) => v.size).filter(Boolean))) as string[];
+  const colors             = Array.from(new Set(variants.map((v: any) => v.color).filter(Boolean))) as string[];
+  const materials          = Array.from(new Set(variants.map((v: any) => v.material).filter(Boolean))) as string[];
   const colorImgMap: Record<string, string> = {};
   variants.forEach((v: any) => { if (v.color && v.imageUrl && !colorImgMap[v.color]) colorImgMap[v.color] = v.imageUrl; });
 
