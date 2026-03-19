@@ -380,15 +380,16 @@ model Order {
 model OrderItem {
   id          String  @id @default(uuid())
   orderId     String
-  productId   String
+  productId   String?
   productName String
+  sku         String?
   variantId   String?
   quantity    Int
   unitPrice   Decimal @db.Decimal(10, 2)
   total       Decimal @db.Decimal(10, 2)
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@map("order_items")

@@ -541,25 +541,20 @@ export class OrdersService {
   async bulkImport(userId: string, lines: { sku: string; productName: string; color?: string; size?: string; quantity: number; unitPrice: number }[]) {
     if (!lines?.length) throw new BadRequestException('No line items provided');
 
-    // Look up products by SKU
+    // Try to match SKUs to products — unmatched lines still get created for admin review
     const skus = lines.map(l => l.sku).filter(Boolean);
     const products = await this.prisma.product.findMany({ where: { sku: { in: skus } } });
     const productBySku = Object.fromEntries(products.map(p => [p.sku!, p]));
 
-    const resolvedItems: any[] = [];
+    const resolvedSkus: string[] = [];
     const unresolvedSkus: string[] = [];
 
     for (const line of lines) {
-      const product = productBySku[line.sku];
-      if (product) {
-        resolvedItems.push({ product, line });
-      } else {
+      if (line.sku && productBySku[line.sku]) {
+        resolvedSkus.push(line.sku);
+      } else if (line.sku) {
         unresolvedSkus.push(line.sku);
       }
-    }
-
-    if (!resolvedItems.length) {
-      throw new BadRequestException(`No products found for SKUs: ${unresolvedSkus.join(', ')}. Check your SKU column.`);
     }
 
     const subtotal = lines.reduce((sum, l) => sum + (l.unitPrice * l.quantity), 0);
@@ -570,7 +565,7 @@ export class OrdersService {
 
     const notes = [
       'B2B Bulk Import',
-      unresolvedSkus.length ? `Unresolved SKUs (manual review needed): ${unresolvedSkus.join(', ')}` : '',
+      unresolvedSkus.length ? `Manual review needed for SKUs: ${unresolvedSkus.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
     const order = await this.prisma.order.create({
@@ -585,13 +580,17 @@ export class OrdersService {
         status: 'pending',
         notes,
         items: {
-          create: resolvedItems.map(({ product, line }) => ({
-            productId: product.id,
-            productName: line.productName || product.name,
-            quantity: line.quantity,
-            unitPrice: line.unitPrice,
-            total: Math.round(line.unitPrice * line.quantity * 100) / 100,
-          })),
+          create: lines.map(line => {
+            const product = line.sku ? productBySku[line.sku] : null;
+            return {
+              productId: product?.id ?? null,
+              productName: line.productName || product?.name || line.sku || 'Unknown',
+              sku: line.sku || null,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              total: Math.round(line.unitPrice * line.quantity * 100) / 100,
+            };
+          }) as any,
         },
       },
       include: { items: { include: { product: { select: { name: true, sku: true } } } } },
