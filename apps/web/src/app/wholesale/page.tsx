@@ -2,13 +2,44 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function WholesalePage() {
-  const [form, setForm] = useState({ company: '', name: '', email: '', phone: '', country: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-  function handleSubmit(e: any) {
+export default function WholesalePage() {
+  const [form, setForm] = useState({ company: '', name: '', email: '', password: '', phone: '', vatNumber: '', country: '', message: '' });
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit(e: any) {
     e.preventDefault();
-    setSubmitted(true);
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: form.name,
+          email: form.email,
+          password: form.password,
+          accountType: 'wholesale',
+          companyName: form.company,
+          vatNumber: form.vatNumber || undefined,
+          phone: form.phone || undefined,
+          locale: 'en',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.message || 'Something went wrong. Please try again.');
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputStyle = {
@@ -124,7 +155,9 @@ export default function WholesalePage() {
                     { key: 'company', label: 'Company Name', type: 'text', required: true, full: true },
                     { key: 'name', label: 'Contact Name', type: 'text', required: true, full: false },
                     { key: 'email', label: 'Business Email', type: 'email', required: true, full: false },
+                    { key: 'password', label: 'Password', type: 'password', required: true, full: false },
                     { key: 'phone', label: 'Phone Number', type: 'tel', required: false, full: false },
+                    { key: 'vatNumber', label: 'VAT Number', type: 'text', required: false, full: false },
                     { key: 'country', label: 'Country', type: 'text', required: true, full: false },
                   ].map(f => (
                     <div key={f.key} style={{ gridColumn: f.full ? '1 / -1' : 'auto' }}>
@@ -143,8 +176,13 @@ export default function WholesalePage() {
                     rows={3} placeholder="Tell us about your business and expected order volumes..."
                     style={{ ...inputStyle, resize: 'vertical' }} />
                 </div>
-                <button type="submit" style={{ width: '100%', background: '#C8860A', color: 'white', fontWeight: 700, fontSize: 15, padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', letterSpacing: '0.01em' }}>
-                  Submit Application →
+                {error && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                    <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={loading} style={{ width: '100%', background: loading ? '#a0896d' : '#C8860A', color: 'white', fontWeight: 700, fontSize: 15, padding: '13px', borderRadius: 8, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: '0.01em' }}>
+                  {loading ? 'Submitting…' : 'Submit Application →'}
                 </button>
                 <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>We'll respond within 1 business day</p>
               </form>
