@@ -26,8 +26,12 @@ export default function NewClientProductPage() {
   });
 
   useEffect(() => {
-    fetch(`${API}/auth/admin/wholesale-pending?limit=200`, { headers: authH() })
-      .then(r => r.json()).then(d => setClients(Array.isArray(d) ? d : d.data || [])).catch(() => {});
+    fetch(`${API}/auth/users?limit=200`, { headers: authH() })
+      .then(r => r.json())
+      .then(d => {
+        const all = Array.isArray(d) ? d : (d.data || []);
+        setClients(all.filter((u: any) => u.accountType === 'wholesale' && u.isApproved));
+      }).catch(() => {});
     fetch(`${API}/manufacturers`, { headers: authH() })
       .then(r => r.json()).then(d => setManufacturers(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
