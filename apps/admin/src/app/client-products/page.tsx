@@ -11,7 +11,7 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   discontinued:   { label: 'Discontinued',   color: '#ef4444' },
 };
 
-function authH() {
+function authH(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   return { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` };
 }
