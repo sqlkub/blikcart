@@ -83,7 +83,7 @@ export default function WholesaleApprovalsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Wholesale Approvals</h1>
+        <h1 className="text-2xl font-bold text-gray-900">B2B Approvals</h1>
         <p className="text-gray-500 text-sm mt-1">
           {loading ? '…' : `${users.length} pending B2B account${users.length === 1 ? '' : 's'} awaiting review`}
         </p>
@@ -98,7 +98,7 @@ export default function WholesaleApprovalsPage() {
           <div className="p-12 text-center">
             <div className="text-5xl mb-3">✓</div>
             <p className="text-gray-600 font-semibold">All caught up</p>
-            <p className="text-gray-400 text-sm mt-1">No wholesale accounts pending approval</p>
+            <p className="text-gray-400 text-sm mt-1">No B2B accounts pending approval</p>
           </div>
         ) : (
           <table className="w-full">
@@ -129,7 +129,7 @@ export default function WholesaleApprovalsPage() {
                       <select
                         value={tiers[u.id] || 'bronze'}
                         onChange={e => setTiers(t => ({ ...t, [u.id]: e.target.value }))}
-                        title="Wholesale tier"
+                        title="B2B tier"
                         className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700">
                         <option value="bronze">Bronze</option>
                         <option value="silver">Silver</option>

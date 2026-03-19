@@ -9,10 +9,10 @@ const DEFAULT = {
   hero: {
     eyebrow: 'Business Accounts',
     title: 'B2B Portal',
-    subtitle: 'Unlock wholesale pricing, private-label options, Net-30 terms, and a dedicated account manager — all through one login.',
+    subtitle: 'Unlock B2B pricing, private-label options, Net-30 terms, and a dedicated account manager — all through one login.',
   },
   stats: [
-    { value: '500+',   label: 'Wholesale Partners' },
+    { value: '500+',   label: 'B2B Partners' },
     { value: '24h',    label: 'Quote Response' },
     { value: '30%',    label: 'Max Volume Discount' },
     { value: 'Net-30', label: 'Payment Terms (approved)' },
@@ -26,9 +26,9 @@ const DEFAULT = {
     { title: 'Priority Production',       desc: 'B2B accounts get priority scheduling in our production queue during peak seasons.' },
   ],
   steps: [
-    { step: '01', title: 'Apply for Wholesale Access', desc: 'Complete the form on our Wholesale page. We review and respond within 1 business day.', link: '/wholesale', linkText: 'Apply now' },
+    { step: '01', title: 'Apply for B2B Access', desc: 'Complete the form on our B2B page. We review and respond within 1 business day.', link: '/wholesale', linkText: 'Apply now' },
     { step: '02', title: 'Get Your Account Activated', desc: "Once approved, you receive your B2B login, custom pricing tier, and your account manager's direct contact details.", link: '', linkText: '' },
-    { step: '03', title: 'Place Orders via Configurator', desc: 'Log in and use the same step-by-step configurator — your wholesale prices are applied automatically.', link: '', linkText: '' },
+    { step: '03', title: 'Place Orders via Configurator', desc: 'Log in and use the same step-by-step configurator — your B2B prices are applied automatically.', link: '', linkText: '' },
     { step: '04', title: 'Manage Everything in One Place', desc: 'All quotes, orders, shipments, and invoices are accessible from your account dashboard.', link: '', linkText: '' },
   ],
   volumeTiers: [
@@ -39,7 +39,7 @@ const DEFAULT = {
   ],
   cta: {
     title: 'Ready to Partner?',
-    body: 'Apply for a wholesale account in 2 minutes. We approve and respond within 1 business day.',
+    body: 'Apply for a B2B account in 2 minutes. We approve and respond within 1 business day.',
     email: 'wholesale@blikcart.nl',
   },
 };
@@ -66,7 +66,7 @@ export default function B2BPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/wholesale" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: '#fff', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
-            Apply for Wholesale <ArrowRight size={16} />
+            Apply for B2B <ArrowRight size={16} />
           </Link>
           <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.9)', padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.14)' }}>
             Log in to Account
@@ -136,7 +136,7 @@ export default function B2BPage() {
           <p style={{ color: '#888', fontSize: 15, marginBottom: 24, maxWidth: 420, margin: '0 auto 24px' }}>{content.cta.body}</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/wholesale" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C8860A', color: '#fff', padding: '13px 28px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
-              Apply for Wholesale <ArrowRight size={16} />
+              Apply for B2B <ArrowRight size={16} />
             </Link>
             <a href={`mailto:${content.cta.email}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', padding: '12px 20px', borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)' }}>
               {content.cta.email}

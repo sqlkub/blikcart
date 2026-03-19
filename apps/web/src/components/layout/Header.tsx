@@ -91,7 +91,7 @@ export default function Header() {
             Design Your Own ✦
           </Link>
           <Link href="/wholesale" style={{ padding: '8px 12px', borderRadius: 6, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.9)', textDecoration: 'none' }}>
-            Wholesale
+            B2B
           </Link>
         </nav>
 

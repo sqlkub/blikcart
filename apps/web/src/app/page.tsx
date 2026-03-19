@@ -15,7 +15,7 @@ const categories = [
 const features = [
   { title: 'Fully Customisable', desc: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
   { title: 'Eco-Friendly Options', desc: 'Bio-certified leather tanning. Sustainable packaging. Carbon-tracked shipping.' },
-  { title: 'Direct from Manufacturer', desc: 'No middlemen. Better quality control. Competitive wholesale pricing from 5 units.' },
+  { title: 'Direct from Manufacturer', desc: 'No middlemen. Better quality control. Competitive B2B pricing from 5 units.' },
 ];
 
 async function getHeroBanner() {
@@ -98,7 +98,7 @@ export default async function HomePage() {
                 Browse Products
               </Link>
             </div>
-            <p style={{ color: '#555', fontSize: 13, marginTop: 20 }}>Wholesale from 5 units · Free shipping over €150 · 21-day lead time</p>
+            <p style={{ color: '#555', fontSize: 13, marginTop: 20 }}>B2B from 5 units · Free shipping over €150 · 21-day lead time</p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -172,11 +172,11 @@ export default async function HomePage() {
       <section style={{ background: '#2a2a2a', padding: '48px 24px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
           <div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white' }}>B2B & Wholesale</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white' }}>B2B</h2>
             <p style={{ color: '#888', marginTop: 4 }}>Volume discounts from 5 units. Dedicated account manager. Net-30 terms available.</p>
           </div>
           <Link href="/wholesale" style={{ background: '#C8860A', color: 'white', fontWeight: 700, padding: '12px 28px', borderRadius: 8, fontSize: 15 }}>
-            Apply for Wholesale
+            Apply for B2B
           </Link>
         </div>
       </section>

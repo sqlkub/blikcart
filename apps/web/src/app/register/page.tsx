@@ -32,7 +32,7 @@ export default function RegisterPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md w-full">
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-xl font-bold text-navy mb-2">Application Submitted</h2>
-          <p className="text-gray-600 text-sm">Your wholesale application is under review. We'll email you within 1-2 business days.</p>
+          <p className="text-gray-600 text-sm">Your B2B application is under review. We'll email you within 1-2 business days.</p>
           <Link href="/" className="btn-primary inline-block mt-6">Back to Shop</Link>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default function RegisterPage() {
               onClick={() => setForm(f => ({ ...f, accountType: 'wholesale' }))}
               className={`p-3 rounded-lg border-2 text-sm font-semibold transition-colors ${form.accountType === 'wholesale' ? 'border-gold bg-gold/5 text-gold' : 'border-gray-200 text-gray-600'}`}
             >
-              🏢 Wholesale
+              🏢 B2B Account
             </button>
           </div>
 
@@ -109,7 +109,7 @@ export default function RegisterPage() {
           {error && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
 
           <button type="submit" disabled={isLoading} className="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:bg-gold-600 disabled:opacity-60">
-            {isLoading ? 'Creating...' : form.accountType === 'wholesale' ? 'Apply for Wholesale' : 'Create Account'}
+            {isLoading ? 'Creating...' : form.accountType === 'wholesale' ? 'Apply for B2B' : 'Create Account'}
           </button>
         </form>
 

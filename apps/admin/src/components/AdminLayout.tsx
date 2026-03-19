@@ -12,7 +12,7 @@ const navItems = [
   { label: 'Orders',              href: '/orders',              icon: ShoppingBag, countKey: 'customOrders' },
   { label: 'Products',            href: '/products',            icon: Package },
   { label: 'Customers',           href: '/customers',           icon: Users },
-  { label: 'Wholesale Approvals', href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
+  { label: 'B2B Approvals',       href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
   { label: 'B2B Clients',         href: '/b2b-clients',         icon: Building2 },
   { label: 'Sample Requests',     href: '/samples',             icon: FlaskConical, countKey: 'samples' },
   { label: 'Payments',            href: '/payments',            icon: CreditCard },

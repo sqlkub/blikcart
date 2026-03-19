@@ -23,7 +23,7 @@ export default function WholesalePage() {
       {/* Hero */}
       <div style={{ background: 'linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%)', color: 'white', padding: '80px 24px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
-          <span style={{ display: 'inline-block', background: 'rgba(200,134,10,0.15)', color: '#C8860A', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.15em', padding: '6px 16px', borderRadius: 20, marginBottom: 20, border: '1px solid rgba(200,134,10,0.3)' }}>B2B & Wholesale</span>
+          <span style={{ display: 'inline-block', background: 'rgba(200,134,10,0.15)', color: '#C8860A', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.15em', padding: '6px 16px', borderRadius: 20, marginBottom: 20, border: '1px solid rgba(200,134,10,0.3)' }}>B2B</span>
           <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 18, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Partner With Blikcart</h1>
           <p style={{ color: '#94a3b8', fontSize: 18, maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}>
             Premium saddlery direct from our workshop. Volume pricing, custom branding, and a dedicated account manager — all in one place.
@@ -35,7 +35,7 @@ export default function WholesalePage() {
       <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {[
-            { value: '500+', label: 'Wholesale Partners' },
+            { value: '500+', label: 'B2B Partners' },
             { value: '21 days', label: 'Standard Lead Time' },
             { value: '30%', label: 'Max Volume Discount' },
             { value: 'Net-30', label: 'Payment Terms' },
@@ -72,7 +72,7 @@ export default function WholesalePage() {
         {/* Volume pricing */}
         <div style={{ background: 'white', borderRadius: 14, padding: '36px 40px', border: '1px solid #e2e8f0', marginBottom: 56 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>Volume Pricing Tiers</h2>
-          <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 28 }}>Discounts applied automatically at checkout for approved wholesale accounts</p>
+          <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 28 }}>Discounts applied automatically at checkout for approved B2B accounts</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
             {[
               { qty: '5 – 19 units', discount: '10% off', bg: '#f8fafc', border: '#e2e8f0', tag: '' },
@@ -94,7 +94,7 @@ export default function WholesalePage() {
 
           {/* Left */}
           <div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Get Wholesale Access</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Get B2B Access</h2>
             <p style={{ color: '#64748b', lineHeight: 1.7, marginBottom: 28, fontSize: 15 }}>
               Apply below and we'll respond within 1 business day with your account details and custom pricing.
             </p>
