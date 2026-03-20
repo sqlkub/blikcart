@@ -277,6 +277,21 @@ export class AuthService {
     return { accessToken, user };
   }
 
+  async updateUser(id: string, dto: { accountType?: string; isApproved?: boolean; wholesaleTier?: string; fullName?: string; phone?: string; companyName?: string }) {
+    const data: any = {};
+    if (dto.accountType !== undefined) data.accountType = dto.accountType;
+    if (dto.isApproved !== undefined) data.isApproved = dto.isApproved;
+    if (dto.wholesaleTier !== undefined) data.wholesaleTier = dto.wholesaleTier;
+    if (dto.fullName !== undefined) data.fullName = dto.fullName;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.companyName !== undefined) data.companyName = dto.companyName;
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: { id: true, email: true, fullName: true, accountType: true, isApproved: true, wholesaleTier: true },
+    });
+  }
+
   async deleteUser(id: string) {
     await this.prisma.refreshToken.deleteMany({ where: { userId: id } });
     await this.prisma.address.deleteMany({ where: { userId: id } });

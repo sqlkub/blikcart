@@ -118,6 +118,13 @@ export class AuthController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
+  @Patch('admin/users/:id')
+  async updateUser(@Param('id') id: string, @Body() body: any) {
+    return this.auth.updateUser(id, body);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete('admin/users/:id')
   async deleteUser(@Param('id') id: string) {
     return this.auth.deleteUser(id);

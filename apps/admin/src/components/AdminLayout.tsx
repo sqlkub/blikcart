@@ -108,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="font-bold text-lg">BLIKCART</p>
           <p className="text-xs text-white/50 uppercase tracking-wider">Admin Panel</p>
         </div>
-        <nav className="flex-1 py-4 px-2 space-y-0.5">
+        <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto min-h-0">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = path.startsWith(item.href);
