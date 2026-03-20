@@ -954,6 +954,17 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
 
 const EMPTY_PAGE = { slug: '', title: '', content: '', metaTitle: '', metaDescription: '', isPublished: false };
 
+const KNOWN_PAGE_META: Record<string, string> = {
+  'returns':        'Returns & Exchanges',
+  'sizing-guide':   'Sizing Guide',
+  'price-lists':    'Price Lists',
+  'custom-orders':  'Custom Orders',
+  'b2b':            'B2B / Wholesale Info',
+  'contact':        'Contact',
+  'design-your-own':'Design Your Own',
+  'wholesale':      'Wholesale',
+};
+
 function PagesTab() {
   const [pages, setPages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -962,6 +973,7 @@ function PagesTab() {
   const [creating, setCreating] = useState(false);
   const [newForm, setNewForm] = useState({ ...EMPTY_PAGE });
   const [saving, setSaving] = useState(false);
+  const [seedingSlug, setSeedingSlug] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1008,6 +1020,20 @@ function PagesTab() {
     const token = localStorage.getItem('adminToken');
     await axios.patch(`${API}/content/admin/pages/${p.id}`, { isPublished: !p.isPublished }, { headers: { Authorization: `Bearer ${token}` } });
     setPages(prev => prev.map(x => x.id === p.id ? { ...x, isPublished: !x.isPublished } : x));
+  }
+
+  async function seedPage(slug: string) {
+    setSeedingSlug(slug);
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await axios.post(`${API}/content/admin/pages`, {
+        slug,
+        title: KNOWN_PAGE_META[slug] || slug,
+        content: '{}',
+        isPublished: true,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setPages(prev => [res.data, ...prev]);
+    } finally { setSeedingSlug(null); }
   }
 
   return (
@@ -1068,6 +1094,30 @@ function PagesTab() {
           </div>
         </div>
       )}
+
+      {/* Quick setup: show known slugs that haven't been created yet */}
+      {!loading && (() => {
+        const existingSlugs = new Set(pages.map(p => p.slug));
+        const missing = Object.entries(KNOWN_PAGE_META).filter(([slug]) => !existingSlugs.has(slug));
+        if (missing.length === 0) return null;
+        return (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+            <p className="text-sm font-semibold text-amber-800 mb-3">
+              These structured pages haven't been set up yet — click to create them:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {missing.map(([slug, title]) => (
+                <button key={slug} type="button"
+                  disabled={seedingSlug === slug}
+                  onClick={() => seedPage(slug)}
+                  className="px-3 py-1.5 bg-white border border-amber-300 text-amber-800 text-xs font-semibold rounded-lg hover:bg-amber-100 disabled:opacity-50 transition-colors">
+                  {seedingSlug === slug ? 'Creating…' : `+ ${title}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="space-y-3">
         {loading ? (
