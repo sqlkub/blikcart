@@ -7,15 +7,15 @@ const DEFAULT = {
     { label: 'Custom items', sub: 'Non-returnable (unless defective)' },
     { label: 'Catalogue items', sub: '14-day return window' },
     { label: 'Refund speed', sub: 'Within 5 business days' },
-    { label: 'Start a return', sub: 'support@blikcart.nl' },
+    { label: 'Start a return', sub: 'info@blikcart.nl' },
   ],
   sections: [
     { title: 'Custom-Made Items', paragraphs: ['All products made to your specification through our configurator are custom-made and are therefore exempt from standard distance-selling return rights under EU consumer law.', 'Custom items cannot be returned or exchanged unless they:'], bullets: ['Arrive materially different from your confirmed, approved specification', 'Are defective due to a manufacturing fault', 'Are damaged in transit'], footer: 'If any of the above apply, please contact us within 48 hours of delivery. We will arrange a free replacement or full refund.' },
     { title: 'Standard Catalogue Products', paragraphs: ['Ready-made products ordered from our standard catalogue may be returned within 14 days of delivery, provided:'], bullets: ['The item is unused and in its original, undamaged packaging', 'A return request is initiated from your account order page before the 14-day window closes', 'The item was not a sale/clearance item (marked "Final Sale" at time of purchase)'], footer: "Return shipping is at the customer's expense unless the item arrived faulty. Once received and inspected, refunds are processed within 5 business days to the original payment method." },
-    { title: 'Damaged or Incorrect Items', paragraphs: ['If your order arrives damaged or does not match your approved specification:'], bullets: ['Email support@blikcart.nl within 48 hours of delivery', 'Include your order number and clear photos of the issue', 'We will review and respond within one business day', 'Approved claims receive a free replacement or full refund — your choice'], footer: '' },
+    { title: 'Damaged or Incorrect Items', paragraphs: ['If your order arrives damaged or does not match your approved specification:'], bullets: ['Email info@blikcart.nl within 48 hours of delivery', 'Include your order number and clear photos of the issue', 'We will review and respond within one business day', 'Approved claims receive a free replacement or full refund — your choice'], footer: '' },
     { title: 'How to Initiate a Return', paragraphs: ['For eligible standard-product returns:'], bullets: ['Log in to your account and open the relevant order', 'Click "Request Return" and select your reason', "We'll email you a return shipping label (cost deducted from refund for non-faulty items)", 'Pack the item securely and drop it off at any PostNL, DPD, or DHL point', 'Refund is processed within 5 business days of receipt'], footer: '' },
   ],
-  cta: { title: 'Need to Report a Problem?', body: 'Contact us within 48 hours of delivery with your order number and photos.', email: 'support@blikcart.nl', lastUpdated: 'March 2026' },
+  cta: { title: 'Need to Report a Problem?', body: 'Contact us within 48 hours of delivery with your order number and photos.', email: 'info@blikcart.nl', lastUpdated: 'March 2026' },
 };
 
 export default async function ReturnsPage() {
