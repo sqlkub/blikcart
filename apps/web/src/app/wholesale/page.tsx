@@ -35,8 +35,8 @@ const DEFAULT_CONTENT = {
     body: "Apply below and we'll respond within 1 business day with your account details and custom pricing.",
   },
   contact: {
-    email: 'wholesale@blikcart.nl',
-    phone: '+31 (0)20 123 4567',
+    email: 'info@blikcart.nl',
+    phone: '+31 (0)626475215',
     hours: 'Mon–Fri, 09:00–17:00 CET',
   },
 };
