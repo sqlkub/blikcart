@@ -19,20 +19,20 @@ const FALLBACK_FAQS = [
     items: [
       { q: 'What payment methods do you accept?', a: 'We accept all major credit/debit cards, bank transfer, and iDEAL (Netherlands). Approved wholesale accounts can use Net-30 terms.' },
       { q: 'Are prices inclusive of VAT?', a: 'Prices shown are exclusive of VAT. Dutch VAT (21%) is added at checkout for EU customers. Non-EU business buyers can apply for VAT exemption at checkout.' },
-      { q: 'Do you offer volume discounts?', a: 'Yes. Automatic discounts apply: 5–19 units: 10% off · 20–49 units: 15% off · 50–99 units: 20% off · 100+ units: 30% off.' },
+      { q: 'Do you offer volume discounts?', a: 'Yes. Automatic discounts apply: 5–19 units: 2% off · 20–49 units: 5% off · 50–99 units: 10% off · 100+ units: 15% off.' },
     ],
   },
   {
     category: 'Production & Lead Times',
     items: [
-      { q: 'How long does production take?', a: 'Lead times depend on the product. Browbands and head collars: 7–12 days. Bridles and leg boots: 10–14 days. Rugs: 14–21 days. Express production is available on most lines at a 25% price premium.' },
+      { q: 'How long does production take?', a: 'Lead times depend on the product. Browbands and head collars: 15–20 days. Bridles and Halters: 30–45 days. Rugs: 25–30 days. Express production is available on most lines at a 25% price premium.' },
       { q: 'Can I track my order during production?', a: "Yes. Your order page in My Account shows status updates: Draft → Confirmed → In Production → Quality Check → Dispatched. You'll also receive email notifications at each stage." },
     ],
   },
   {
     category: 'Shipping & Delivery',
     items: [
-      { q: 'Where do you ship?', a: 'We ship worldwide. Standard delivery to most EU countries takes 2–5 business days after dispatch. Non-EU destinations take 5–10 business days.' },
+      { q: 'Where do you ship?', a: 'We ship worldwide. Standard delivery to most EU countries takes 10–15 business days after dispatch.' },
       { q: 'How much does shipping cost?', a: 'Shipping is free on orders over €150 to EU destinations. Below €150, standard EU shipping is €9.95. Non-EU rates are calculated at checkout.' },
     ],
   },
@@ -40,14 +40,14 @@ const FALLBACK_FAQS = [
     category: 'Returns & Refunds',
     items: [
       { q: 'Can I return a custom order?', a: "Custom-made items are non-returnable unless they arrive defective or materially different from the approved specification." },
-      { q: 'What if my order arrives damaged or incorrect?', a: 'Contact us within 48 hours of delivery at support@blikcart.nl with photos. We will arrange a replacement or full refund at no cost to you.' },
+      { q: 'What if my order arrives damaged or incorrect?', a: 'Contact us within 48 hours of delivery at info@blikcart.nl with photos. We will arrange a replacement or full refund at no cost to you.' },
     ],
   },
   {
     category: 'Wholesale & B2B',
     items: [
       { q: 'How do I apply for a wholesale account?', a: "Visit our Wholesale page and complete the application form. We'll respond within 1 business day." },
-      { q: 'Can I get private-label or white-label products?', a: 'Yes. We offer custom branding on most product lines. Contact wholesale@blikcart.nl for details.' },
+      { q: 'Can I get private-label or white-label products?', a: 'Yes. We offer custom branding on most product lines. Contact info@blikcart.nl for details.' },
     ],
   },
 ];
@@ -158,8 +158,8 @@ export default function FaqPage() {
             <Link href="/contact" style={{ background: '#C8860A', color: '#fff', fontWeight: 700, padding: '11px 24px', borderRadius: 8, textDecoration: 'none', fontSize: 14 }}>
               Contact Us
             </Link>
-            <a href="mailto:support@blikcart.nl" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontWeight: 600, padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14, border: '1px solid rgba(255,255,255,0.12)' }}>
-              support@blikcart.nl
+            <a href="mailto:info@blikcart.nl" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', fontWeight: 600, padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14, border: '1px solid rgba(255,255,255,0.12)' }}>
+              info@blikcart.nl
             </a>
           </div>
         </div>
