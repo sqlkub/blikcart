@@ -456,7 +456,7 @@ function FaqTab() {
 
 // ── Page Content Editor ───────────────────────────────────────────────────────
 
-const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own'];
+const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own', 'wholesale'];
 
 // Module-level style constants — stable across renders
 const PCE_inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]';
@@ -890,6 +890,57 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
         <div className="grid grid-cols-2 gap-3">
           <div><label className={label}>Title</label><input className={inp} title="CTA title" placeholder="Ready to design your own?" value={parsed.finalCta?.title || ''} onChange={e => update(['finalCta', 'title'], e.target.value)} /></div>
           <div><label className={label}>Body</label><input className={inp} title="CTA body" placeholder="Short supporting text..." value={parsed.finalCta?.body || ''} onChange={e => update(['finalCta', 'body'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (slug === 'wholesale') return (
+    <div>
+      {heroEditor()}
+
+      {/* Stats bar */}
+      <RepeatableList title="Stats Bar (4 numbers)" items={parsed.stats || []} onAdd={() => addItem('stats', { value: '', label: '' })} onRemove={i => removeItem('stats', i)} renderItem={(item, i) => (
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={label}>Value</label><input className={inp} title="Stat value" placeholder="e.g. 500+" value={item.value || ''} onChange={e => updateItem('stats', i, 'value', e.target.value)} /></div>
+          <div><label className={label}>Label</label><input className={inp} title="Stat label" placeholder="e.g. B2B Partners" value={item.label || ''} onChange={e => updateItem('stats', i, 'label', e.target.value)} /></div>
+        </div>
+      )} />
+
+      {/* Benefits grid */}
+      <RepeatableList title="Benefits Grid" items={parsed.benefits || []} onAdd={() => addItem('benefits', { icon: '📦', title: '', desc: '' })} onRemove={i => removeItem('benefits', i)} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          <div><label className={label}>Icon (emoji)</label><input className={inp} title="Benefit icon" placeholder="📦" value={item.icon || ''} onChange={e => updateItem('benefits', i, 'icon', e.target.value)} /></div>
+          <div><label className={label}>Title</label><input className={inp} title="Benefit title" placeholder="MOQ from 5 units" value={item.title || ''} onChange={e => updateItem('benefits', i, 'title', e.target.value)} /></div>
+          <div><label className={label}>Description</label><input className={inp} title="Benefit description" placeholder="Low minimums..." value={item.desc || ''} onChange={e => updateItem('benefits', i, 'desc', e.target.value)} /></div>
+        </div>
+      )} />
+
+      {/* Pricing tiers */}
+      <RepeatableList title="Volume Pricing Tiers" items={parsed.pricingTiers || []} onAdd={() => addItem('pricingTiers', { qty: '', discount: '', tag: '', bg: '#f8fafc', border: '#e2e8f0' })} onRemove={i => removeItem('pricingTiers', i)} renderItem={(item, i) => (
+        <div className="grid grid-cols-3 gap-2">
+          <div><label className={label}>Qty range</label><input className={inp} title="Quantity range" placeholder="5 – 19 units" value={item.qty || ''} onChange={e => updateItem('pricingTiers', i, 'qty', e.target.value)} /></div>
+          <div><label className={label}>Discount</label><input className={inp} title="Discount label" placeholder="10% off" value={item.discount || ''} onChange={e => updateItem('pricingTiers', i, 'discount', e.target.value)} /></div>
+          <div><label className={label}>Badge (empty = none)</label><input className={inp} title="Badge text" placeholder="Popular" value={item.tag || ''} onChange={e => updateItem('pricingTiers', i, 'tag', e.target.value)} /></div>
+        </div>
+      )} />
+
+      {/* Apply section */}
+      <div className="mb-6">
+        <p className={PCE_secHead}>Apply Section</p>
+        <div className="space-y-2">
+          <div><label className={label}>Heading</label><input className={inp} title="Section heading" placeholder="Get B2B Access" value={parsed.applySection?.heading || ''} onChange={e => update(['applySection', 'heading'], e.target.value)} /></div>
+          <div><label className={label}>Body text</label><textarea className={ta} rows={2} title="Section body" placeholder="Apply below and we'll respond within 1 business day..." value={parsed.applySection?.body || ''} onChange={e => update(['applySection', 'body'], e.target.value)} /></div>
+        </div>
+      </div>
+
+      {/* Contact info */}
+      <div className="mb-6">
+        <p className={PCE_secHead}>Contact Info (sidebar card)</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div><label className={label}>Email</label><input className={inp} title="Contact email" placeholder="wholesale@blikcart.nl" value={parsed.contact?.email || ''} onChange={e => update(['contact', 'email'], e.target.value)} /></div>
+          <div><label className={label}>Phone</label><input className={inp} title="Contact phone" placeholder="+31 (0)20 123 4567" value={parsed.contact?.phone || ''} onChange={e => update(['contact', 'phone'], e.target.value)} /></div>
+          <div><label className={label}>Office Hours</label><input className={inp} title="Office hours" placeholder="Mon–Fri, 09:00–17:00 CET" value={parsed.contact?.hours || ''} onChange={e => update(['contact', 'hours'], e.target.value)} /></div>
         </div>
       </div>
     </div>
