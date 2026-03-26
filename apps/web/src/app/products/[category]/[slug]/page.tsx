@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cart.store';
@@ -60,18 +60,8 @@ export default function ProductDetailPage() {
 
   const openLightbox = useCallback((idx: number) => setLightbox({ open: true, idx }), []);
   const closeLightbox = useCallback(() => setLightbox(l => ({ ...l, open: false })), []);
-
-  // Keyboard navigation in lightbox
-  useEffect(() => {
-    if (!lightbox.open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') setLightbox(l => ({ ...l, idx: Math.min(l.idx + 1, (product?.images?.length ?? 1) - 1) }));
-      if (e.key === 'ArrowLeft')  setLightbox(l => ({ ...l, idx: Math.max(l.idx - 1, 0) }));
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox.open, closeLightbox, product?.images?.length]);
+  // Ref so keyboard handler always sees current lbImages length without needing it as a dep
+  const lbLenRef = useRef(0);
 
   useEffect(() => {
     async function load() {
@@ -226,7 +216,25 @@ export default function ProductDetailPage() {
   const totalPrice = unitPrice * quantity;
   const allImages: any[] = product.images?.filter((i: any) => !i.layerVariantKey) || [];
   const mainImg   = variantImgOverride || (allImages.length > 0 ? allImages[activeImage]?.url : null);
-  const lbImg     = lightbox.open ? (allImages[lightbox.idx]?.url || mainImg) : null;
+
+  // Lightbox image list: when a variant image is active, prepend it so idx 0 = what's currently shown
+  const lbImages: string[] = variantImgOverride
+    ? [variantImgOverride, ...allImages.map((i: any) => i.url)]
+    : allImages.map((i: any) => i.url);
+  const lbImg = lightbox.open ? lbImages[lightbox.idx] : null;
+  lbLenRef.current = lbImages.length;
+
+  // Keyboard navigation in lightbox — uses ref so it always sees the latest count
+  useEffect(() => {
+    if (!lightbox.open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') setLightbox(l => ({ ...l, idx: Math.min(l.idx + 1, lbLenRef.current - 1) }));
+      if (e.key === 'ArrowLeft')  setLightbox(l => ({ ...l, idx: Math.max(l.idx - 1, 0) }));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox.open, closeLightbox]);
 
   // pill button style
   const pill = (active: boolean, oos: boolean): React.CSSProperties => ({
@@ -273,7 +281,7 @@ export default function ProductDetailPage() {
             </div>
           )}
           {/* Next */}
-          {lightbox.idx < allImages.length - 1 && (
+          {lightbox.idx < lbImages.length - 1 && (
             <button type="button" aria-label="Next image"
               onClick={e => { e.stopPropagation(); setLightbox(l => ({ ...l, idx: l.idx + 1 })); }}
               style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', color: 'white', width: 44, height: 44, borderRadius: '50%', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -281,9 +289,9 @@ export default function ProductDetailPage() {
             </button>
           )}
           {/* Counter */}
-          {allImages.length > 1 && (
+          {lbImages.length > 1 && (
             <span style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
-              {lightbox.idx + 1} / {allImages.length}
+              {lightbox.idx + 1} / {lbImages.length}
             </span>
           )}
         </div>
