@@ -262,13 +262,15 @@ export default function ProductDetailPage() {
               ‹
             </button>
           )}
-          {/* Image */}
+          {/* Image — white card so dark products stay visible */}
           {lbImg && (
-            <img
-              src={lbImg} alt={product.name}
-              onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '90vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', userSelect: 'none' }}
-            />
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: '#ffffff', borderRadius: 14, padding: 20, boxShadow: '0 24px 64px rgba(0,0,0,0.6)', maxWidth: '88vw', maxHeight: '86vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img
+                src={lbImg} alt={product.name}
+                style={{ maxWidth: '80vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: 6, userSelect: 'none', display: 'block' }}
+              />
+            </div>
           )}
           {/* Next */}
           {lightbox.idx < allImages.length - 1 && (
@@ -311,10 +313,10 @@ export default function ProductDetailPage() {
             {/* Main image — click to open lightbox */}
             <div
               onClick={() => mainImg && openLightbox(variantImgOverride ? 0 : activeImage)}
-              style={{ background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative', cursor: mainImg ? 'zoom-in' : 'default' }}>
+              style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e8e8e8', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.04)', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative', cursor: mainImg ? 'zoom-in' : 'default', padding: 16 }}>
               {mainImg
-                ? <img src={mainImg} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }} />
-                : <span style={{ fontSize: 72, opacity: 0.15 }}>BK</span>
+                ? <img src={mainImg} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.2s', borderRadius: 8 }} />
+                : <span style={{ fontSize: 72, opacity: 0.10, color: '#aaa' }}>BK</span>
               }
               {/* Zoom hint */}
               {mainImg && (
@@ -341,7 +343,7 @@ export default function ProductDetailPage() {
                   <button key={img.id || i} type="button"
                     onClick={() => { setActiveImage(i); setVarImgOvr(null); }}
                     style={{ width: 72, height: 72, border: i === activeImage && !variantImgOverride ? '2px solid var(--gold)' : '2px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', background: 'white', padding: 0, flexShrink: 0 }}>
-                    <img src={img.url} alt={img.altText || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={img.url} alt={img.altText || ''} style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
                   </button>
                 ))}
               </div>

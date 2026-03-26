@@ -137,8 +137,8 @@ export default function ProductsPage() {
               const primaryImage = p.images?.find((i: any) => i.isPrimary) || p.images?.[0];
               return (
                 <div key={p.id} style={{ background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                  <div style={{ aspectRatio: '1', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative' }}>
-                    {primaryImage ? <img src={primaryImage.url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🐴'}
+                  <div style={{ aspectRatio: '1', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative', padding: 12 }}>
+                    {primaryImage ? <img src={primaryImage.url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : '🐴'}
                     {p.isCustomizable && <span style={{ position: 'absolute', top: 8, left: 8, background: 'var(--gold)', color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20 }}>🎨 Customizable</span>}
                     {p.category && <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(26,60,94,0.85)', color: 'white', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>{p.category.name}</span>}
                   </div>
