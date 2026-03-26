@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cart.store';
@@ -55,7 +55,23 @@ export default function ProductDetailPage() {
   const [added, setAdded]                   = useState(false);
   const [addons, setAddons]                 = useState<any[]>([]);
   const [addonAdding, setAddonAdding]       = useState<string | null>(null);
+  const [lightbox, setLightbox]             = useState<{ open: boolean; idx: number }>({ open: false, idx: 0 });
   const { addItem } = useCartStore();
+
+  const openLightbox = useCallback((idx: number) => setLightbox({ open: true, idx }), []);
+  const closeLightbox = useCallback(() => setLightbox(l => ({ ...l, open: false })), []);
+
+  // Keyboard navigation in lightbox
+  useEffect(() => {
+    if (!lightbox.open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') setLightbox(l => ({ ...l, idx: Math.min(l.idx + 1, (product?.images?.length ?? 1) - 1) }));
+      if (e.key === 'ArrowLeft')  setLightbox(l => ({ ...l, idx: Math.max(l.idx - 1, 0) }));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox.open, closeLightbox, product?.images?.length]);
 
   useEffect(() => {
     async function load() {
@@ -208,8 +224,9 @@ export default function ProductDetailPage() {
   const configSlug = CONFIGURATOR_MAP[product.category?.slug] || product.category?.slug;
   const unitPrice  = Number(product.basePrice) + (selectedVariant ? Number(selectedVariant.priceModifier) : 0);
   const totalPrice = unitPrice * quantity;
-  const images: any[] = product.images?.filter((i: any) => !i.layerVariantKey) || [];
-  const mainImg   = variantImgOverride || (images.length > 0 ? images[activeImage]?.url : null);
+  const allImages: any[] = product.images?.filter((i: any) => !i.layerVariantKey) || [];
+  const mainImg   = variantImgOverride || (allImages.length > 0 ? allImages[activeImage]?.url : null);
+  const lbImg     = lightbox.open ? (allImages[lightbox.idx]?.url || mainImg) : null;
 
   // pill button style
   const pill = (active: boolean, oos: boolean): React.CSSProperties => ({
@@ -225,6 +242,50 @@ export default function ProductDetailPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
+
+      {/* ── Lightbox ── */}
+      {lightbox.open && (
+        <div
+          role="dialog" aria-modal="true" aria-label="Image preview"
+          onClick={closeLightbox}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Close */}
+          <button type="button" aria-label="Close" onClick={closeLightbox}
+            style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', color: 'white', width: 40, height: 40, borderRadius: '50%', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+            ✕
+          </button>
+          {/* Prev */}
+          {lightbox.idx > 0 && (
+            <button type="button" aria-label="Previous image"
+              onClick={e => { e.stopPropagation(); setLightbox(l => ({ ...l, idx: l.idx - 1 })); }}
+              style={{ position: 'absolute', left: 16, background: 'rgba(255,255,255,0.12)', border: 'none', color: 'white', width: 44, height: 44, borderRadius: '50%', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ‹
+            </button>
+          )}
+          {/* Image */}
+          {lbImg && (
+            <img
+              src={lbImg} alt={product.name}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '90vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 20px 60px rgba(0,0,0,0.5)', userSelect: 'none' }}
+            />
+          )}
+          {/* Next */}
+          {lightbox.idx < allImages.length - 1 && (
+            <button type="button" aria-label="Next image"
+              onClick={e => { e.stopPropagation(); setLightbox(l => ({ ...l, idx: l.idx + 1 })); }}
+              style={{ position: 'absolute', right: 16, background: 'rgba(255,255,255,0.12)', border: 'none', color: 'white', width: 44, height: 44, borderRadius: '50%', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ›
+            </button>
+          )}
+          {/* Counter */}
+          {allImages.length > 1 && (
+            <span style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+              {lightbox.idx + 1} / {allImages.length}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '12px 24px' }}>
@@ -243,16 +304,24 @@ export default function ProductDetailPage() {
 
       {/* Main layout */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 56, alignItems: 'start' }}>
+        <div className="mob-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 56, alignItems: 'start' }}>
 
           {/* ── Left: Images ── */}
           <div>
-            {/* Main image */}
-            <div style={{ background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative' }}>
+            {/* Main image — click to open lightbox */}
+            <div
+              onClick={() => mainImg && openLightbox(variantImgOverride ? 0 : activeImage)}
+              style={{ background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative', cursor: mainImg ? 'zoom-in' : 'default' }}>
               {mainImg
-                ? <img src={mainImg} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ? <img src={mainImg} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }} />
                 : <span style={{ fontSize: 72, opacity: 0.15 }}>BK</span>
               }
+              {/* Zoom hint */}
+              {mainImg && (
+                <span style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.45)', color: 'white', borderRadius: 6, padding: '4px 8px', fontSize: 11, fontWeight: 600, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  🔍 Tap to zoom
+                </span>
+              )}
               {product.isCustomizable && (
                 <span style={{ position: 'absolute', top: 12, left: 12, background: 'var(--gold)', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
                   Customizable
@@ -266,9 +335,9 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Thumbnails */}
-            {images.length > 1 && (
+            {allImages.length > 1 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {images.map((img: any, i: number) => (
+                {allImages.map((img: any, i: number) => (
                   <button key={img.id || i} type="button"
                     onClick={() => { setActiveImage(i); setVarImgOvr(null); }}
                     style={{ width: 72, height: 72, border: i === activeImage && !variantImgOverride ? '2px solid var(--gold)' : '2px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', background: 'white', padding: 0, flexShrink: 0 }}>
