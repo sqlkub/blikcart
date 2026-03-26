@@ -185,12 +185,14 @@ function ProductsTab() {
     setStockProduct(null);
   }
 
-  async function toggleAddon(p: any) {
+  async function toggleTag(p: any, tag: string) {
     const tags: string[] = p.tags || [];
-    const next = tags.includes('addon') ? tags.filter((t: string) => t !== 'addon') : [...tags, 'addon'];
+    const next = tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag];
     await axios.patch(`${API}/products/${p.id}`, { tags: next }, { headers: hdrs() });
     setProducts(prev => prev.map(x => x.id === p.id ? { ...x, tags: next } : x));
   }
+
+  function toggleAddon(p: any) { return toggleTag(p, 'addon'); }
 
   // Image manager modal
   const [imgMgrProduct, setImgMgrProduct] = useState<any | null>(null);
@@ -707,6 +709,18 @@ function ProductsTab() {
                         onClick={() => toggleAddon(p)}
                         className={`text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors ${p.tags?.includes('addon') ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-amber-50 hover:text-amber-600'}`}>
                         +Add-on
+                      </button>
+                      <button type="button"
+                        title={p.tags?.includes('sale') ? 'Remove sale tag' : 'Mark as on sale'}
+                        onClick={() => toggleTag(p, 'sale')}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors ${p.tags?.includes('sale') ? 'bg-red-100 text-red-600 border-red-300' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-red-50 hover:text-red-500'}`}>
+                        🔥 Sale
+                      </button>
+                      <button type="button"
+                        title={p.tags?.includes('giveaway') ? 'Remove giveaway tag' : 'Mark as giveaway'}
+                        onClick={() => toggleTag(p, 'giveaway')}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border transition-colors ${p.tags?.includes('giveaway') ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-yellow-50 hover:text-yellow-600'}`}>
+                        🎁 Giveaway
                       </button>
                       <button type="button" title="Manage images" onClick={() => openImgMgr(p)}
                         className="text-gray-400 hover:text-blue-500">

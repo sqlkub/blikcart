@@ -456,7 +456,7 @@ function FaqTab() {
 
 // ── Page Content Editor ───────────────────────────────────────────────────────
 
-const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own', 'wholesale'];
+const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own', 'wholesale', 'sale'];
 
 // Module-level style constants — stable across renders
 const PCE_inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]';
@@ -963,6 +963,7 @@ const KNOWN_PAGE_META: Record<string, string> = {
   'contact':        'Contact',
   'design-your-own':'Design Your Own',
   'wholesale':      'Wholesale',
+  'sale':           'Sale & Giveaways',
 };
 
 function PagesTab() {

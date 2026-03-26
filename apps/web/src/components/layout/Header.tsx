@@ -26,6 +26,7 @@ const NAV = [
   { label: 'For Riders', href: '/products/for-riders' },
   { label: 'For Pets',   href: '/products/for-pets' },
   { label: 'Parts & Components', href: '/products/parts-components' },
+  { label: '🔥 Sale', href: '/sale' },
 ];
 
 export default function Header() {
@@ -54,7 +55,8 @@ export default function Header() {
             >
               <Link href={item.href} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 6,
-                fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.9)', textDecoration: 'none',
+                fontSize: 14, fontWeight: item.href === '/sale' ? 700 : 500,
+                color: item.href === '/sale' ? '#ff4d4d' : 'rgba(255,255,255,0.9)', textDecoration: 'none',
                 background: openMenu === item.label ? 'rgba(255,255,255,0.08)' : 'transparent', transition: 'all 0.15s',
               }}>
                 {item.label}
