@@ -112,7 +112,7 @@ export class ProductsService {
 
 
   async update(id: string, data: any) {
-    const allowed = ['name', 'description', 'basePrice', 'wholesalePrice', 'moq', 'leadTimeDays', 'isActive', 'isCustomizable', 'imageUrl', 'tags'];
+    const allowed = ['name', 'description', 'basePrice', 'wholesalePrice', 'moq', 'leadTimeDays', 'isActive', 'isCustomizable', 'imageUrl', 'tags', 'features'];
     const updateData: any = {};
     for (const key of allowed) {
       if (data[key] !== undefined) updateData[key] = data[key];
@@ -255,6 +255,7 @@ export class ProductsService {
         isActive: data.isActive !== false,
         leadTimeDays: Number(data.leadTimeDays) || 0,
         tags: data.tags || [],
+        features: data.features ?? null,
       },
       include: { category: true },
     });

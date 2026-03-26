@@ -31,4 +31,4 @@ RUN pnpm install --frozen-lockfile
 RUN node /app/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/build/index.js generate --schema=/app/packages/db/prisma/schema.prisma
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 EXPOSE 4000
-CMD ["node", "apps/api/dist/main"]
+CMD ["sh", "-c", "node /app/node_modules/.pnpm/prisma@5.22.0/node_modules/prisma/build/index.js migrate deploy --schema=/app/packages/db/prisma/schema.prisma && node apps/api/dist/main"]

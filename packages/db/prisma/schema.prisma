@@ -209,6 +209,7 @@ model Product {
   weightGrams     Int?
   leadTimeDays    Int      @default(21)
   tags            String[]
+  features        Json?
   metaTitle       String?
   metaDescription String?
   createdAt       DateTime @default(now())

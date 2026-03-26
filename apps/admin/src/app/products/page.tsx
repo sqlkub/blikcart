@@ -622,7 +622,36 @@ function ProductsTab() {
                     <label className="text-xs text-gray-500 block mb-1">Description</label>
                     <textarea title="Description" defaultValue={p.description ?? ''}
                       onChange={e => setEditForm((f: any) => ({ ...f, description: e.target.value }))}
-                      rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none resize-none" placeholder="Optional" />
+                      rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none resize-none mb-3" placeholder="Optional" />
+
+                    {/* Features editor */}
+                    <p className="text-xs font-semibold text-gray-600 mb-2">Product Features / Specifications</p>
+                    <div className="space-y-2">
+                      {((editForm.features ?? []) as { label: string; value: string }[]).map((feat, fi) => (
+                        <div key={fi} className="flex gap-2 items-center">
+                          <input title="Feature label" value={feat.label} placeholder="e.g. Material"
+                            onChange={e => {
+                              const next = [...(editForm.features ?? [])];
+                              next[fi] = { ...next[fi], label: e.target.value };
+                              setEditForm((f: any) => ({ ...f, features: next }));
+                            }}
+                            className="border border-gray-200 rounded px-2 py-1 text-xs w-36 outline-none" />
+                          <input title="Feature value" value={feat.value} placeholder="e.g. Full-grain leather"
+                            onChange={e => {
+                              const next = [...(editForm.features ?? [])];
+                              next[fi] = { ...next[fi], value: e.target.value };
+                              setEditForm((f: any) => ({ ...f, features: next }));
+                            }}
+                            className="border border-gray-200 rounded px-2 py-1 text-xs flex-1 outline-none" />
+                          <button type="button" title="Remove feature"
+                            onClick={() => setEditForm((f: any) => ({ ...f, features: (f.features ?? []).filter((_: any, i: number) => i !== fi) }))}
+                            className="text-red-400 hover:text-red-600 flex-shrink-0"><X size={12} /></button>
+                        </div>
+                      ))}
+                      <button type="button"
+                        onClick={() => setEditForm((f: any) => ({ ...f, features: [...(f.features ?? []), { label: '', value: '' }] }))}
+                        className="text-xs text-[#1A3C5E] font-semibold hover:underline">+ Add feature row</button>
+                    </div>
                   </td>
                 </tr>
                 </Fragment>
@@ -683,7 +712,7 @@ function ProductsTab() {
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />
                       </button>
-                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '', isCustomizable: p.isCustomizable }); }}
+                      <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '', isCustomizable: p.isCustomizable, features: Array.isArray(p.features) ? p.features : [] }); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
                         className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
