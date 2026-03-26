@@ -216,3 +216,43 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-track { background: var(--gray-100); }
 ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+/* ── Mobile-first overrides ──────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Header */
+  .desktop-nav    { display: none !important; }
+  .hamburger-btn  { display: flex !important; }
+  .header-tagline { display: none !important; }
+  .mobile-nav     { display: block; }
+
+  /* Homepage – hero */
+  .hero-grid      { grid-template-columns: 1fr !important; gap: 0 !important; }
+  .hero-image-col { display: none !important; }
+  .hero-content   { padding-bottom: 8px; }
+
+  /* Homepage – categories */
+  .categories-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Homepage – configurator steps */
+  .config-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Homepage – features */
+  .features-grid { grid-template-columns: 1fr !important; }
+
+  /* Wholesale page */
+  .wholesale-layout       { grid-template-columns: 1fr !important; }
+  .wholesale-pricing-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .wholesale-stats-grid   { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Products / listing page */
+  .products-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* FAQ & general sections */
+  .faq-jump-links { flex-direction: column; align-items: flex-start; }
+
+  /* Generic utility: stack any two-column grid on mobile */
+  .mob-stack { grid-template-columns: 1fr !important; }
+
+  /* Reduce hero font on mobile */
+  .hero-h1-static { font-size: 36px !important; }
+}

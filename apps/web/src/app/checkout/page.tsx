@@ -100,7 +100,7 @@ export default function CheckoutPage() {
           <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy)', marginTop: 8 }}>Checkout</h1>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
+        <div className="mob-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
           {/* Address form */}
           <div style={{ background: 'white', borderRadius: 16, padding: 32, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', marginBottom: 24 }}>Shipping Address</h2>
@@ -121,7 +121,7 @@ export default function CheckoutPage() {
                 <input name="streetLine2" value={form.streetLine2} onChange={handleChange} placeholder="Apt 2B"
                   style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="mob-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>City *</label>
                   <input name="city" value={form.city} onChange={handleChange} placeholder="Amsterdam"

@@ -110,7 +110,7 @@ export default function WholesalePage() {
           <span style={{ display: 'inline-block', background: 'rgba(200,134,10,0.15)', color: '#C8860A', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.15em', padding: '6px 16px', borderRadius: 20, marginBottom: 20, border: '1px solid rgba(200,134,10,0.3)' }}>
             {c.hero.eyebrow}
           </span>
-          <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 18, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{c.hero.title}</h1>
+          <h1 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, marginBottom: 18, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{c.hero.title}</h1>
           <p style={{ color: '#94a3b8', fontSize: 18, maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}>{c.hero.subtitle}</p>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function WholesalePage() {
       {/* Stats bar */}
       {c.stats?.length > 0 && (
         <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: `repeat(${c.stats.length}, 1fr)` }}>
+          <div className="wholesale-stats-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: `repeat(${c.stats.length}, 1fr)` }}>
             {c.stats.map((s: any, i: number) => (
               <div key={i} style={{ padding: '24px 16px', textAlign: 'center', borderRight: i < c.stats.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
                 <p style={{ fontSize: 28, fontWeight: 800, color: '#1A3C5E' }}>{s.value}</p>
@@ -152,7 +152,7 @@ export default function WholesalePage() {
           <div style={{ background: 'white', borderRadius: 14, padding: '36px 40px', border: '1px solid #e2e8f0', marginBottom: 56 }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>Volume Pricing Tiers</h2>
             <p style={{ fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 28 }}>Discounts applied automatically at checkout for approved B2B accounts</p>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${c.pricingTiers.length}, 1fr)`, gap: 16 }}>
+            <div className="wholesale-pricing-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${c.pricingTiers.length}, 1fr)`, gap: 16 }}>
               {c.pricingTiers.map((t: any, i: number) => (
                 <div key={i} style={{ background: t.bg || '#f8fafc', border: `1px solid ${t.border || '#e2e8f0'}`, borderRadius: 10, padding: '20px 16px', textAlign: 'center', position: 'relative' }}>
                   {t.tag && <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#C8860A', color: 'white', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20 }}>{t.tag}</span>}
@@ -165,7 +165,7 @@ export default function WholesalePage() {
         )}
 
         {/* Form + contact */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 40, alignItems: 'start' }}>
+        <div className="wholesale-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 40, alignItems: 'start' }}>
 
           {/* Left */}
           <div>

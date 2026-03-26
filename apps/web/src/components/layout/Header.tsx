@@ -30,19 +30,23 @@ const NAV = [
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const { itemCount, toggleCart } = useCartStore();
   const { user } = useAuthStore();
 
   return (
     <header style={{ background: '#1a1a1a', color: 'white', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 16px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-          <span style={{ fontWeight: 800, fontSize: 20, color: 'white', letterSpacing: '-0.02em' }}>BLIKCART</span>
-          <span style={{ fontSize: 10, color: '#C8860A', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>Premium Saddlery</span>
+        {/* Logo */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', flexShrink: 0 }}>
+          <span style={{ fontWeight: 800, fontSize: 18, color: 'white', letterSpacing: '-0.02em' }}>BLIKCART</span>
+          <span className="header-tagline" style={{ fontSize: 10, color: '#C8860A', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>Premium Saddlery</span>
         </Link>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Desktop nav */}
+        <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {NAV.map(item => (
             <div key={item.label} style={{ position: 'relative' }}
               onMouseEnter={() => setOpenMenu(item.label)}
@@ -95,14 +99,87 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {/* Right icons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Link href={user ? '/account' : '/login'} style={{ padding: '6px 10px', color: 'rgba(255,255,255,0.85)', textDecoration: 'none', fontSize: 18, borderRadius: 6 }}>👤</Link>
           <button onClick={() => toggleCart()} style={{ position: 'relative', padding: '6px 10px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 18, borderRadius: 6 }}>
             🛒
             {itemCount > 0 && <span style={{ position: 'absolute', top: 2, right: 2, background: '#C8860A', color: 'white', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{itemCount}</span>}
           </button>
+          {/* Hamburger — mobile only */}
+          <button
+            className="hamburger-btn"
+            onClick={() => setMobileOpen(v => !v)}
+            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '6px 8px', display: 'none', flexDirection: 'column', gap: 5, borderRadius: 6 }}
+            aria-label="Toggle menu"
+          >
+            <span style={{ display: 'block', width: 22, height: 2, background: mobileOpen ? '#C8860A' : 'white', borderRadius: 2, transition: 'all 0.2s', transform: mobileOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
+            <span style={{ display: 'block', width: 22, height: 2, background: 'white', borderRadius: 2, transition: 'all 0.2s', opacity: mobileOpen ? 0 : 1 }} />
+            <span style={{ display: 'block', width: 22, height: 2, background: mobileOpen ? '#C8860A' : 'white', borderRadius: 2, transition: 'all 0.2s', transform: mobileOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }} />
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div className="mobile-nav" style={{ background: '#111', borderTop: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16 }}>
+          {/* Quick links */}
+          <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>
+            <Link href="/design-your-own" onClick={() => setMobileOpen(false)}
+              style={{ flex: 1, textAlign: 'center', padding: '10px', background: '#C8860A', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+              Design Your Own ✦
+            </Link>
+            <Link href="/wholesale" onClick={() => setMobileOpen(false)}
+              style={{ flex: 1, textAlign: 'center', padding: '10px', background: 'rgba(255,255,255,0.08)', color: 'white', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>
+              B2B / Wholesale
+            </Link>
+          </div>
+
+          {/* Nav items */}
+          <div style={{ marginTop: 8 }}>
+            {NAV.map(item => (
+              <div key={item.label}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Link href={item.href} onClick={() => setMobileOpen(false)}
+                    style={{ flex: 1, padding: '12px 16px', fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                    {item.label}
+                  </Link>
+                  {item.children && (
+                    <button onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
+                      style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', padding: '12px 16px', fontSize: 12, cursor: 'pointer' }}>
+                      {mobileExpanded === item.label ? '▲' : '▾'}
+                    </button>
+                  )}
+                </div>
+                {item.children && mobileExpanded === item.label && (
+                  <div style={{ background: 'rgba(255,255,255,0.04)', paddingLeft: 16 }}>
+                    {item.children.map((child: any) => (
+                      <div key={child.label}>
+                        {child.children ? (
+                          <>
+                            <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{child.label}</div>
+                            {child.children.map((gc: any) => (
+                              <Link key={gc.label} href={gc.href} onClick={() => setMobileOpen(false)}
+                                style={{ display: 'block', padding: '8px 16px 8px 24px', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                                {gc.label}
+                              </Link>
+                            ))}
+                          </>
+                        ) : (
+                          <Link href={child.href} onClick={() => setMobileOpen(false)}
+                            style={{ display: 'block', padding: '10px 16px', fontSize: 14, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
+                            {child.label}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
