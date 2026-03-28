@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ConfiguratorStep from '@/components/configurator/ConfiguratorStep';
@@ -7,7 +7,7 @@ import { useConfiguratorStore } from '@/store/configurator.store';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-export default function ConfiguratorPage() {
+function ConfiguratorContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -561,5 +561,17 @@ export default function ConfiguratorPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ConfiguratorPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#6b7280', fontSize: 15 }}>Loading configurator…</p>
+      </div>
+    }>
+      <ConfiguratorContent />
+    </Suspense>
   );
 }
