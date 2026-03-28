@@ -63,6 +63,18 @@ export default function ProductDetailPage() {
   // Ref so keyboard handler always sees current lbImages length without needing it as a dep
   const lbLenRef = useRef(0);
 
+  // Keyboard navigation — must be here (before early returns) to satisfy Rules of Hooks
+  useEffect(() => {
+    if (!lightbox.open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') setLightbox(l => ({ ...l, idx: Math.min(l.idx + 1, lbLenRef.current - 1) }));
+      if (e.key === 'ArrowLeft')  setLightbox(l => ({ ...l, idx: Math.max(l.idx - 1, 0) }));
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox.open, closeLightbox]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -223,18 +235,6 @@ export default function ProductDetailPage() {
     : allImages.map((i: any) => i.url);
   const lbImg = lightbox.open ? lbImages[lightbox.idx] : null;
   lbLenRef.current = lbImages.length;
-
-  // Keyboard navigation in lightbox — uses ref so it always sees the latest count
-  useEffect(() => {
-    if (!lightbox.open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') setLightbox(l => ({ ...l, idx: Math.min(l.idx + 1, lbLenRef.current - 1) }));
-      if (e.key === 'ArrowLeft')  setLightbox(l => ({ ...l, idx: Math.max(l.idx - 1, 0) }));
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox.open, closeLightbox]);
 
   // pill button style
   const pill = (active: boolean, oos: boolean): React.CSSProperties => ({
