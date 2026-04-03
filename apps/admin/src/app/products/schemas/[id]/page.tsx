@@ -13,8 +13,12 @@ import {
   Check,
   X,
   ChevronRight,
+  ChevronDown,
   Settings,
   Layers,
+  Package,
+  Settings2,
+  AlertCircle,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -654,6 +658,124 @@ export default function SchemaEditorPage() {
           : s
       )
     );
+  }
+
+  // ── Products in this category ──
+  const [categoryProducts, setCategoryProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [productStepDraft, setProductStepDraft] = useState<Record<string, any[]>>({});
+  const [savingProductId, setSavingProductId] = useState<string | null>(null);
+  const [savedProductId, setSavedProductId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!schema?.category?.slug) return;
+    setLoadingProducts(true);
+    // Fetch all products whose category slug matches (including sub-categories)
+    axios.get(`${API_BASE}/products?categorySlug=${schema.category.slug}&limit=100`)
+      .then(res => {
+        const all = res.data?.data || [];
+        // Also fetch sub-categories products (bridles → dressage-bridles, jumping-bridles)
+        const subs = ['dressage-bridles','jumping-bridles','browbands','halters','horse-reins','girths'];
+        const isBridles = schema.category.slug === 'bridles';
+        if (isBridles) {
+          return Promise.all([
+            Promise.resolve(all),
+            ...['dressage-bridles','jumping-bridles'].map(s =>
+              axios.get(`${API_BASE}/products?categorySlug=${s}&limit=100`).then(r => r.data?.data || []).catch(() => [])
+            ),
+          ]).then(arrays => arrays.flat());
+        }
+        return all;
+      })
+      .then(products => {
+        // de-dup
+        const seen = new Set<string>();
+        const unique = products.filter((p: any) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+        setCategoryProducts(unique);
+        // Initialise draft from existing product features
+        const drafts: Record<string, any[]> = {};
+        for (const p of unique) {
+          const f = p.features;
+          if (f && typeof f === 'object' && !Array.isArray(f) && Array.isArray(f.customizationSteps)) {
+            drafts[p.id] = f.customizationSteps;
+          } else {
+            drafts[p.id] = [];
+          }
+        }
+        setProductStepDraft(drafts);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
+  }, [schema?.category?.slug]);
+
+  async function saveProductSteps(productId: string) {
+    setSavingProductId(productId);
+    try {
+      const product = categoryProducts.find((p: any) => p.id === productId);
+      const f = product?.features;
+      const specs = Array.isArray(f) ? f : Array.isArray(f?.specs) ? f.specs : [];
+      await axios.patch(`${API_BASE}/products/${productId}`, {
+        features: { specs, customizationSteps: productStepDraft[productId] || [] },
+      });
+      setSavedProductId(productId);
+      setTimeout(() => setSavedProductId(null), 2000);
+    } finally {
+      setSavingProductId(null);
+    }
+  }
+
+  function addProductStep(productId: string) {
+    const step = {
+      id: `step_${Date.now()}`,
+      title: 'New Step',
+      type: 'select',
+      required: false,
+      description: '',
+      options: [{ id: `opt_${Date.now()}`, label: 'Option 1', priceModifier: 0 }],
+    };
+    setProductStepDraft(d => ({ ...d, [productId]: [...(d[productId] || []), step] }));
+  }
+
+  function removeProductStep(productId: string, stepId: string) {
+    setProductStepDraft(d => ({ ...d, [productId]: (d[productId] || []).filter((s: any) => s.id !== stepId) }));
+  }
+
+  function updateProductStep(productId: string, stepId: string, patch: any) {
+    setProductStepDraft(d => ({
+      ...d,
+      [productId]: (d[productId] || []).map((s: any) => s.id === stepId ? { ...s, ...patch } : s),
+    }));
+  }
+
+  function addProductStepOption(productId: string, stepId: string) {
+    const opt = { id: `opt_${Date.now()}`, label: 'New Option', priceModifier: 0 };
+    setProductStepDraft(d => ({
+      ...d,
+      [productId]: (d[productId] || []).map((s: any) =>
+        s.id === stepId ? { ...s, options: [...(s.options || []), opt] } : s
+      ),
+    }));
+  }
+
+  function updateProductStepOption(productId: string, stepId: string, optId: string, patch: any) {
+    setProductStepDraft(d => ({
+      ...d,
+      [productId]: (d[productId] || []).map((s: any) =>
+        s.id === stepId
+          ? { ...s, options: (s.options || []).map((o: any) => o.id === optId ? { ...o, ...patch } : o) }
+          : s
+      ),
+    }));
+  }
+
+  function removeProductStepOption(productId: string, stepId: string, optId: string) {
+    setProductStepDraft(d => ({
+      ...d,
+      [productId]: (d[productId] || []).map((s: any) =>
+        s.id === stepId ? { ...s, options: (s.options || []).filter((o: any) => o.id !== optId) } : s
+      ),
+    }));
   }
 
   // ── Step DnD ──
@@ -1459,6 +1581,178 @@ export default function SchemaEditorPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── Products in this Category ── */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-purple-500" />
+                    <h2 className="font-semibold text-gray-800">Products in this Schema</h2>
+                    {!loadingProducts && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{categoryProducts.length}</span>}
+                  </div>
+                  <p className="text-xs text-gray-400">Add product-specific steps that appear <strong>after</strong> the shared category steps in the configurator.</p>
+                </div>
+
+                {/* Info banner */}
+                <div className="px-5 py-3 bg-purple-50 border-b border-purple-100 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-purple-800">
+                    <strong>How it works:</strong> The steps above apply to <em>all</em> products in this category. Use the overrides below to add extra steps for a <em>specific</em> product — e.g. a special noseband style or a unique size chart. These extra steps are appended after the shared steps in the customer configurator.
+                  </p>
+                </div>
+
+                {loadingProducts ? (
+                  <div className="px-5 py-8 text-center text-gray-400 text-sm">Loading products…</div>
+                ) : categoryProducts.length === 0 ? (
+                  <div className="px-5 py-8 text-center text-gray-400 text-sm">No products found in this category.</div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {categoryProducts.map((product: any) => {
+                      const steps = productStepDraft[product.id] || [];
+                      const isExpanded = expandedProductId === product.id;
+                      const isSaving = savingProductId === product.id;
+                      const isSaved = savedProductId === product.id;
+                      const image = product.images?.find((i: any) => i.isPrimary) || product.images?.[0];
+
+                      return (
+                        <div key={product.id}>
+                          {/* Product row */}
+                          <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => setExpandedProductId(isExpanded ? null : product.id)}>
+                            {image
+                              ? <img src={image.url} alt={product.name} className="w-9 h-9 rounded-lg object-contain border border-gray-100 bg-white flex-shrink-0" />
+                              : <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0"><Package className="w-4 h-4 text-gray-300" /></div>
+                            }
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{product.name}</p>
+                              <p className="text-xs text-gray-400">{product.category?.name} · {product.sku}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {steps.length > 0 && (
+                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                                  {steps.length} override{steps.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                              <a href={`/products/${product.id}/customize`}
+                                onClick={e => e.stopPropagation()}
+                                className="text-xs text-gray-400 hover:text-[#1A3C5E] p-1 rounded hover:bg-gray-100"
+                                title="Open full step editor">
+                                <Settings2 className="w-3.5 h-3.5" />
+                              </a>
+                              {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                            </div>
+                          </div>
+
+                          {/* Expanded: product step overrides */}
+                          {isExpanded && (
+                            <div className="bg-purple-50 border-t border-b border-purple-100 px-5 py-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Extra steps for {product.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={() => addProductStep(product.id)}
+                                    className="flex items-center gap-1 text-xs text-purple-700 font-semibold border border-purple-300 px-2.5 py-1 rounded-lg hover:bg-purple-100">
+                                    <Plus className="w-3 h-3" /> Add Step
+                                  </button>
+                                  <button type="button" onClick={() => saveProductSteps(product.id)} disabled={isSaving}
+                                    className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg disabled:opacity-50 bg-purple-600 text-white hover:bg-purple-700">
+                                    {isSaved ? <><Check className="w-3 h-3" /> Saved</> : isSaving ? 'Saving…' : <><Save className="w-3 h-3" /> Save</>}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {steps.length === 0 ? (
+                                <div className="text-center py-6 text-gray-400 text-xs border-2 border-dashed border-purple-200 rounded-xl">
+                                  No product-specific steps. Click <strong>Add Step</strong> to add overrides for this product only.
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {steps.map((step: any, si: number) => (
+                                    <div key={step.id} className="bg-white rounded-xl border border-purple-200 overflow-hidden">
+                                      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-purple-100">
+                                        <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{si + 1}</span>
+                                        <input
+                                          value={step.title}
+                                          onChange={e => updateProductStep(product.id, step.id, { title: e.target.value })}
+                                          placeholder="Step title"
+                                          className="flex-1 text-sm font-semibold bg-transparent outline-none"
+                                        />
+                                        <select
+                                          title="Step type"
+                                          value={step.type || 'select'}
+                                          onChange={e => updateProductStep(product.id, step.id, { type: e.target.value })}
+                                          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white outline-none"
+                                        >
+                                          <option value="select">Single Select</option>
+                                          <option value="multiselect">Multi Select</option>
+                                          <option value="color">Colour Swatch</option>
+                                          <option value="size">Size Grid</option>
+                                          <option value="toggle">Toggle</option>
+                                          <option value="text">Short Text</option>
+                                          <option value="textarea">Notes / Long Text</option>
+                                        </select>
+                                        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+                                          <input type="checkbox" checked={step.required || false}
+                                            onChange={e => updateProductStep(product.id, step.id, { required: e.target.checked })} />
+                                          Req.
+                                        </label>
+                                        <button type="button" title="Remove step" onClick={() => removeProductStep(product.id, step.id)}
+                                          className="text-gray-300 hover:text-red-500 p-0.5">
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                      <div className="px-4 py-2">
+                                        <input
+                                          value={step.description || ''}
+                                          onChange={e => updateProductStep(product.id, step.id, { description: e.target.value })}
+                                          placeholder="Help text shown to customer (optional)"
+                                          className="w-full text-xs text-gray-500 bg-transparent outline-none mb-2"
+                                        />
+                                        {!['text','textarea'].includes(step.type || 'select') && (
+                                          <div className="space-y-1.5">
+                                            {(step.options || []).map((opt: any) => (
+                                              <div key={opt.id} className="flex items-center gap-2">
+                                                {step.type === 'color' && (
+                                                  <input type="color" title="Option colour" value={opt.colorHex || '#cccccc'}
+                                                    onChange={e => updateProductStepOption(product.id, step.id, opt.id, { colorHex: e.target.value })}
+                                                    className="w-6 h-6 rounded cursor-pointer border-0 p-0" />
+                                                )}
+                                                <input
+                                                  value={opt.label}
+                                                  onChange={e => updateProductStepOption(product.id, step.id, opt.id, { label: e.target.value })}
+                                                  placeholder="Option label"
+                                                  className="flex-1 text-xs border border-gray-200 rounded px-2 py-1 outline-none"
+                                                />
+                                                <span className="text-xs text-gray-400">+€</span>
+                                                <input type="number" step="0.5" min="0" title="Price modifier" placeholder="0"
+                                                  value={opt.priceModifier || 0}
+                                                  onChange={e => updateProductStepOption(product.id, step.id, opt.id, { priceModifier: parseFloat(e.target.value) || 0 })}
+                                                  className="w-14 text-xs border border-gray-200 rounded px-2 py-1 text-center outline-none"
+                                                />
+                                                <button type="button" title="Remove option" onClick={() => removeProductStepOption(product.id, step.id, opt.id)}
+                                                  className="text-gray-300 hover:text-red-500">
+                                                  <X className="w-3 h-3" />
+                                                </button>
+                                              </div>
+                                            ))}
+                                            <button type="button" onClick={() => addProductStepOption(product.id, step.id)}
+                                              className="text-xs text-purple-600 hover:underline flex items-center gap-0.5">
+                                              <Plus className="w-3 h-3" /> Add option
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {/* Spacer for sticky bar */}
               <div className="h-6" />
