@@ -40,11 +40,26 @@ function ConfiguratorContent() {
     setError('');
     setLoading(true);
 
-    fetch(`${API}/configurator/schema/${category}`)
-      .then(r => { if (!r.ok) throw new Error('No configurator found for this category'); return r.json(); })
-      .then(data => {
+    const schemaFetch = fetch(`${API}/configurator/schema/${category}`)
+      .then(r => { if (!r.ok) throw new Error('No configurator found for this category'); return r.json(); });
+
+    const productFetch = productId
+      ? fetch(`${API}/products/${productId}`).then(r => r.ok ? r.json() : null).catch(() => null)
+      : Promise.resolve(null);
+
+    Promise.all([schemaFetch, productFetch])
+      .then(([data, product]) => {
         setSchema(data);
-        setSteps(data.steps || []);
+        const sharedSteps: any[] = data.steps || [];
+
+        // Append product-specific steps (from features.customizationSteps) after shared steps
+        let productSteps: any[] = [];
+        if (product) {
+          const f = product.features;
+          const cs = Array.isArray(f) ? [] : Array.isArray(f?.customizationSteps) ? f.customizationSteps : [];
+          productSteps = cs;
+        }
+        setSteps([...sharedSteps, ...productSteps]);
 
         // Restore shared configuration from ?cfg= param
         const cfgParam = searchParams.get('cfg');
