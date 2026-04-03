@@ -100,6 +100,15 @@ function BannersTab() {
 
   return (
     <div>
+      {/* Explain banner positions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-5 space-y-1">
+        <p><strong>Banner positions:</strong></p>
+        <ul className="list-disc list-inside space-y-0.5 text-blue-700">
+          <li><strong>hero</strong> — overrides the headline &amp; CTA on the home page. Leave empty to use the <a href="/homepage" className="underline font-medium">Home Page editor</a> text.</li>
+          <li><strong>promo</strong> — the gold announcement bar at the very top of every page.</li>
+          <li><strong>category / sidebar</strong> — used on category or product pages.</li>
+        </ul>
+      </div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-gray-500">{banners.length} banners</p>
         <button type="button" onClick={() => setCreating(true)}
@@ -321,6 +330,9 @@ function FaqTab() {
 
   return (
     <div>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-5">
+        FAQs appear on the <strong>/faq</strong> page on the website. Use <strong>Category Slug</strong> to group them (e.g. <code className="bg-white rounded px-1">general</code>, <code className="bg-white rounded px-1">shipping</code>, <code className="bg-white rounded px-1">customisation</code>).
+      </div>
       <div className="flex items-center justify-between mb-5">
         <div className="flex gap-1.5 flex-wrap">
           {categories.map(c => (
@@ -1196,24 +1208,39 @@ function PagesTab() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.isPublished ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {p.isPublished ? 'Published' : 'Draft'}
                     </span>
-                    {KNOWN_PAGE_SLUGS.includes(p.slug) && (
+                    {p.slug === 'home' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700">Home Page Editor</span>
+                    )}
+                    {KNOWN_PAGE_SLUGS.includes(p.slug) && p.slug !== 'home' && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600">Structured</span>
                     )}
                   </div>
                   <p className="font-semibold text-gray-900">{p.title}</p>
+                  {p.slug === 'home' && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      This page is managed in the <a href="/homepage" className="underline font-medium">Home Page editor</a> — editing here will overwrite those settings.
+                    </p>
+                  )}
                   {p.metaDescription && <p className="text-xs text-gray-400 mt-0.5">{p.metaDescription}</p>}
                   <p className="text-xs text-gray-300 mt-1">
                     Updated {new Date(p.updatedAt).toLocaleDateString()}
-                    {' · '}{p.content.length} chars
+                    {' · '}{p.content?.length ?? 0} chars
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Toggle value={p.isPublished} onChange={() => togglePublished(p)} />
-                  <button type="button" title="Edit page"
-                    onClick={() => { setEditingId(p.id); setEditForm({}); }}
-                    className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-                    Edit
-                  </button>
+                  {p.slug === 'home' ? (
+                    <a href="/homepage"
+                      className="text-xs px-3 py-1.5 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50">
+                      Open Editor →
+                    </a>
+                  ) : (
+                    <button type="button" title="Edit page"
+                      onClick={() => { setEditingId(p.id); setEditForm({}); }}
+                      className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                      Edit
+                    </button>
+                  )}
                   <button type="button" title="Delete page" onClick={() => deletePage(p.id)}
                     className="text-xs px-3 py-1.5 border border-red-200 rounded-lg text-red-600 hover:bg-red-50">
                     Del
@@ -1244,7 +1271,10 @@ export default function ContentPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Content</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage banners, FAQs, and static pages</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Manage banners, FAQs, and static pages. &nbsp;
+          <a href="/homepage" className="text-[#1A3C5E] font-medium underline">Home Page editor →</a>
+        </p>
       </div>
 
       <div className="flex gap-1 mb-8 bg-gray-100 rounded-xl p-1 w-fit">
