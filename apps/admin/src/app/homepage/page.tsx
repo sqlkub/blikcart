@@ -18,6 +18,8 @@ const DEFAULT: HomeContent = {
     secondaryCtaText: 'Browse Products',
     secondaryCtaUrl: '/products/for-horses',
     footnote: 'B2B from 5 units · Free shipping over €150 · 21-day lead time',
+    heroImageUrl: '',
+    fromPrice: '38',
   },
   features: [
     { title: 'Fully Customisable', description: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
@@ -49,6 +51,8 @@ interface Hero {
   secondaryCtaText: string;
   secondaryCtaUrl: string;
   footnote: string;
+  heroImageUrl: string;
+  fromPrice: string;
 }
 
 interface FeatureCard { title: string; description: string; }
@@ -214,6 +218,31 @@ export default function HomepagePage() {
           <Field label="Badge / Eyebrow text" value={content.hero.badge} onChange={v => setHero({ badge: v })} placeholder="Premium Saddlery" />
           <Field label="Footnote (below CTAs)" value={content.hero.footnote} onChange={v => setHero({ footnote: v })} placeholder="B2B from 5 units · Free shipping…" />
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Hero Image URL"
+            value={content.hero.heroImageUrl}
+            onChange={v => setHero({ heroImageUrl: v })}
+            placeholder="https://… (leave empty to show BK logo placeholder)"
+            hint="Paste a direct image URL (S3, CDN, etc.) to show a product photo in the hero box."
+          />
+          <Field
+            label="'From' Price badge"
+            value={content.hero.fromPrice}
+            onChange={v => setHero({ fromPrice: v })}
+            placeholder="38"
+            hint="Number only — the € sign is added automatically. Leave empty to hide the badge."
+          />
+        </div>
+        {content.hero.heroImageUrl && (
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <img src={content.hero.heroImageUrl} alt="Hero preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+            <div className="text-xs text-gray-500">
+              <p className="font-semibold text-gray-700 mb-1">Image preview</p>
+              <p>This image will fill the hero box on the right side of the homepage.</p>
+            </div>
+          </div>
+        )}
         <Field label="Main Headline" value={content.hero.headline} onChange={v => setHero({ headline: v })} placeholder="Fully Customised. Handcrafted. Delivered." />
         <Field label="Subheading / Description" value={content.hero.subheading} onChange={v => setHero({ subheading: v })} multiline placeholder="Design your perfect bridle…" />
         <div className="grid grid-cols-2 gap-4">

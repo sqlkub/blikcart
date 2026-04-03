@@ -58,6 +58,8 @@ const DEFAULTS = {
     secondaryCtaText: 'Browse Products',
     secondaryCtaUrl: '/products/for-horses',
     footnote: 'B2B from 5 units · Free shipping over €150 · 21-day lead time',
+    heroImageUrl: '',
+    fromPrice: '38',
   },
   features: [
     { title: 'Fully Customisable', description: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
@@ -153,13 +155,19 @@ export default async function HomePage() {
 
           <div className="hero-image-col" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 400 }}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 24, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ fontSize: 80, fontWeight: 800, color: 'rgba(255,255,255,0.08)', letterSpacing: '-0.04em' }}>BK</span>
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 24, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                {hero.heroImageUrl ? (
+                  <img src={hero.heroImageUrl} alt="Hero product" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: 80, fontWeight: 800, color: 'rgba(255,255,255,0.08)', letterSpacing: '-0.04em' }}>BK</span>
+                )}
               </div>
-              <div style={{ position: 'absolute', bottom: -12, right: -12, background: '#C8860A', color: 'white', borderRadius: 12, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-                <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>from</p>
-                <p style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>€38</p>
-              </div>
+              {hero.fromPrice && (
+                <div style={{ position: 'absolute', bottom: -12, right: -12, background: '#C8860A', color: 'white', borderRadius: 12, padding: '12px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.85 }}>from</p>
+                  <p style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>€{hero.fromPrice}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
