@@ -3,14 +3,16 @@ import { ArrowRight } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
-const categories = [
-  { name: 'Bridles', slug: 'bridles', count: '12 styles' },
-  { name: 'Browbands', slug: 'browbands', count: '8 styles' },
-  { name: 'Halters', slug: 'halters', count: '6 styles' },
-  { name: 'Reins', slug: 'horse-reins', count: '9 styles' },
-  { name: 'Girths', slug: 'girths', count: '5 styles' },
-  { name: 'Parts & Components', slug: 'parts-components', count: '4 styles' },
-];
+async function getCategories() {
+  try {
+    const res = await fetch(`${API}/products/categories`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data.filter((c: any) => c.isActive) : [];
+  } catch {
+    return [];
+  }
+}
 
 const features = [
   { title: 'Fully Customisable', desc: '9-step configurator with live price preview. Choose material, colour, hardware and more.' },
@@ -41,7 +43,7 @@ async function getPromoBanner() {
 }
 
 export default async function HomePage() {
-  const [heroBanner, promoBanner] = await Promise.all([getHeroBanner(), getPromoBanner()]);
+  const [heroBanner, promoBanner, allCategories] = await Promise.all([getHeroBanner(), getPromoBanner(), getCategories()]);
 
   const heroTitle   = heroBanner?.title    || null;
   const heroSub     = heroBanner?.subtitle || null;
@@ -116,20 +118,28 @@ export default async function HomePage() {
       </section>
 
       {/* Shop by Category */}
-      <section style={{ background: '#f5f5f5', padding: '64px 24px' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>Shop by Category</h2>
-          <p style={{ color: '#666', marginBottom: 32 }}>All products available as standard or fully customised</p>
-          <div className="categories-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-            {categories.map(cat => (
-              <Link key={cat.slug} href={`/products/${cat.slug}`} style={{ background: 'white', borderRadius: 12, padding: '28px 20px', textAlign: 'center', border: '1px solid #e0e0e0', display: 'block', transition: 'box-shadow 0.2s, transform 0.2s' }}>
-                <p style={{ fontWeight: 700, color: '#1a1a1a', fontSize: 15 }}>{cat.name}</p>
-                <p style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{cat.count}</p>
-              </Link>
-            ))}
+      {allCategories.length > 0 && (
+        <section style={{ background: '#f5f5f5', padding: '64px 24px' }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 28, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>Shop by Category</h2>
+            <p style={{ color: '#666', marginBottom: 32 }}>All products available as standard or fully customised</p>
+            <div className="categories-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              {allCategories.map((cat: any) => {
+                const activeChildren = (cat.children || []).filter((c: any) => c.isActive);
+                const subtitle = activeChildren.length > 0
+                  ? `${activeChildren.length} subcategor${activeChildren.length === 1 ? 'y' : 'ies'}`
+                  : cat.isCustomizable ? 'Customisable' : 'Shop now';
+                return (
+                  <Link key={cat.slug} href={`/products/${cat.slug}`} style={{ background: 'white', borderRadius: 12, padding: '28px 20px', textAlign: 'center', border: '1px solid #e0e0e0', display: 'block' }}>
+                    <p style={{ fontWeight: 700, color: '#1a1a1a', fontSize: 15 }}>{cat.name}</p>
+                    <p style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{subtitle}</p>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Configurator CTA */}
       <section style={{ background: 'white', padding: '64px 24px' }}>

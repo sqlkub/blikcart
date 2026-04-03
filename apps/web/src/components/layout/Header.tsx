@@ -1,10 +1,43 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cart.store';
 import { useAuthStore } from '@/store/auth.store';
 
-const NAV = [
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
+
+const SALE_ITEM = { label: '🔥 Sale', href: '/sale' };
+
+function buildNav(categories: any[]) {
+  const active = categories.filter((c: any) => c.isActive);
+  const nav = active.map((cat: any) => {
+    const activeChildren = (cat.children || []).filter((c: any) => c.isActive);
+    if (activeChildren.length === 0) {
+      return { label: cat.name, href: `/products/${cat.slug}` };
+    }
+    return {
+      label: cat.name,
+      href: `/products/${cat.slug}`,
+      children: activeChildren.map((child: any) => {
+        const activeGrandchildren = (child.children || []).filter((gc: any) => gc.isActive);
+        if (activeGrandchildren.length === 0) {
+          return { label: child.name, href: `/products/${child.slug}` };
+        }
+        return {
+          label: child.name,
+          href: `/products/${child.slug}`,
+          children: [
+            ...activeGrandchildren.map((gc: any) => ({ label: gc.name, href: `/products/${gc.slug}` })),
+            { label: `All ${child.name}`, href: `/products/${child.slug}` },
+          ],
+        };
+      }),
+    };
+  });
+  return [...nav, SALE_ITEM];
+}
+
+const FALLBACK_NAV = [
   {
     label: 'For Horses',
     href: '/products/for-horses',
@@ -26,15 +59,23 @@ const NAV = [
   { label: 'For Riders', href: '/products/for-riders' },
   { label: 'For Pets',   href: '/products/for-pets' },
   { label: 'Parts & Components', href: '/products/parts-components' },
-  { label: '🔥 Sale', href: '/sale' },
+  SALE_ITEM,
 ];
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [nav, setNav] = useState(FALLBACK_NAV);
   const { itemCount, toggleCart } = useCartStore();
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    fetch(`${API}/products/categories`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (Array.isArray(data) && data.length > 0) setNav(buildNav(data)); })
+      .catch(() => {});
+  }, []);
 
   return (
     <header style={{ background: '#1a1a1a', color: 'white', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
@@ -48,7 +89,7 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {NAV.map(item => (
+          {nav.map(item => (
             <div key={item.label} style={{ position: 'relative' }}
               onMouseEnter={() => setOpenMenu(item.label)}
               onMouseLeave={() => setOpenMenu(null)}
@@ -139,7 +180,7 @@ export default function Header() {
 
           {/* Nav items */}
           <div style={{ marginTop: 8 }}>
-            {NAV.map(item => (
+            {nav.map(item => (
               <div key={item.label}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Link href={item.href} onClick={() => setMobileOpen(false)}
