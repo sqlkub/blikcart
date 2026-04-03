@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck, FlaskConical, Building2, Layers, Factory, Receipt, Bell } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Package, BarChart3, LogOut, Briefcase, CreditCard, Settings, FileText, Truck, FlaskConical, Building2, Layers, Factory, Receipt, Bell, FolderTree } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -12,6 +12,7 @@ const navItems = [
   { label: 'Orders',              href: '/orders',              icon: ShoppingBag, countKey: 'customOrders' },
   { label: 'Notifications',       href: '/notifications',       icon: Bell, countKey: 'notifications' },
   { label: 'Products',            href: '/products',            icon: Package },
+  { label: 'Categories',          href: '/categories',          icon: FolderTree },
   { label: 'Customers',           href: '/customers',           icon: Users },
   { label: 'B2B Approvals',       href: '/customers/wholesale', icon: Briefcase, countKey: 'wholesale' },
   { label: 'B2B Clients',         href: '/b2b-clients',         icon: Building2 },
