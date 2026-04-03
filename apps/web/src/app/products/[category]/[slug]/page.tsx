@@ -409,20 +409,25 @@ function ProductDetailContent() {
               </div>
             )}
 
-            {/* Features / Specifications */}
-            {Array.isArray(product.features) && product.features.length > 0 && (
-              <div style={{ background: '#f8f9fa', borderRadius: 12, padding: '18px 20px', border: '1px solid #e5e7eb' }}>
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 12 }}>Specifications</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  {(product.features as { label: string; value: string }[]).map((f, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: i < product.features.length - 1 ? '1px solid #e5e7eb' : 'none', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', minWidth: 120, flexShrink: 0 }}>{f.label}</span>
-                      <span style={{ fontSize: 13, color: '#1a1a1a', flex: 1 }}>{f.value}</span>
-                    </div>
-                  ))}
+            {/* Features / Specifications — supports both array and {specs:[]} formats */}
+            {(() => {
+              const f = product.features;
+              const specs: { label: string; value: string }[] = Array.isArray(f) ? f : Array.isArray(f?.specs) ? f.specs : [];
+              if (!specs.length) return null;
+              return (
+                <div style={{ background: '#f8f9fa', borderRadius: 12, padding: '18px 20px', border: '1px solid #e5e7eb' }}>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 12 }}>Specifications</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {specs.map((s, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: i < specs.length - 1 ? '1px solid #e5e7eb' : 'none', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#6b7280', minWidth: 120, flexShrink: 0 }}>{s.label}</span>
+                        <span style={{ fontSize: 13, color: '#1a1a1a', flex: 1 }}>{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ── Variant selectors ── */}
             {variants.length > 0 && (

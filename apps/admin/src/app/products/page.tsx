@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink, ImagePlus } from 'lucide-react';
+import { Package, Tag, Layers, Cpu, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, ChevronDown, ChevronUp, Check, X, Download, ExternalLink, ImagePlus, Settings2 } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
@@ -726,6 +726,13 @@ function ProductsTab() {
                         className="text-gray-400 hover:text-blue-500">
                         <ImagePlus size={14} />
                       </button>
+                      {p.isCustomizable && (
+                        <Link href={`/products/${p.id}/customize`}
+                          title="Edit customization steps"
+                          className="text-gray-400 hover:text-blue-600">
+                          <Settings2 size={14} />
+                        </Link>
+                      )}
                       <button type="button" title="Edit product" onClick={() => { setEditingId(p.id); setEditForm({ description: p.description ?? '', categoryId: p.categoryId ?? '', isCustomizable: p.isCustomizable, features: Array.isArray(p.features) ? p.features : [] }); }}
                         className="text-gray-400 hover:text-[#1A3C5E]"><Pencil size={14} /></button>
                       <button type="button" title="Delete product" onClick={() => deleteProduct(p.id)}
