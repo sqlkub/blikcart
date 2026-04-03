@@ -68,8 +68,10 @@ export class ProductsService {
   }
 
   async findBySlug(slug: string) {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const where = UUID_RE.test(slug) ? { id: slug } : { slug };
     const product = await this.prisma.product.findUnique({
-      where: { slug },
+      where,
       include: {
         images: { orderBy: { sortOrder: 'asc' } },
         category: { include: { parent: true } },
