@@ -1,193 +1,158 @@
 import Link from 'next/link';
+import { fetchPageContent } from '@/lib/fetchPageContent';
 
-const SECTIONS = [
-  {
-    title: '1. Wie zijn wij?',
-    paragraphs: [
-      'Blikcart B.V. is een besloten vennootschap geregistreerd in Nederland, ingeschreven bij de Kamer van Koophandel onder nummer 12345678 (hierna: "Blikcart", "wij", "ons"). Wij zijn te bereiken via:',
-    ],
-    contact: [
-      'E-mail: privacy@blikcart.nl',
-      'Adres: [Straat + nummer], [Postcode] [Stad], Nederland',
-      'Telefoonnummer: +31 (0)xx xxx xxxx',
-    ],
-    footer: 'Blikcart B.V. treedt op als verwerkingsverantwoordelijke in de zin van de Algemene Verordening Gegevensbescherming (AVG / GDPR).',
-  },
-  {
-    title: '2. Welke persoonsgegevens verwerken wij?',
-    paragraphs: ['Wij verwerken de volgende categorieën persoonsgegevens:'],
-    bullets: [
-      'Identiteitsgegevens: naam, functietitel, bedrijfsnaam',
-      'Contactgegevens: e-mailadres, telefoonnummer, factuur- en leveringsadres',
-      'Accountgegevens: inloggegevens (wachtwoord opgeslagen als gehashte waarde), voorkeuren',
-      'Bestelgegevens: productconfiguraties, orderhistorie, offerteaanvragen',
-      'Betalingsgegevens: factuurgegevens (geen volledige betaalkaartgegevens — betaling verloopt via gecertificeerde betalingsproviders)',
-      'Communicatiegegevens: e-mailcorrespondentie, supporttickets',
-      'Technische gegevens: IP-adres, browsertype, apparaatinformatie, sessie-ID (via cookies)',
-      'B2B-specifieke gegevens: KvK-nummer, BTW-nummer, kredietlimiet, Net-30-termijnenverzoeken',
-    ],
-  },
-  {
-    title: '3. Op welke grondslag en voor welk doel verwerken wij uw gegevens?',
-    paragraphs: ['Wij verwerken persoonsgegevens uitsluitend op een van de volgende wettelijke grondslagen:'],
-    table: [
-      { grondslag: 'Uitvoering overeenkomst (art. 6 lid 1 sub b AVG)', doel: 'Verwerken en leveren van (custom) bestellingen, facturatie, garantieafhandeling' },
-      { grondslag: 'Gerechtvaardigd belang (art. 6 lid 1 sub f AVG)', doel: 'Fraudepreventie, IT-beveiliging, verbetering van onze diensten, B2B-relatiebeheer' },
-      { grondslag: 'Wettelijke verplichting (art. 6 lid 1 sub c AVG)', doel: 'Bewaarplicht belastingdocumenten (7 jaar, art. 52 AWR), douanedocumenten bij export' },
-      { grondslag: 'Toestemming (art. 6 lid 1 sub a AVG)', doel: 'Nieuwsbrief, marketing-e-mails, niet-essentiële cookies — u kunt deze toestemming te allen tijde intrekken' },
-    ],
-  },
-  {
-    title: '4. Hoe lang bewaren wij uw gegevens?',
-    paragraphs: ['Wij hanteren de volgende bewaartermijnen:'],
-    bullets: [
-      'Ordergegevens & facturen: 7 jaar (fiscale bewaarplicht ex art. 52 AWR)',
-      'Accountgegevens: zolang uw account actief is; na verwijderverzoek worden gegevens binnen 30 dagen gewist, tenzij wettelijk vereist',
-      'Marketingtoestemming: tot intrekking van toestemming',
-      'Supportcommunicatie: 2 jaar na afsluiting',
-      'Webanalytics (geanonimiseerd): maximaal 26 maanden',
-    ],
-  },
-  {
-    title: '5. Met wie delen wij uw gegevens?',
-    paragraphs: ['Wij delen persoonsgegevens uitsluitend met derden voor zover noodzakelijk en op basis van een verwerkersovereenkomst (art. 28 AVG):'],
-    bullets: [
-      'Betalingsproviders (bijv. Mollie, Stripe) — voor verwerking van betalingen',
-      'Logistieke partners (bijv. PostNL, DHL, DPD) — voor verzending en tracking',
-      'Cloud-hostingproviders (AWS EU-West-1, Dublin) — voor opslag en verwerking van gegevens binnen de EU/EER',
-      'E-mailproviders (transactionele e-mail) — voor orderbevestigingen en notificaties',
-      'Boekhoudplatformen — voor facturatieverwerking',
-    ],
-    footer: 'Wij verkopen uw persoonsgegevens nooit aan derden. Alle externe verwerkers zijn gevestigd in de EU/EER of beschikken over passende waarborgen (bijv. Standard Contractual Clauses).',
-  },
-  {
-    title: '6. Uw rechten als betrokkene',
-    paragraphs: ['Op grond van de AVG heeft u de volgende rechten. U kunt deze uitoefenen via privacy@blikcart.nl:'],
-    bullets: [
-      'Recht op inzage (art. 15 AVG) — een kopie van uw persoonsgegevens opvragen',
-      'Recht op rectificatie (art. 16 AVG) — onjuiste gegevens laten corrigeren',
-      'Recht op gegevenswissing (art. 17 AVG) — "recht om vergeten te worden"',
-      'Recht op beperking van verwerking (art. 18 AVG)',
-      'Recht op dataportabiliteit (art. 20 AVG) — uw gegevens in machineleesbaar formaat ontvangen',
-      'Recht van bezwaar (art. 21 AVG) — bezwaar maken tegen verwerking op basis van gerechtvaardigd belang of direct marketing',
-      'Recht om toestemming in te trekken — te allen tijde, zonder gevolgen voor de rechtmatigheid van de verwerking vóór intrekking',
-    ],
-    footer: 'Wij reageren binnen 30 dagen op uw verzoek. U heeft ook het recht om een klacht in te dienen bij de Autoriteit Persoonsgegevens (autoriteitpersoonsgegevens.nl).',
-  },
-  {
-    title: '7. Cookies',
-    paragraphs: ['Wij gebruiken de volgende categorieën cookies:'],
-    bullets: [
-      'Noodzakelijke cookies — sessie, winkelwagen, authenticatie (geen toestemming vereist)',
-      'Analytische cookies — geanonimiseerde websitestatistieken (toestemming vereist)',
-      'Marketingcookies — retargeting en advertentieplatformen (toestemming vereist)',
-    ],
-    footer: 'U kunt uw cookievoorkeuren te allen tijde wijzigen via de cookiebanner of uw browserinstellingen.',
-  },
-  {
-    title: '8. Beveiliging',
-    paragraphs: [
-      'Wij treffen passende technische en organisatorische maatregelen om uw persoonsgegevens te beschermen, waaronder TLS/HTTPS-versleuteling, gehashte wachtwoorden, toegangscontrole op rolbasis en regelmatige beveiligingsaudits.',
-      'Bij een datalek met waarschijnlijk hoge risico\'s voor betrokkenen melden wij dit binnen 72 uur aan de Autoriteit Persoonsgegevens (art. 33 AVG) en informeren wij u zonder onnodige vertraging (art. 34 AVG).',
-    ],
-  },
-  {
-    title: '9. Wijzigingen in dit beleid',
-    paragraphs: [
-      'Wij kunnen dit privacybeleid van tijd tot tijd aanpassen. De meest recente versie is altijd beschikbaar op deze pagina. Bij materiële wijzigingen informeren wij u via e-mail of een duidelijke melding op de website.',
-    ],
-  },
-  {
-    title: '10. Contact',
-    paragraphs: [
-      'Voor vragen over dit privacybeleid of de verwerking van uw persoonsgegevens kunt u contact opnemen met onze functionaris voor gegevensbescherming (FG) via:',
-    ],
-    contact: [
-      'E-mail: privacy@blikcart.nl',
-      'Post: Blikcart B.V., t.a.v. Privacy, [Adres], Nederland',
-    ],
-  },
-];
+interface PolicySection {
+  title: string;
+  body: string;
+}
 
-export default function PrivacyPage() {
+interface PrivacyContent {
+  hero: { eyebrow: string; title: string; subtitle: string; lastUpdated: string };
+  intro: string;
+  sections: PolicySection[];
+  contact: { email: string; address: string; phone: string };
+}
+
+const DEFAULT: PrivacyContent = {
+  hero: {
+    eyebrow: 'Legal',
+    title: 'Privacy Policy',
+    subtitle: 'Blikcart B.V. processes personal data in accordance with the GDPR (EU 2016/679) and the Dutch GDPR Implementation Act (UAVG).',
+    lastUpdated: 'April 2026',
+  },
+  intro: 'Blikcart B.V. is a Dutch private limited company registered with the Dutch Chamber of Commerce (KvK) under number 12345678 ("Blikcart", "we", "us"). We act as data controller within the meaning of the General Data Protection Regulation (GDPR).',
+  sections: [
+    {
+      title: '1. What data do we collect?',
+      body: `We collect the following categories of personal data:
+• Identity data: name, job title, company name
+• Contact data: email address, phone number, billing and delivery address
+• Account data: login credentials (passwords stored as hashed values), preferences
+• Order data: product configurations, order history, quote requests
+• Payment data: invoice details (no full card data — payments processed via certified payment providers)
+• Communication data: email correspondence, support tickets
+• Technical data: IP address, browser type, device info, session ID (via cookies)
+• B2B-specific data: Chamber of Commerce number, VAT number, credit limit, Net-30 payment term requests`,
+    },
+    {
+      title: '2. Legal basis and purpose of processing',
+      body: `We process personal data only on one of the following legal bases (Art. 6 GDPR):
+
+Performance of contract (Art. 6(1)(b)): Processing and delivering (custom) orders, invoicing, warranty handling.
+
+Legitimate interest (Art. 6(1)(f)): Fraud prevention, IT security, service improvement, B2B relationship management.
+
+Legal obligation (Art. 6(1)(c)): Tax record retention (7 years, Dutch Tax Law art. 52 AWR), export customs documentation.
+
+Consent (Art. 6(1)(a)): Newsletter, marketing emails, non-essential cookies — you may withdraw consent at any time.`,
+    },
+    {
+      title: '3. How long do we retain your data?',
+      body: `We apply the following retention periods:
+• Order data & invoices: 7 years (statutory fiscal retention obligation)
+• Account data: for as long as your account is active; upon deletion request, data is removed within 30 days unless legally required
+• Marketing consent: until withdrawal of consent
+• Support communication: 2 years after closure
+• Web analytics (anonymised): maximum 26 months`,
+    },
+    {
+      title: '4. Who do we share your data with?',
+      body: `We share personal data with third parties only to the extent necessary and under a data processing agreement (Art. 28 GDPR):
+• Payment providers (e.g. Mollie, Stripe) — for payment processing
+• Logistics partners (e.g. PostNL, DHL, DPD) — for shipping and tracking
+• Cloud hosting providers (AWS EU-West-1, Dublin) — for storage and processing within the EU/EEA
+• Email providers (transactional email) — for order confirmations and notifications
+• Accounting platforms — for invoice processing
+
+We never sell your personal data to third parties. All external processors are located in the EU/EEA or have appropriate safeguards in place (e.g. Standard Contractual Clauses).`,
+    },
+    {
+      title: '5. Your rights as a data subject',
+      body: `Under the GDPR you have the following rights. Exercise them via privacy@blikcart.nl:
+• Right of access (Art. 15) — request a copy of your personal data
+• Right to rectification (Art. 16) — have inaccurate data corrected
+• Right to erasure (Art. 17) — "right to be forgotten"
+• Right to restriction of processing (Art. 18)
+• Right to data portability (Art. 20) — receive your data in machine-readable format
+• Right to object (Art. 21) — object to processing based on legitimate interest or direct marketing
+• Right to withdraw consent — at any time, without affecting the lawfulness of processing before withdrawal
+
+We respond to your request within 30 days. You also have the right to lodge a complaint with the Dutch Data Protection Authority (Autoriteit Persoonsgegevens — autoriteitpersoonsgegevens.nl).`,
+    },
+    {
+      title: '6. Cookies',
+      body: `We use the following categories of cookies:
+• Necessary cookies — session, cart, authentication (no consent required)
+• Analytical cookies — anonymised website statistics (consent required)
+• Marketing cookies — retargeting and advertising platforms (consent required)
+
+You can change your cookie preferences at any time via the cookie banner or your browser settings.`,
+    },
+    {
+      title: '7. Security',
+      body: `We implement appropriate technical and organisational measures to protect your personal data, including TLS/HTTPS encryption, hashed passwords, role-based access controls, and regular security audits.
+
+In the event of a data breach with likely high risks to data subjects, we will notify the Dutch Data Protection Authority within 72 hours (Art. 33 GDPR) and inform you without undue delay (Art. 34 GDPR).`,
+    },
+    {
+      title: '8. Changes to this policy',
+      body: `We may update this privacy policy from time to time. The most recent version is always available on this page. For material changes, we will notify you by email or through a prominent notice on the website.`,
+    },
+  ],
+  contact: {
+    email: 'privacy@blikcart.nl',
+    address: 'Blikcart B.V., [Street + number], [Postcode] [City], The Netherlands',
+    phone: '+31 (0)xx xxx xxxx',
+  },
+};
+
+export default async function PrivacyPage() {
+  const content = await fetchPageContent<PrivacyContent>('privacy', DEFAULT);
+
   return (
     <main style={{ minHeight: '100vh', background: '#faf9f7' }}>
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2017 100%)', color: '#fff', padding: 'clamp(56px, 7vw, 88px) 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>Juridisch</p>
-        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>Privacybeleid</h1>
-        <p style={{ fontSize: 16, color: '#aaa', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}>
-          Blikcart B.V. verwerkt persoonsgegevens conform de AVG (GDPR) en de Nederlandse Uitvoeringswet AVG (UAVG).
-        </p>
-        <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>Laatste update: april 2026</p>
-      </section>
-
-      {/* Quick nav */}
-      <section style={{ background: '#fff', borderBottom: '1px solid #e8e4de', padding: '0 24px' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '0 24px', padding: '16px 0' }}>
-          {SECTIONS.map((s, i) => (
-            <a key={i} href={`#s${i}`} style={{ fontSize: 12, color: '#C8860A', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              {s.title}
-            </a>
-          ))}
-        </div>
+        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>{content.hero.eyebrow}</p>
+        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>{content.hero.title}</h1>
+        <p style={{ fontSize: 16, color: '#aaa', maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}>{content.hero.subtitle}</p>
+        <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>Last updated: {content.hero.lastUpdated}</p>
       </section>
 
       {/* Content */}
       <section style={{ maxWidth: 820, margin: '0 auto', padding: 'clamp(40px, 5vw, 64px) 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-          {SECTIONS.map((s, i) => (
-            <div key={i} id={`s${i}`} style={{ background: '#fff', borderRadius: 12, padding: '28px 32px', border: '1px solid #e8e4de' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', marginBottom: 14, borderBottom: '2px solid #C8860A', paddingBottom: 10, display: 'inline-block' }}>{s.title}</h2>
-              {s.paragraphs?.map((p, j) => (
-                <p key={j} style={{ color: '#444', lineHeight: 1.8, marginBottom: 12, fontSize: 15 }}>{p}</p>
-              ))}
-              {s.contact && (
-                <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 12px' }}>
-                  {s.contact.map((c, j) => (
-                    <li key={j} style={{ fontSize: 14, color: '#555', padding: '4px 0', borderBottom: '1px solid #f0ece6' }}>{c}</li>
-                  ))}
-                </ul>
-              )}
-              {s.bullets && (
-                <ul style={{ paddingLeft: 20, margin: '8px 0 12px' }}>
-                  {s.bullets.map((b, j) => (
-                    <li key={j} style={{ color: '#444', lineHeight: 1.8, fontSize: 14, marginBottom: 4 }}>{b}</li>
-                  ))}
-                </ul>
-              )}
-              {s.table && (
-                <div style={{ overflowX: 'auto', marginTop: 8 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                    <thead>
-                      <tr style={{ background: '#f5f0e8' }}>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#1a1a1a', borderBottom: '2px solid #e8e4de' }}>Grondslag</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#1a1a1a', borderBottom: '2px solid #e8e4de' }}>Doel</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.table.map((row, j) => (
-                        <tr key={j} style={{ borderBottom: '1px solid #f0ece6', background: j % 2 === 0 ? '#fff' : '#faf9f7' }}>
-                          <td style={{ padding: '10px 14px', color: '#555', verticalAlign: 'top', fontWeight: 600 }}>{row.grondslag}</td>
-                          <td style={{ padding: '10px 14px', color: '#555', verticalAlign: 'top' }}>{row.doel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {s.footer && (
-                <p style={{ color: '#666', fontSize: 13, lineHeight: 1.7, marginTop: 12, padding: '10px 14px', background: '#f5f0e8', borderRadius: 8, borderLeft: '3px solid #C8860A' }}>{s.footer}</p>
-              )}
+
+        {/* Intro */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', border: '1px solid #e8e4de', marginBottom: 32 }}>
+          <p style={{ color: '#444', lineHeight: 1.8, fontSize: 15, margin: 0 }}>{content.intro}</p>
+        </div>
+
+        {/* Sections */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {content.sections.map((s, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 12, padding: '28px 32px', border: '1px solid #e8e4de' }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1a', marginBottom: 14, paddingBottom: 10, borderBottom: '2px solid #C8860A', display: 'inline-block' }}>{s.title}</h2>
+              <div style={{ color: '#444', lineHeight: 1.9, fontSize: 14, whiteSpace: 'pre-line' }}>{s.body}</div>
             </div>
           ))}
         </div>
 
+        {/* Contact */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', border: '1px solid #e8e4de', marginTop: 24 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1a', marginBottom: 14, paddingBottom: 10, borderBottom: '2px solid #C8860A', display: 'inline-block' }}>Contact</h2>
+          <p style={{ color: '#444', fontSize: 14, marginBottom: 12 }}>For questions about this policy or the processing of your personal data:</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p style={{ fontSize: 14, color: '#555' }}>Email: <a href={`mailto:${content.contact.email}`} style={{ color: '#C8860A' }}>{content.contact.email}</a></p>
+            <p style={{ fontSize: 14, color: '#555' }}>Post: {content.contact.address}</p>
+            {content.contact.phone && <p style={{ fontSize: 14, color: '#555' }}>Phone: {content.contact.phone}</p>}
+          </div>
+        </div>
+
         {/* Footer nav */}
-        <div style={{ marginTop: 48, textAlign: 'center', display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/terms" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Algemene Voorwaarden</Link>
-          <Link href="/returns" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Retourbeleid</Link>
-          <Link href="/contact" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Contact</Link>
+        <div style={{ marginTop: 40, textAlign: 'center', display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/terms" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Terms & Conditions</Link>
+          <Link href="/returns" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Returns Policy</Link>
+          <Link href="/contact" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Contact Us</Link>
         </div>
       </section>
     </main>

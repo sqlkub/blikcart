@@ -468,7 +468,7 @@ function FaqTab() {
 
 // ── Page Content Editor ───────────────────────────────────────────────────────
 
-const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own', 'wholesale', 'sale'];
+const KNOWN_PAGE_SLUGS = ['returns', 'sizing-guide', 'price-lists', 'custom-orders', 'b2b', 'contact', 'design-your-own', 'wholesale', 'sale', 'privacy', 'terms'];
 
 // Module-level style constants — stable across renders
 const PCE_inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#1A3C5E]';
@@ -958,6 +958,71 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
     </div>
   );
 
+  if (slug === 'privacy') return (
+    <div>
+      {heroEditor()}
+      <div className="mb-4">
+        <p className={PCE_secHead}>Last Updated Label</p>
+        <input className={PCE_inp} title="Last updated date" placeholder="e.g. April 2026" value={parsed.hero?.lastUpdated || ''} onChange={e => update(['hero', 'lastUpdated'], e.target.value)} />
+      </div>
+      <div className="mb-4">
+        <p className={PCE_secHead}>Introduction paragraph</p>
+        <textarea className={PCE_ta} title="Introduction text" rows={3} placeholder="Blikcart B.V. is a Dutch private limited company..." value={parsed.intro || ''} onChange={e => update(['intro'], e.target.value)} />
+      </div>
+      <RepeatableList
+        title="Policy Sections"
+        items={parsed.sections || []}
+        onAdd={() => addItem('sections', { title: '', body: '' })}
+        onRemove={i => removeItem('sections', i)}
+        renderItem={(item, i) => (
+          <div className="space-y-2">
+            <div><label className={PCE_label}>Section Title</label><input className={PCE_inp} title="Section title" placeholder="1. What data do we collect?" value={item.title || ''} onChange={e => updateItem('sections', i, 'title', e.target.value)} /></div>
+            <div><label className={PCE_label}>Body (plain text, use • for bullets, blank lines for paragraphs)</label><textarea className={PCE_ta} title="Section body" rows={6} placeholder="We collect the following..." value={item.body || ''} onChange={e => updateItem('sections', i, 'body', e.target.value)} /></div>
+          </div>
+        )}
+      />
+      <div className="mb-4">
+        <p className={PCE_secHead}>Contact Details</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div><label className={PCE_label}>Email</label><input className={PCE_inp} title="Contact email" placeholder="privacy@blikcart.nl" value={parsed.contact?.email || ''} onChange={e => update(['contact', 'email'], e.target.value)} /></div>
+          <div><label className={PCE_label}>Address</label><input className={PCE_inp} title="Postal address" placeholder="Blikcart B.V., Street, City" value={parsed.contact?.address || ''} onChange={e => update(['contact', 'address'], e.target.value)} /></div>
+          <div><label className={PCE_label}>Phone</label><input className={PCE_inp} title="Phone number" placeholder="+31 (0)xx xxx xxxx" value={parsed.contact?.phone || ''} onChange={e => update(['contact', 'phone'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (slug === 'terms') return (
+    <div>
+      {heroEditor()}
+      <div className="mb-4">
+        <p className={PCE_secHead}>Version / Filing Note</p>
+        <input className={PCE_inp} title="Version line" placeholder="e.g. Version April 2026 · Filed with the Dutch Chamber of Commerce" value={parsed.hero?.version || ''} onChange={e => update(['hero', 'version'], e.target.value)} />
+      </div>
+      <RepeatableList
+        title="Terms Sections"
+        items={parsed.sections || []}
+        onAdd={() => addItem('sections', { title: '', body: '' })}
+        onRemove={i => removeItem('sections', i)}
+        renderItem={(item, i) => (
+          <div className="space-y-2">
+            <div><label className={PCE_label}>Section Title</label><input className={PCE_inp} title="Section title" placeholder="1. Definitions" value={item.title || ''} onChange={e => updateItem('sections', i, 'title', e.target.value)} /></div>
+            <div><label className={PCE_label}>Body (plain text, use • for bullets, blank lines for paragraphs)</label><textarea className={PCE_ta} title="Section body" rows={6} placeholder='"Blikcart": Blikcart B.V., KvK ...' value={item.body || ''} onChange={e => updateItem('sections', i, 'body', e.target.value)} /></div>
+          </div>
+        )}
+      />
+      <div className="mb-4">
+        <p className={PCE_secHead}>Company Details (footer)</p>
+        <div className="grid grid-cols-4 gap-3">
+          <div><label className={PCE_label}>Company Name</label><input className={PCE_inp} title="Company name" placeholder="Blikcart B.V." value={parsed.company?.name || ''} onChange={e => update(['company', 'name'], e.target.value)} /></div>
+          <div><label className={PCE_label}>KvK Number</label><input className={PCE_inp} title="Chamber of Commerce number" placeholder="12345678" value={parsed.company?.kvk || ''} onChange={e => update(['company', 'kvk'], e.target.value)} /></div>
+          <div><label className={PCE_label}>VAT Number</label><input className={PCE_inp} title="VAT number" placeholder="NL123456789B01" value={parsed.company?.vat || ''} onChange={e => update(['company', 'vat'], e.target.value)} /></div>
+          <div><label className={PCE_label}>Email</label><input className={PCE_inp} title="Contact email" placeholder="info@blikcart.nl" value={parsed.company?.email || ''} onChange={e => update(['company', 'email'], e.target.value)} /></div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Unknown slug — should not reach here since we only show this component for known slugs
   return <p className="text-sm text-gray-400">No structured editor for this page slug.</p>;
 }
@@ -976,6 +1041,8 @@ const KNOWN_PAGE_META: Record<string, string> = {
   'design-your-own':'Design Your Own',
   'wholesale':      'Wholesale',
   'sale':           'Sale & Giveaways',
+  'privacy':        'Privacy Policy',
+  'terms':          'Terms & Conditions',
 };
 
 function PagesTab() {

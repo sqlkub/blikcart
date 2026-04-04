@@ -1,166 +1,175 @@
 import Link from 'next/link';
+import { fetchPageContent } from '@/lib/fetchPageContent';
 
-const SECTIONS = [
-  {
-    title: '1. Definities',
-    paragraphs: [
-      '"Blikcart": Blikcart B.V., KvK 12345678, gevestigd te Nederland.',
-      '"Klant" / "Koper": de natuurlijke persoon of rechtspersoon die een overeenkomst sluit met Blikcart.',
-      '"Consument": een Klant die handelt buiten zijn beroep of bedrijf (B2C).',
-      '"Zakelijke klant" / "B2B": een Klant die handelt in de uitoefening van zijn beroep of bedrijf.',
-      '"Maatwerk product": een product dat op specificatie van de Klant wordt vervaardigd via onze configurator.',
-      '"Catalogusproduct": een standaard product zonder maatwerkaanpassingen.',
-      '"Website": www.blikcart.nl en alle bijbehorende subdomeinen.',
-    ],
-  },
-  {
-    title: '2. Toepasselijkheid',
-    paragraphs: [
-      'Deze algemene voorwaarden zijn van toepassing op alle aanbiedingen, offertes, overeenkomsten en leveringen van Blikcart, zowel B2C als B2B, tenzij schriftelijk anders overeengekomen.',
-      'Voor zakelijke klanten sluiten wij de toepasselijkheid van eventuele inkoop- of andere voorwaarden van de Klant uitdrukkelijk uit, tenzij Blikcart deze schriftelijk heeft aanvaard.',
-      'Afwijkingen van deze voorwaarden zijn slechts geldig indien uitdrukkelijk schriftelijk overeengekomen.',
-    ],
-  },
-  {
-    title: '3. Aanbod en totstandkoming overeenkomst',
-    paragraphs: [
-      'Alle aanbiedingen op de Website zijn vrijblijvend en kunnen worden ingetrokken, ook na aanvaarding, tenzij een aanvaardingstermijn is vermeld.',
-      'Een overeenkomst komt tot stand op het moment dat Blikcart de bestelling of offerteaanvraag schriftelijk (per e-mail) bevestigt, of wanneer Blikcart aanvangt met de uitvoering.',
-      'Voor maatwerk producten is de overeenkomst pas definitief nadat de Klant de configuratiespecificatie schriftelijk heeft geaccordeerd.',
-    ],
-  },
-  {
-    title: '4. Prijzen en betaling',
-    paragraphs: [],
-    bullets: [
-      'Alle prijzen zijn in euro\'s (€), exclusief BTW (21%), tenzij uitdrukkelijk anders vermeld. BTW wordt bij consumenten separaat getoond en bij zakelijke klanten op de factuur gespecificeerd.',
-      'Prijzen kunnen worden gewijzigd. De op het moment van totstandkoming van de overeenkomst geldende prijs is bindend.',
-      'Consumenten betalen vooraf via de aangeboden betaalmethoden (iDEAL, creditcard, etc.).',
-      'Zakelijke klanten met goedgekeurd B2B-account kunnen betalen op factuur met een betalingstermijn van 14 dagen na factuurdatum, tenzij Net-30 schriftelijk is overeengekomen.',
-      'Bij te late betaling is de Klant van rechtswege in verzuim. Blikcart behoudt zich het recht voor de wettelijke handelsrente (art. 6:119a BW) in rekening te brengen bij B2B, en de wettelijke rente (art. 6:119 BW) bij consumenten, alsmede buitengerechtelijke incassokosten conform het Besluit vergoeding voor buitengerechtelijke incassokosten.',
-      'Bij niet-tijdige betaling is Blikcart gerechtigd verdere leveringen op te schorten.',
-    ],
-  },
-  {
-    title: '5. Maatwerk producten — specifieke bepalingen',
-    paragraphs: [
-      'Maatwerk producten worden uitsluitend vervaardigd op basis van een door de Klant geaccordeerde configuratiespecificatie. Na accordering zijn wijzigingen niet meer mogelijk zonder meerkosten en mogelijke verlenging van de levertijd.',
-    ],
-    bullets: [
-      'Maatwerk producten zijn uitgezonderd van het herroepingsrecht (art. 6:230p sub f BW) omdat zij specifiek voor de Klant worden vervaardigd.',
-      'Blikcart behoudt het recht een aanbetaling van 30–50% te verlangen vóór aanvang van de productie.',
-      'De Klant is verantwoordelijk voor de juistheid van de opgegeven specificaties (maten, kleuren, hardware). Blikcart is niet aansprakelijk voor fouten die voortvloeien uit onjuiste specificaties van de Klant.',
-    ],
-  },
-  {
-    title: '6. Levertijden en levering',
-    paragraphs: [
-      'Opgegeven levertijden zijn indicatief en gelden niet als fatale termijn, tenzij uitdrukkelijk schriftelijk anders overeengekomen. Bij consumenten geldt dat Blikcart bij overschrijding van de levertijd met meer dan 30 dagen de consument informeert en de mogelijkheid biedt de overeenkomst te ontbinden.',
-    ],
-    bullets: [
-      'Catalogusproducten: 3–7 werkdagen (NL), 7–14 werkdagen (EU)',
-      'Maatwerk producten: 15–45 werkdagen afhankelijk van het product (zie configurator)',
-      'Levering geschiedt franco huis bij bestellingen boven €150 (EU). Onder €150 worden verzendkosten apart in rekening gebracht.',
-      'Het risico van verlies of beschadiging gaat over op de Klant bij aflevering (consument) of bij overdracht aan de vervoerder (zakelijke klant, art. 7:10 BW).',
-    ],
-  },
-  {
-    title: '7. Herroepingsrecht (uitsluitend consumenten)',
-    paragraphs: [
-      'Consumenten hebben op grond van de Wet Koop op Afstand (implementatie Richtlijn 2011/83/EU) het recht om een overeenkomst voor catalogusproducten binnen 14 kalenderdagen na ontvangst te herroepen, zonder opgave van redenen.',
-    ],
-    bullets: [
-      'Het herroepingsrecht geldt NIET voor maatwerk producten (art. 6:230p sub f BW).',
-      'Het herroepingsrecht geldt NIET voor zakelijke klanten (B2B).',
-      'Om gebruik te maken van het herroepingsrecht dient de consument dit binnen 14 dagen schriftelijk te melden via info@blikcart.nl of het modelformulier voor herroeping in te vullen.',
-      'Het product dient binnen 14 dagen na herroeping geretourneerd te worden, ongebruikt en in originele verpakking.',
-      'Retourkosten zijn voor rekening van de consument, tenzij het product defect of onjuist is geleverd.',
-      'Terugbetaling vindt plaats binnen 14 dagen na ontvangst van het retour, via dezelfde betaalmethode.',
-    ],
-  },
-  {
-    title: '8. Eigendomsvoorbehoud',
-    paragraphs: [
-      'Alle geleverde producten blijven eigendom van Blikcart totdat de Klant alle verschuldigde bedragen — inclusief eventuele rente en kosten — volledig heeft voldaan (art. 3:92 BW).',
-      'Zakelijke klanten zijn niet gerechtigd de producten te vervreemden, verpanden of anderszins te bezwaren zolang het eigendomsvoorbehoud van kracht is.',
-    ],
-  },
-  {
-    title: '9. Garantie en conformiteit',
-    paragraphs: [
-      'Blikcart garandeert dat producten voldoen aan de overeenkomst, de in het aanbod vermelde specificaties en de redelijke eisen van deugdelijkheid en bruikbaarheid.',
-    ],
-    bullets: [
-      'Consumenten: bij non-conformiteit heeft de consument recht op herstel of vervanging (art. 7:21 BW). Gedurende 2 jaar na levering wordt vermoed dat een gebrek bestond bij aflevering.',
-      'Zakelijke klanten: defecten dienen binnen 14 dagen na ontvangst schriftelijk te worden gemeld. Blikcart biedt naar eigen keuze herstel, vervanging of creditering.',
-      'Slijtage door normaal gebruik, onjuist gebruik of wijzigingen door de Klant vallen niet onder de garantie.',
-    ],
-  },
-  {
-    title: '10. Aansprakelijkheid',
-    paragraphs: [
-      'De aansprakelijkheid van Blikcart is — voor zover wettelijk toegestaan — beperkt tot het bedrag dat voor de betreffende bestelling is betaald. Blikcart is nooit aansprakelijk voor:',
-    ],
-    bullets: [
-      'Indirecte schade, gevolgschade, gederfde winst of omzetderving',
-      'Schade als gevolg van onjuiste specificaties door de Klant',
-      'Schade veroorzaakt door overmacht (art. 6:75 BW), waaronder pandemieën, stakingen, overheidsmaatregelen, leveringsproblemen van grondstoffen',
-    ],
-    footer: 'Deze beperking van aansprakelijkheid geldt niet voor schade als gevolg van opzet of bewuste roekeloosheid van Blikcart, of voor schade aan personen.',
-  },
-  {
-    title: '11. Intellectueel eigendom',
-    paragraphs: [
-      'Alle intellectuele eigendomsrechten op de Website, configuratietool, product designs, foto\'s en marketingmaterialen berusten bij Blikcart of haar licentiegevers. Niets op de Website mag worden verveelvoudigd, opgeslagen of openbaar gemaakt zonder voorafgaande schriftelijke toestemming van Blikcart.',
-      'Voor private-label en white-label bestellingen worden afzonderlijke licentieafspraken gemaakt.',
-    ],
-  },
-  {
-    title: '12. Klachten',
-    paragraphs: [
-      'Klachten over producten of diensten dienen zo spoedig mogelijk, doch uiterlijk binnen 14 dagen na ontdekking van het gebrek, schriftelijk te worden gemeld via info@blikcart.nl met vermelding van het ordernummer en, indien van toepassing, foto\'s van het gebrek.',
-      'Blikcart streeft ernaar klachten binnen 5 werkdagen af te handelen.',
-      'Consumenten kunnen ook een klacht indienen bij de bevoegde rechter of — voor zover van toepassing — bij een erkende geschillencommissie. EU-consumenten kunnen gebruik maken van het ODR-platform: ec.europa.eu/consumers/odr.',
-    ],
-  },
-  {
-    title: '13. Toepasselijk recht en bevoegde rechter',
-    paragraphs: [
-      'Op alle overeenkomsten met Blikcart is uitsluitend Nederlands recht van toepassing, met uitsluiting van het Weens Koopverdrag (CISG).',
-      'Voor consumenten: eventuele geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement van de woonplaats van de consument, tenzij de consument kiest voor de rechter in het arrondissement van de vestigingsplaats van Blikcart.',
-      'Voor zakelijke klanten: alle geschillen worden bij uitsluiting voorgelegd aan de bevoegde rechter in het arrondissement van de vestigingsplaats van Blikcart.',
-    ],
-  },
-  {
-    title: '14. Overige bepalingen',
-    paragraphs: [
-      'Indien een bepaling van deze voorwaarden nietig of vernietigbaar is, laat dit de geldigheid van de overige bepalingen onverlet. Partijen zullen de nietige bepaling vervangen door een rechtsgeldige bepaling met zoveel mogelijk dezelfde strekking.',
-      'Blikcart behoudt zich het recht voor deze voorwaarden te wijzigen. De gewijzigde voorwaarden zijn van toepassing op alle na de wijzigingsdatum gesloten overeenkomsten.',
-    ],
-  },
-];
+interface PolicySection {
+  title: string;
+  body: string;
+}
 
-export default function TermsPage() {
+interface TermsContent {
+  hero: { eyebrow: string; title: string; subtitle: string; version: string };
+  sections: PolicySection[];
+  company: { name: string; kvk: string; vat: string; email: string };
+}
+
+const DEFAULT: TermsContent = {
+  hero: {
+    eyebrow: 'Legal',
+    title: 'Terms & Conditions',
+    subtitle: 'Applicable to all agreements with Blikcart B.V., for both consumers (B2C) and business customers (B2B), governed by Dutch law.',
+    version: 'Version April 2026 · Filed with the Dutch Chamber of Commerce',
+  },
+  sections: [
+    {
+      title: '1. Definitions',
+      body: `"Blikcart": Blikcart B.V., KvK 12345678, registered in the Netherlands.
+"Customer" / "Buyer": the natural person or legal entity entering into an agreement with Blikcart.
+"Consumer": a Customer acting outside the scope of a profession or business (B2C).
+"Business Customer" / "B2B": a Customer acting in the exercise of a profession or business.
+"Custom Product": a product manufactured to the Customer's specification via our configurator.
+"Catalogue Product": a standard product without custom modifications.
+"Website": www.blikcart.nl and all associated subdomains.`,
+    },
+    {
+      title: '2. Applicability',
+      body: `These terms apply to all offers, quotations, agreements, and deliveries by Blikcart, for both B2C and B2B, unless expressly agreed otherwise in writing.
+
+For business customers, we expressly exclude the applicability of any purchasing or other terms of the Customer, unless Blikcart has accepted them in writing.
+
+Deviations from these terms are only valid if expressly agreed in writing.`,
+    },
+    {
+      title: '3. Offer and formation of agreement',
+      body: `All offers on the Website are non-binding and may be withdrawn, even after acceptance, unless an acceptance deadline is stated.
+
+An agreement is concluded at the moment Blikcart confirms the order or quote request in writing (by email), or when Blikcart commences performance.
+
+For custom products, the agreement is only final once the Customer has approved the configuration specification in writing.`,
+    },
+    {
+      title: '4. Prices and payment',
+      body: `All prices are in euros (€), exclusive of VAT (21%), unless expressly stated otherwise. VAT is shown separately for consumers and itemised on invoices for business customers.
+
+Prices may change. The price in force at the time the agreement is concluded is binding.
+
+Consumers pay in advance via the available payment methods (iDEAL, credit card, etc.).
+
+Business customers with an approved B2B account may pay by invoice within 14 days of the invoice date, unless Net-30 has been agreed in writing.
+
+In the event of late payment, the Customer is in default by operation of law. Blikcart reserves the right to charge statutory commercial interest (Dutch Civil Code Art. 6:119a) for B2B customers, and statutory interest (Art. 6:119) for consumers, as well as extrajudicial collection costs under the Dutch Extrajudicial Collection Costs Decree.
+
+In the event of non-payment, Blikcart is entitled to suspend further deliveries.`,
+    },
+    {
+      title: '5. Custom products — specific provisions',
+      body: `Custom products are only manufactured on the basis of a configuration specification approved by the Customer. After approval, changes are no longer possible without additional costs and a possible extension of the delivery time.
+
+• Custom products are exempt from the right of withdrawal (Dutch Civil Code Art. 6:230p(f)) because they are manufactured specifically for the Customer.
+• Blikcart reserves the right to require a deposit of 30–50% before commencing production.
+• The Customer is responsible for the accuracy of the specified details (dimensions, colours, hardware). Blikcart is not liable for errors resulting from incorrect specifications provided by the Customer.`,
+    },
+    {
+      title: '6. Delivery times and delivery',
+      body: `Stated delivery times are indicative and do not constitute a firm deadline, unless expressly agreed otherwise in writing. For consumers, if the delivery time is exceeded by more than 30 days, Blikcart will inform the consumer and offer the option to dissolve the agreement.
+
+• Catalogue products: 3–7 business days (NL), 7–14 business days (EU)
+• Custom products: 15–45 business days depending on the product (see configurator)
+• Free delivery on orders over €150 to EU destinations. Below €150, shipping costs are charged separately.
+• Risk of loss or damage passes to the Customer upon delivery (consumer) or upon handover to the carrier (business customer, Dutch Civil Code Art. 7:10).`,
+    },
+    {
+      title: '7. Right of withdrawal (consumers only)',
+      body: `Consumers have the right to cancel an agreement for catalogue products within 14 calendar days of receipt, without giving reasons, under the Distance Selling Act (implementing EU Directive 2011/83/EU).
+
+• The right of withdrawal does NOT apply to custom products (Dutch Civil Code Art. 6:230p(f)).
+• The right of withdrawal does NOT apply to business customers (B2B).
+• To exercise the right of withdrawal, the consumer must notify us in writing within 14 days via info@blikcart.nl or by completing the model withdrawal form.
+• The product must be returned within 14 days of withdrawal, unused and in its original packaging.
+• Return shipping costs are borne by the consumer, unless the product is defective or incorrectly delivered.
+• Refunds are processed within 14 days of receiving the return, via the original payment method.`,
+    },
+    {
+      title: '8. Retention of title',
+      body: `All delivered products remain the property of Blikcart until the Customer has fully paid all amounts owed — including any interest and costs (Dutch Civil Code Art. 3:92).
+
+Business customers may not transfer, pledge, or otherwise encumber the products while the retention of title is in effect.`,
+    },
+    {
+      title: '9. Warranty and conformity',
+      body: `Blikcart warrants that products conform to the agreement, the specifications stated in the offer, and the reasonable standards of quality and usability.
+
+• Consumers: in the event of non-conformity, the consumer has the right to repair or replacement (Dutch Civil Code Art. 7:21). For 2 years after delivery, a defect is presumed to have existed at the time of delivery.
+• Business customers: defects must be reported in writing within 14 days of receipt. Blikcart will, at its discretion, offer repair, replacement, or a credit note.
+• Wear and tear from normal use, misuse, or modifications by the Customer are not covered by warranty.`,
+    },
+    {
+      title: '10. Liability',
+      body: `Blikcart's liability is — to the extent permitted by law — limited to the amount paid for the relevant order. Blikcart is never liable for:
+
+• Indirect damage, consequential damage, loss of profit or revenue
+• Damage resulting from incorrect specifications by the Customer
+• Damage caused by force majeure (Dutch Civil Code Art. 6:75), including pandemics, strikes, government measures, raw material supply problems
+
+This limitation of liability does not apply to damage resulting from Blikcart's wilful misconduct or deliberate recklessness, or to personal injury.`,
+    },
+    {
+      title: '11. Intellectual property',
+      body: `All intellectual property rights in the Website, configurator tool, product designs, photographs, and marketing materials belong to Blikcart or its licensors. Nothing on the Website may be reproduced, stored, or made public without prior written permission from Blikcart.
+
+Separate licence agreements are made for private-label and white-label orders.`,
+    },
+    {
+      title: '12. Complaints',
+      body: `Complaints about products or services must be reported in writing as soon as possible, but no later than 14 days after discovery of the defect, via info@blikcart.nl, stating the order number and, if applicable, photographs of the defect.
+
+Blikcart aims to resolve complaints within 5 business days.
+
+Consumers may also submit a complaint to the competent court or — where applicable — to an accredited disputes committee. EU consumers may use the ODR platform: ec.europa.eu/consumers/odr.`,
+    },
+    {
+      title: '13. Governing law and jurisdiction',
+      body: `All agreements with Blikcart are governed exclusively by Dutch law, to the exclusion of the Vienna Sales Convention (CISG).
+
+For consumers: any disputes shall be submitted to the competent court in the district of the consumer's place of residence, unless the consumer chooses the court in the district of Blikcart's registered office.
+
+For business customers: all disputes shall be submitted exclusively to the competent court in the district of Blikcart's registered office.`,
+    },
+    {
+      title: '14. Miscellaneous',
+      body: `If any provision of these terms is void or voidable, the validity of the remaining provisions is unaffected. The parties shall replace the void provision with a legally valid provision with as similar a scope as possible.
+
+Blikcart reserves the right to amend these terms. The amended terms apply to all agreements concluded after the date of amendment.`,
+    },
+  ],
+  company: {
+    name: 'Blikcart B.V.',
+    kvk: '12345678',
+    vat: 'NL123456789B01',
+    email: 'info@blikcart.nl',
+  },
+};
+
+export default async function TermsPage() {
+  const content = await fetchPageContent<TermsContent>('terms', DEFAULT);
+
   return (
     <main style={{ minHeight: '100vh', background: '#faf9f7' }}>
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2017 100%)', color: '#fff', padding: 'clamp(56px, 7vw, 88px) 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>Juridisch</p>
-        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>Algemene Voorwaarden</h1>
-        <p style={{ fontSize: 16, color: '#aaa', maxWidth: 580, margin: '0 auto', lineHeight: 1.7 }}>
-          Van toepassing op alle overeenkomsten gesloten met Blikcart B.V., zowel voor consumenten (B2C) als zakelijke klanten (B2B), conform Nederlands recht.
-        </p>
-        <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>Versie april 2026 · Gedeponeerd bij de Kamer van Koophandel</p>
+        <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: '#C8860A', fontWeight: 700, marginBottom: 14 }}>{content.hero.eyebrow}</p>
+        <h1 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>{content.hero.title}</h1>
+        <p style={{ fontSize: 16, color: '#aaa', maxWidth: 580, margin: '0 auto', lineHeight: 1.7 }}>{content.hero.subtitle}</p>
+        <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>{content.hero.version}</p>
       </section>
 
       {/* Summary bar */}
       <section style={{ background: '#fff', borderBottom: '1px solid #e8e4de' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
           {[
-            { label: 'Toepasselijk recht', sub: 'Nederlands recht' },
-            { label: 'Herroeping', sub: '14 dagen (B2C, geen maatwerk)' },
-            { label: 'Garantie consument', sub: '2 jaar wettelijk' },
-            { label: 'Betalingstermijn B2B', sub: '14 dagen (of Net-30)' },
+            { label: 'Governing law', sub: 'Dutch law' },
+            { label: 'Right of withdrawal', sub: '14 days (B2C, no custom goods)' },
+            { label: 'Consumer warranty', sub: '2 years statutory' },
+            { label: 'B2B payment term', sub: '14 days (or Net-30)' },
           ].map((s, i) => (
             <div key={i} style={{ padding: '22px 16px', textAlign: 'center', borderRight: i < 3 ? '1px solid #e8e4de' : 'none' }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 2 }}>{s.label}</p>
@@ -170,52 +179,29 @@ export default function TermsPage() {
         </div>
       </section>
 
-      {/* Quick nav */}
-      <section style={{ background: '#f5f0e8', borderBottom: '1px solid #e8e4de', padding: '0 24px' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '0 20px', padding: '14px 0' }}>
-          {SECTIONS.map((s, i) => (
-            <a key={i} href={`#s${i}`} style={{ fontSize: 12, color: '#C8860A', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              {s.title}
-            </a>
-          ))}
-        </div>
-      </section>
-
       {/* Content */}
       <section style={{ maxWidth: 820, margin: '0 auto', padding: 'clamp(40px, 5vw, 64px) 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-          {SECTIONS.map((s, i) => (
-            <div key={i} id={`s${i}`} style={{ background: '#fff', borderRadius: 12, padding: '28px 32px', border: '1px solid #e8e4de' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', marginBottom: 14, borderBottom: '2px solid #C8860A', paddingBottom: 10, display: 'inline-block' }}>{s.title}</h2>
-              {s.paragraphs?.map((p, j) => (
-                <p key={j} style={{ color: '#444', lineHeight: 1.8, marginBottom: 10, fontSize: 15 }}>{p}</p>
-              ))}
-              {s.bullets && (
-                <ul style={{ paddingLeft: 20, margin: '8px 0 12px' }}>
-                  {s.bullets.map((b, j) => (
-                    <li key={j} style={{ color: '#444', lineHeight: 1.8, fontSize: 14, marginBottom: 5 }}>{b}</li>
-                  ))}
-                </ul>
-              )}
-              {s.footer && (
-                <p style={{ color: '#666', fontSize: 13, lineHeight: 1.7, marginTop: 12, padding: '10px 14px', background: '#f5f0e8', borderRadius: 8, borderLeft: '3px solid #C8860A' }}>{s.footer}</p>
-              )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {content.sections.map((s, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 12, padding: '28px 32px', border: '1px solid #e8e4de' }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1a', marginBottom: 14, paddingBottom: 10, borderBottom: '2px solid #C8860A', display: 'inline-block' }}>{s.title}</h2>
+              <div style={{ color: '#444', lineHeight: 1.9, fontSize: 14, whiteSpace: 'pre-line' }}>{s.body}</div>
             </div>
           ))}
         </div>
 
-        {/* Footer note */}
-        <div style={{ marginTop: 40, padding: '20px 24px', background: '#fff', borderRadius: 12, border: '1px solid #e8e4de', textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: '#888', lineHeight: 1.7 }}>
-            Blikcart B.V. · KvK 12345678 · BTW NL123456789B01<br />
-            Vragen? <a href="mailto:info@blikcart.nl" style={{ color: '#C8860A' }}>info@blikcart.nl</a>
+        {/* Company footer */}
+        <div style={{ marginTop: 32, background: '#fff', borderRadius: 12, padding: '20px 32px', border: '1px solid #e8e4de', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: '#888', lineHeight: 1.8 }}>
+            {content.company.name} · KvK {content.company.kvk} · VAT {content.company.vat}<br />
+            Questions? <a href={`mailto:${content.company.email}`} style={{ color: '#C8860A' }}>{content.company.email}</a>
           </p>
         </div>
 
         <div style={{ marginTop: 32, textAlign: 'center', display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/privacy" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Privacybeleid</Link>
-          <Link href="/returns" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Retourbeleid</Link>
-          <Link href="/contact" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Contact</Link>
+          <Link href="/privacy" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Privacy Policy</Link>
+          <Link href="/returns" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Returns Policy</Link>
+          <Link href="/contact" style={{ color: '#C8860A', fontSize: 14, textDecoration: 'underline' }}>Contact Us</Link>
         </div>
       </section>
     </main>

@@ -40,8 +40,8 @@ export default function Footer() {
       <div className="border-t border-navy-700 py-4">
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
           <span>© {new Date().getFullYear()} Blikcart B.V. · KvK 12345678 · BTW NL123456789B01</span>
-          <Link href="/privacy" className="hover:text-gold transition-colors">Privacybeleid</Link>
-          <Link href="/terms" className="hover:text-gold transition-colors">Algemene Voorwaarden</Link>
+          <Link href="/privacy" className="hover:text-gold transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-gold transition-colors">Terms & Conditions</Link>
         </div>
       </div>
     </footer>
