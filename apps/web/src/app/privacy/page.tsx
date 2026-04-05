@@ -20,7 +20,7 @@ const DEFAULT: PrivacyContent = {
     subtitle: 'Blikcart B.V. processes personal data in accordance with the GDPR (EU 2016/679) and the Dutch GDPR Implementation Act (UAVG).',
     lastUpdated: 'April 2026',
   },
-  intro: 'Blikcart B.V. is a Dutch private limited company registered with the Dutch Chamber of Commerce (KvK) under number 12345678 ("Blikcart", "we", "us"). We act as data controller within the meaning of the General Data Protection Regulation (GDPR).',
+  intro: 'Blikcart B.V. is a Dutch private limited company registered with the Dutch Chamber of Commerce (KvK) under number 81325357 ("Blikcart", "we", "us"). We act as data controller within the meaning of the General Data Protection Regulation (GDPR).',
   sections: [
     {
       title: '1. What data do we collect?',
@@ -101,8 +101,8 @@ In the event of a data breach with likely high risks to data subjects, we will n
   ],
   contact: {
     email: 'privacy@blikcart.nl',
-    address: 'Blikcart B.V., [Street + number], [Postcode] [City], The Netherlands',
-    phone: '+31 (0)xx xxx xxxx',
+    address: 'Blikcart., Livingstonelaan 262, 3526 HV Utrecht, The Netherlands',
+    phone: '+31 (0)626475215',
   },
 };
 

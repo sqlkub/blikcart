@@ -16,13 +16,13 @@ const DEFAULT: TermsContent = {
   hero: {
     eyebrow: 'Legal',
     title: 'Terms & Conditions',
-    subtitle: 'Applicable to all agreements with Blikcart B.V., for both consumers (B2C) and business customers (B2B), governed by Dutch law.',
+    subtitle: 'Applicable to all agreements with Blikcart, for both consumers (B2C) and business customers (B2B), governed by Dutch law.',
     version: 'Version April 2026 · Filed with the Dutch Chamber of Commerce',
   },
   sections: [
     {
       title: '1. Definitions',
-      body: `"Blikcart": Blikcart B.V., KvK 12345678, registered in the Netherlands.
+      body: `"Blikcart": Blikcart, KvK 81325357, registered in the Netherlands.
 "Customer" / "Buyer": the natural person or legal entity entering into an agreement with Blikcart.
 "Consumer": a Customer acting outside the scope of a profession or business (B2C).
 "Business Customer" / "B2B": a Customer acting in the exercise of a profession or business.
@@ -142,9 +142,10 @@ Blikcart reserves the right to amend these terms. The amended terms apply to all
     },
   ],
   company: {
-    name: 'Blikcart B.V.',
-    kvk: '12345678',
-    vat: 'NL123456789B01',
+    name: 'Blikcart',
+    kvk: '81325357',
+    vat: 'NL003553343B13',
+    eori: 'NL3943578360',
     email: 'info@blikcart.nl',
   },
 };
