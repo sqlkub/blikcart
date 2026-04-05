@@ -104,11 +104,12 @@ export default function ConfiguratorStep({ step }: Props) {
   }
 
   if (step.ui_type === 'icon_radio') {
+    const showIcons = step.id !== 'size';
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         {opts.map(opt => (
           <button type="button" key={opt.id} onClick={() => selectOption(step.id, opt.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, border: selected === opt.id ? '2px solid var(--gold)' : '2px solid #e5e7eb', borderRadius: 10, textAlign: 'left', background: selected === opt.id ? 'rgba(200,134,10,0.05)' : 'white', cursor: 'pointer', transition: 'all 0.2s' }}>
-            {opt.icon && <span style={{ fontSize: 24 }}>{opt.icon}</span>}
+            {showIcons && opt.icon && <span style={{ fontSize: 24 }}>{opt.icon}</span>}
             <div style={{ flex: 1 }}>
               <p style={{ fontWeight: 600, color: 'var(--navy)', fontSize: 14 }}>{opt.label}</p>
               {(opt.price_modifier ?? 0) > 0 && <p style={{ fontSize: 12, color: 'var(--gold)' }}>+€{opt.price_modifier?.toFixed(2)}</p>}
