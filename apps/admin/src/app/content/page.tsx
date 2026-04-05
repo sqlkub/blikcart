@@ -1013,10 +1013,13 @@ function PageContentEditor({ slug, rawContent, onChange }: { slug: string; rawCo
       />
       <div className="mb-4">
         <p className={PCE_secHead}>Company Details (footer)</p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3 mb-2">
           <div><label className={PCE_label}>Company Name</label><input className={PCE_inp} title="Company name" placeholder="Blikcart B.V." value={parsed.company?.name || ''} onChange={e => update(['company', 'name'], e.target.value)} /></div>
-          <div><label className={PCE_label}>KvK Number</label><input className={PCE_inp} title="Chamber of Commerce number" placeholder="12345678" value={parsed.company?.kvk || ''} onChange={e => update(['company', 'kvk'], e.target.value)} /></div>
-          <div><label className={PCE_label}>VAT Number</label><input className={PCE_inp} title="VAT number" placeholder="NL123456789B01" value={parsed.company?.vat || ''} onChange={e => update(['company', 'vat'], e.target.value)} /></div>
+          <div><label className={PCE_label}>KvK Number</label><input className={PCE_inp} title="Chamber of Commerce number" placeholder="81325357" value={parsed.company?.kvk || ''} onChange={e => update(['company', 'kvk'], e.target.value)} /></div>
+          <div><label className={PCE_label}>VAT Number</label><input className={PCE_inp} title="VAT number" placeholder="NL003553343B13" value={parsed.company?.vat || ''} onChange={e => update(['company', 'vat'], e.target.value)} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={PCE_label}>EORI Number (optional)</label><input className={PCE_inp} title="EORI number" placeholder="NL3943578360" value={parsed.company?.eori || ''} onChange={e => update(['company', 'eori'], e.target.value)} /></div>
           <div><label className={PCE_label}>Email</label><input className={PCE_inp} title="Contact email" placeholder="info@blikcart.nl" value={parsed.company?.email || ''} onChange={e => update(['company', 'email'], e.target.value)} /></div>
         </div>
       </div>

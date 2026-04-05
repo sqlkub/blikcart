@@ -9,7 +9,7 @@ interface PolicySection {
 interface TermsContent {
   hero: { eyebrow: string; title: string; subtitle: string; version: string };
   sections: PolicySection[];
-  company: { name: string; kvk: string; vat: string; email: string };
+  company: { name: string; kvk: string; vat: string; eori?: string; email: string };
 }
 
 const DEFAULT: TermsContent = {
@@ -194,7 +194,7 @@ export default async function TermsPage() {
         {/* Company footer */}
         <div style={{ marginTop: 32, background: '#fff', borderRadius: 12, padding: '20px 32px', border: '1px solid #e8e4de', textAlign: 'center' }}>
           <p style={{ fontSize: 13, color: '#888', lineHeight: 1.8 }}>
-            {content.company.name} · KvK {content.company.kvk} · VAT {content.company.vat}<br />
+            {content.company.name} · KvK {content.company.kvk} · VAT {content.company.vat}{content.company.eori ? ` · EORI ${content.company.eori}` : ''}<br />
             Questions? <a href={`mailto:${content.company.email}`} style={{ color: '#C8860A' }}>{content.company.email}</a>
           </p>
         </div>
