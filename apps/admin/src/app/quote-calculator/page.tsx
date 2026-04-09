@@ -1,6 +1,6 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
-import { Plus, Trash2, Printer, Download, Save, Check, Copy, RefreshCw } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Plus, Trash2, Printer, Save, Check, Copy, RefreshCw } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +91,32 @@ function Field({ label, value, onChange, type = 'text', placeholder = '', small 
         className={`${inp} ${small ? 'text-xs' : ''}`}
       />
     </div>
+  );
+}
+
+// Number input that lets user type freely — commits on blur
+function NumInput({ value, onChange, placeholder = '0', className = '', title = '' }: {
+  value: number; onChange: (n: number) => void; placeholder?: string; className?: string; title?: string;
+}) {
+  const [raw, setRaw] = useState(value === 0 ? '' : String(value));
+  // Sync if parent changes value (e.g. duplicate line)
+  useEffect(() => { setRaw(value === 0 ? '' : String(value)); }, [value]);
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      title={title}
+      placeholder={placeholder}
+      value={raw}
+      onChange={e => setRaw(e.target.value)}
+      onBlur={() => {
+        const n = parseFloat(raw.replace(',', '.'));
+        const safe = isNaN(n) ? 0 : Math.max(0, n);
+        onChange(safe);
+        setRaw(safe === 0 ? '' : String(safe));
+      }}
+      className={className}
+    />
   );
 }
 
@@ -313,32 +339,31 @@ export default function QuoteCalculatorPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden no-print">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Line Items</h2>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>Cost = manufacturer price · Margin = your markup · VAT per line</span>
-            </div>
+            <span className="text-xs text-gray-400">Cost = manufacturer price · Margin = your markup · VAT per line</span>
           </div>
 
+          <div className="overflow-x-auto">
           {/* Column headers */}
-          <div className="grid text-xs font-bold text-gray-400 uppercase tracking-wider px-5 py-2 border-b border-gray-100 bg-gray-50"
-            style={{ gridTemplateColumns: '2fr 2fr 60px 60px 110px 80px 90px 110px 110px 110px 70px' }}>
+          <div className="grid text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-2 border-b border-gray-100 bg-gray-50 min-w-[1000px]"
+            style={{ gridTemplateColumns: '180px 180px 60px 60px 120px 90px 110px 120px 100px 110px 64px' }}>
             <span>Product</span>
             <span>Description</span>
             <span>Qty</span>
             <span>Unit</span>
-            <span>Mfr. Cost/unit</span>
+            <span>Mfr. Cost/Unit</span>
             <span>Margin %</span>
-            <span>Sell price/unit</span>
+            <span>Sell Price/Unit</span>
             <span>Subtotal (ex)</span>
             <span>VAT %</span>
-            <span>VAT amount</span>
+            <span>VAT Amount</span>
             <span className="text-right">Actions</span>
           </div>
 
           {lines.map((l, idx) => {
             const { sellUnit, lineEx, lineVat } = calcLine(l);
             return (
-              <div key={l.id} className={`grid items-center gap-1 px-5 py-3 border-b border-gray-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
-                style={{ gridTemplateColumns: '2fr 2fr 60px 60px 110px 80px 90px 110px 110px 110px 70px' }}>
+              <div key={l.id} className={`grid items-center gap-2 px-4 py-2.5 border-b border-gray-50 min-w-[1000px] ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                style={{ gridTemplateColumns: '180px 180px 60px 60px 120px 90px 110px 120px 100px 110px 64px' }}>
 
                 <input value={l.product} onChange={e => updateLine(l.id, { product: e.target.value })}
                   placeholder="Product name" title="Product name"
@@ -348,24 +373,33 @@ export default function QuoteCalculatorPage() {
                   placeholder="Details / variant" title="Description"
                   className="px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:border-[#1A3C5E]" />
 
-                <input type="number" min={1} value={l.qty} onChange={e => updateLine(l.id, { qty: parseFloat(e.target.value) || 1 })}
+                <NumInput
+                  value={l.qty}
+                  onChange={n => updateLine(l.id, { qty: Math.max(1, n) })}
+                  placeholder="1"
                   title="Quantity"
-                  className="px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E]" />
+                  className="px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E] w-full" />
 
                 <input value={l.unit} onChange={e => updateLine(l.id, { unit: e.target.value })}
                   placeholder="pcs" title="Unit"
-                  className="px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E]" />
+                  className="px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E] w-full" />
 
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-400 flex-shrink-0">{header.currency}</span>
-                  <input type="number" min={0} step={0.01} value={l.unitCost} onChange={e => updateLine(l.id, { unitCost: parseFloat(e.target.value) || 0 })}
-                    title="Manufacturer cost per unit" placeholder="0.00"
+                  <NumInput
+                    value={l.unitCost}
+                    onChange={n => updateLine(l.id, { unitCost: n })}
+                    placeholder="0.00"
+                    title="Manufacturer cost per unit"
                     className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:border-[#1A3C5E]" />
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <input type="number" min={0} max={999} step={1} value={l.margin} onChange={e => updateLine(l.id, { margin: parseFloat(e.target.value) || 0 })}
-                    title="Margin percentage" placeholder="30"
+                  <NumInput
+                    value={l.margin}
+                    onChange={n => updateLine(l.id, { margin: n })}
+                    placeholder="30"
+                    title="Margin percentage"
                     className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E]" />
                   <span className="text-xs text-gray-400 flex-shrink-0">%</span>
                 </div>
@@ -379,8 +413,11 @@ export default function QuoteCalculatorPage() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <input type="number" min={0} max={100} step={1} value={l.vatPct} onChange={e => updateLine(l.id, { vatPct: parseFloat(e.target.value) || 0 })}
-                    title="VAT percentage" placeholder="21"
+                  <NumInput
+                    value={l.vatPct}
+                    onChange={n => updateLine(l.id, { vatPct: n })}
+                    placeholder="21"
+                    title="VAT percentage"
                     className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-[#1A3C5E]" />
                   <span className="text-xs text-gray-400 flex-shrink-0">%</span>
                 </div>
@@ -403,6 +440,8 @@ export default function QuoteCalculatorPage() {
               </div>
             );
           })}
+
+          </div>{/* end overflow-x-auto */}
 
           <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
             <button type="button" onClick={() => setLines(ls => [...ls, newLine()])}
