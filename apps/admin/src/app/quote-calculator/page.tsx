@@ -1,6 +1,9 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Plus, Trash2, Printer, Save, Check, Copy, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Printer, Save, Check, Copy, RefreshCw, Send, X, Loader2 } from 'lucide-react';
+import axios from 'axios';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,6 +201,111 @@ export default function QuoteCalculatorPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  // ── Email modal ──────────────────────────────────────────────────────────────
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<'sent' | 'error' | null>(null);
+  const [emailDraft, setEmailDraft] = useState({ to: '', cc: '', subject: '', body: '' });
+
+  function buildEmailHtml() {
+    const rowsBg = ['#ffffff', '#faf9f7'];
+    const lineRows = lines.map((l, i) => {
+      const { sellUnit, lineEx, lineVat } = calcLine(l);
+      return `<tr style="background:${rowsBg[i % 2]};border-bottom:1px solid #e8e4de">
+        <td style="padding:7px 10px;text-align:center;color:#888;font-size:12px">${i + 1}</td>
+        <td style="padding:7px 10px;font-weight:600">${l.product}</td>
+        <td style="padding:7px 10px;color:#555">${l.description}</td>
+        <td style="padding:7px 10px;text-align:center">${l.qty}</td>
+        <td style="padding:7px 10px;color:#888">${l.unit}</td>
+        <td style="padding:7px 10px;font-weight:600">${fmt(sellUnit, header.currency)}</td>
+        <td style="padding:7px 10px;font-weight:600">${fmt(lineEx, header.currency)}</td>
+        <td style="padding:7px 10px;text-align:center;color:#888">${l.vatPct}%</td>
+        <td style="padding:7px 10px;color:#888">${fmt(lineVat, header.currency)}</td>
+      </tr>`;
+    }).join('');
+
+    const vatRows = Object.entries(vatGroups).map(([rate, amt]) =>
+      `<tr><td style="color:#555;padding:5px 0">VAT ${rate}%</td><td style="font-weight:600;padding:5px 0;text-align:right">${fmt(amt, header.currency)}</td></tr>`
+    ).join('');
+
+    return `<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;color:#1a1a1a;max-width:800px;margin:0 auto;padding:24px">
+      <div style="display:flex;justify-content:space-between;border-bottom:3px solid #1A3C5E;padding-bottom:16px;margin-bottom:24px">
+        <div>
+          <h1 style="font-size:24px;font-weight:800;color:#1A3C5E;margin:0">${header.ourCompany}</h1>
+          <p style="font-size:12px;color:#666;margin:4px 0">${header.ourAddress}</p>
+          <p style="font-size:12px;color:#666;margin:0">${header.ourEmail}</p>
+          <p style="font-size:11px;color:#999;margin:4px 0">KvK: ${header.ourKvk} · VAT: ${header.ourVat}</p>
+        </div>
+        <div style="text-align:right">
+          <p style="font-size:22px;font-weight:800;color:#C8860A;margin:0">QUOTATION</p>
+          <p style="font-size:13px;color:#555;margin:4px 0">#${header.quoteNumber}</p>
+          <p style="font-size:12px;color:#888;margin:2px 0">Date: ${header.date}</p>
+          <p style="font-size:12px;color:#888;margin:0">Valid until: ${header.validUntil}</p>
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <p style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Bill To</p>
+        <p style="font-size:14px;font-weight:700;margin:0">${header.clientCompany || header.clientName}</p>
+        ${header.clientCompany && header.clientName ? `<p style="font-size:13px;color:#555;margin:2px 0">Attn: ${header.clientName}</p>` : ''}
+        ${header.clientAddress ? `<p style="font-size:13px;color:#555;margin:2px 0">${header.clientAddress.replace(/\n/g, '<br>')}</p>` : ''}
+        ${header.clientEmail ? `<p style="font-size:13px;color:#555;margin:2px 0">${header.clientEmail}</p>` : ''}
+        ${header.clientVat ? `<p style="font-size:12px;color:#999;margin:2px 0">VAT: ${header.clientVat}</p>` : ''}
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
+        <thead><tr style="background:#1A3C5E;color:#fff">
+          ${['#','Product','Description','Qty','Unit','Unit Price','Subtotal (ex-VAT)','VAT %','VAT Amount'].map(h => `<th style="padding:8px 10px;text-align:left;font-size:11px">${h}</th>`).join('')}
+        </tr></thead>
+        <tbody>${lineRows}</tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+        <table style="width:280px;font-size:13px">
+          <tr><td style="color:#555;padding:5px 0">Subtotal (ex-VAT)</td><td style="font-weight:600;padding:5px 0;text-align:right">${fmt(totals.ex, header.currency)}</td></tr>
+          ${vatRows}
+          <tr style="background:#1A3C5E;color:#fff"><td style="padding:8px 12px;font-weight:700">Total incl. VAT</td><td style="padding:8px 12px;font-weight:800;font-size:15px;color:#C8860A;text-align:right">${fmt(totals.inc, header.currency)}</td></tr>
+        </table>
+      </div>
+      ${header.paymentTerms ? `<p style="font-size:12px"><strong>Payment terms:</strong> ${header.paymentTerms}</p>` : ''}
+      ${header.notes ? `<p style="font-size:12px;color:#555">${header.notes.replace(/\n/g, '<br>')}</p>` : ''}
+      <div style="margin-top:32px;border-top:1px solid #e8e4de;padding-top:10px;font-size:11px;color:#aaa;display:flex;justify-content:space-between">
+        <span>${header.ourCompany} · ${header.ourEmail}</span>
+        <span>Quote #${header.quoteNumber} · ${header.date}</span>
+      </div>
+    </body></html>`;
+  }
+
+  function openEmailModal() {
+    setEmailResult(null);
+    setEmailDraft({
+      to: header.clientEmail,
+      cc: '',
+      subject: `Quotation #${header.quoteNumber} – ${header.ourCompany}`,
+      body: `Dear ${header.clientName || header.clientCompany || 'Sir/Madam'},\n\nPlease find attached our quotation #${header.quoteNumber} dated ${header.date}, valid until ${header.validUntil}.\n\nTotal amount: ${fmt(totals.inc, header.currency)} (incl. VAT)\n\nPlease don't hesitate to contact us if you have any questions.\n\nKind regards,\n${header.ourCompany}\n${header.ourEmail}`,
+    });
+    setEmailOpen(true);
+  }
+
+  async function sendEmail() {
+    if (!emailDraft.to) return;
+    setEmailSending(true);
+    setEmailResult(null);
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.post(`${API}/mail/send-quote`, {
+        to: emailDraft.to,
+        cc: emailDraft.cc || undefined,
+        subject: emailDraft.subject,
+        bodyText: emailDraft.body,
+        bodyHtml: buildEmailHtml(),
+        replyTo: header.ourEmail,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setEmailResult('sent');
+    } catch {
+      setEmailResult('error');
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
   return (
     <>
       {/* Print styles */}
@@ -230,6 +338,10 @@ export default function QuoteCalculatorPage() {
             <button type="button" onClick={fakesSave}
               className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
               {saved ? <><Check size={14} className="text-green-500" /> Saved</> : <><Save size={14} /> Save draft</>}
+            </button>
+            <button type="button" onClick={openEmailModal}
+              className="flex items-center gap-2 px-4 py-2 bg-[#C8860A] text-white text-sm font-semibold rounded-lg hover:bg-[#b37509]">
+              <Send size={14} /> Send Email
             </button>
             <button type="button" onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-[#1A3C5E] text-white text-sm font-semibold rounded-lg hover:bg-[#112E4D]">
@@ -571,6 +683,95 @@ export default function QuoteCalculatorPage() {
         </div>
 
       </div>
+
+      {/* ── Email Modal ────────────────────────────────────────────────────── */}
+      {emailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm no-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Send size={16} className="text-[#C8860A]" />
+                <h3 className="font-bold text-gray-900">Send Quotation by Email</h3>
+              </div>
+              <button type="button" onClick={() => setEmailOpen(false)} title="Close"
+                className="p-1 text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* To */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">To *</label>
+                <input type="email" value={emailDraft.to}
+                  onChange={e => setEmailDraft(d => ({ ...d, to: e.target.value }))}
+                  placeholder="client@example.com"
+                  className={inp} />
+              </div>
+
+              {/* CC */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">CC (optional)</label>
+                <input type="email" value={emailDraft.cc}
+                  onChange={e => setEmailDraft(d => ({ ...d, cc: e.target.value }))}
+                  placeholder="colleague@blikcart.nl"
+                  className={inp} />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Subject</label>
+                <input type="text" value={emailDraft.subject} title="Email subject" placeholder="Subject"
+                  onChange={e => setEmailDraft(d => ({ ...d, subject: e.target.value }))}
+                  className={inp} />
+              </div>
+
+              {/* Body */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Message</label>
+                <textarea value={emailDraft.body} rows={7} title="Email message body" placeholder="Write your message…"
+                  onChange={e => setEmailDraft(d => ({ ...d, body: e.target.value }))}
+                  className={ta} />
+                <p className="text-xs text-gray-400 mt-1">The full formatted quotation table is included automatically in the email body.</p>
+              </div>
+
+              {/* Result feedback */}
+              {emailResult === 'sent' && (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm">
+                  <Check size={15} /> Email sent successfully!
+                </div>
+              )}
+              {emailResult === 'error' && (
+                <div className="text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
+                  Failed to send. Check SMTP settings or use the mailto link below.
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+              {/* Fallback: open in mail client */}
+              <a href={`mailto:${emailDraft.to}?cc=${emailDraft.cc}&subject=${encodeURIComponent(emailDraft.subject)}&body=${encodeURIComponent(emailDraft.body)}`}
+                className="text-sm text-[#1A3C5E] underline hover:text-[#112E4D]"
+                target="_blank" rel="noreferrer">
+                Open in mail client
+              </a>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setEmailOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="button" onClick={sendEmail} disabled={!emailDraft.to || emailSending}
+                  className="flex items-center gap-2 px-5 py-2 bg-[#C8860A] text-white text-sm font-semibold rounded-lg hover:bg-[#b37509] disabled:opacity-50">
+                  {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {emailSending ? 'Sending…' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
