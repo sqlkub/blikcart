@@ -1,6 +1,6 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { MailService } from './mail.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 class SendQuoteDto {
@@ -24,7 +24,7 @@ class SendQuoteDto {
 }
 
 @Controller('mail')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class MailController {
   constructor(private mail: MailService) {}
 
